@@ -124,4 +124,12 @@ namespace PXTEngine {
 
         return attributeDescriptions;
     }
+
+    std::vector<VkVertexInputAttributeDescription> VulkanMesh::getVertexAttributeDescriptionOnlyPositon() {
+        std::vector<VkVertexInputAttributeDescription> attributeDescriptions{};
+
+        attributeDescriptions.emplace_back(0, 0, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(Mesh::Vertex, position));
+
+        return attributeDescriptions;
+    }
 }
