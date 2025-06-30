@@ -4,9 +4,6 @@
 #include "ubo/shadow_ubo.glsl"
 
 layout(location = 0) in vec4 position;
-layout(location = 1) in vec4 normal;
-layout(location = 2) in vec4 tangent;
-layout(location = 3) in vec4 uv;
 
 layout(location = 0) out vec3 fragPosWorld;
 layout(location = 1) out vec3 fragLightPos;
