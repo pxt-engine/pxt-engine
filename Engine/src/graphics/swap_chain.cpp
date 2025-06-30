@@ -334,6 +334,7 @@ namespace PXTEngine {
         }
     }
 
+    // https://github.com/KhronosGroup/Vulkan-Guide/blob/main/chapters/swapchain_semaphore_reuse.adoc
     void SwapChain::createSyncObjects() {
         m_imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
         m_renderFinishedSemaphores.resize(imageCount());
