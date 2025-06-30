@@ -18,7 +18,6 @@ namespace PXTEngine {
 	Pipeline::Pipeline(Context& context, const RayTracingPipelineConfigInfo& configInfo)
         : m_context(context) {
 		createRayTracingPipeline(configInfo);
-		VulkanShader(m_context, SPV_SHADERS_PATH + "material_shader.vert.spv");
 	}
 
 	Pipeline::~Pipeline() {
