@@ -391,6 +391,11 @@ namespace PXTEngine {
 		updateShadowCubeMapDebugWindow();
 	}
 
+	void ShadowMapRenderSystem::reloadShaders() {
+		PXT_INFO("Reloading shaders...");
+		createPipeline(false);
+	}
+
 	void ShadowMapRenderSystem::updateShadowCubeMapDebugWindow() {
 		ImTextureID cube_posx = (ImTextureID)m_shadowMapDebugDescriptorSets[0];
 		ImTextureID cube_negx = (ImTextureID)m_shadowMapDebugDescriptorSets[1];

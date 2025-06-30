@@ -153,6 +153,7 @@ namespace PXTEngine {
     }
 
     void DebugRenderSystem::reloadShaders() {
+        PXT_INFO("Reloading shaders...");
         createPipelines(false);
     }
 }

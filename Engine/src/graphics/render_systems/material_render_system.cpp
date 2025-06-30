@@ -148,6 +148,7 @@ namespace PXTEngine {
     }
 
     void MaterialRenderSystem::reloadShaders() {
+        PXT_INFO("Reloading shaders...");
 		createPipeline(false);
     }
 }

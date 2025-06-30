@@ -334,9 +334,9 @@ namespace PXTEngine {
 		// reload shaders in all render systems
 		m_materialRenderSystem->reloadShaders();
 		m_debugRenderSystem->reloadShaders();
-		//m_skyboxRenderSystem->reloadShaders();
-		//m_pointLightSystem->reloadShaders();
-		//m_shadowMapRenderSystem->reloadShaders();
+		m_skyboxRenderSystem->reloadShaders();
+		m_pointLightSystem->reloadShaders();
+		m_shadowMapRenderSystem->reloadShaders();
 		//m_rayTracingRenderSystem->reloadShaders();
 
 		PXT_INFO("Shaders reloaded successfully.");

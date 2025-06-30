@@ -10,12 +10,13 @@ namespace PXTEngine {
 		Shared<Environment> environment,
         DescriptorSetLayout& globalSetLayout,
         VkRenderPass renderPass)
-        : m_context(context)
+		: m_context(context),
+		m_renderPass(renderPass)
     {
 		m_skybox = std::static_pointer_cast<VulkanSkybox>(environment->getSkybox());
 
         createPipelineLayout(globalSetLayout);
-        createPipeline(renderPass);
+        createPipeline();
     }
 
     SkyboxRenderSystem::~SkyboxRenderSystem() {
@@ -40,12 +41,12 @@ namespace PXTEngine {
         }
     }
 
-    void SkyboxRenderSystem::createPipeline(VkRenderPass renderPass, bool useCompiledSpirvFiles) {
+    void SkyboxRenderSystem::createPipeline(bool useCompiledSpirvFiles) {
         PXT_ASSERT(m_pipelineLayout != nullptr, "Cannot create skybox pipeline before pipelineLayout");
 
         RasterizationPipelineConfigInfo pipelineConfig{};
         Pipeline::defaultPipelineConfigInfo(pipelineConfig);
-        pipelineConfig.renderPass = renderPass;
+        pipelineConfig.renderPass = m_renderPass;
         pipelineConfig.pipelineLayout = m_pipelineLayout;
 
         // Skybox-specific pipeline settings:
@@ -94,6 +95,11 @@ namespace PXTEngine {
 
         // Draw 36 vertices (12 triangles) for a cube
         vkCmdDraw(frameInfo.commandBuffer, 36, 1, 0, 0);
+    }
+
+    void SkyboxRenderSystem::reloadShaders() {
+        PXT_INFO("Reloading shaders...");
+        createPipeline(false);
     }
 
 } 
