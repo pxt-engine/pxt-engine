@@ -332,12 +332,15 @@ namespace PXTEngine {
 		PXT_INFO("Reloading shaders in MasterRenderSystem...");
 
 		// reload shaders in all render systems
-		m_materialRenderSystem->reloadShaders();
-		m_debugRenderSystem->reloadShaders();
-		m_skyboxRenderSystem->reloadShaders();
-		m_pointLightSystem->reloadShaders();
-		m_shadowMapRenderSystem->reloadShaders();
-		//m_rayTracingRenderSystem->reloadShaders();
+		if (m_isRaytracingEnabled) {
+			m_rayTracingRenderSystem->reloadShaders();
+		} else {
+			m_materialRenderSystem->reloadShaders();
+			m_debugRenderSystem->reloadShaders();
+			m_skyboxRenderSystem->reloadShaders();
+			m_pointLightSystem->reloadShaders();
+			m_shadowMapRenderSystem->reloadShaders();
+		}
 
 		PXT_INFO("Shaders reloaded successfully.");
 	}
@@ -521,6 +524,13 @@ namespace PXTEngine {
 
 		ImGui::Begin("Raytracing Renderer");
 		ImGui::Checkbox("Enable Raytracing", &m_isRaytracingEnabled);
+
+		ImGui::TextColored(ImVec4(0.8, 0.6, 0.1, 1.0), 
+			"If changes were made to the %s shaders\n(prior of switching render type), you need to reload them!", 
+			m_isRaytracingEnabled ? "Raytracing" : "Rasterization");
+
+		ImGui::Dummy(ImVec2(0.0f, 10.0f));
+
 		if (m_isRaytracingEnabled) {
 			ImGui::Checkbox("Enable Accumulation", &m_isAccumulationEnabled);
 		}

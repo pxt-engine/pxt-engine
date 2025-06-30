@@ -94,7 +94,6 @@ namespace PXTEngine {
         Context& m_context;
         VkPipeline m_pipeline;
 
-        std::vector<VkShaderModule> m_shaderModules{};
 		VkPipelineBindPoint m_pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
     };
 }

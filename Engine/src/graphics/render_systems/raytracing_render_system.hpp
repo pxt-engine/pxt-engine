@@ -26,6 +26,7 @@ namespace PXTEngine {
         void update(FrameInfo& frameInfo);
         void render(FrameInfo& frameInfo, Renderer& renderer);
 		void transitionImageToShaderReadOnlyOptimal(FrameInfo& frameInfo);
+		void reloadShaders();
 
         void updateSceneImage(Shared<VulkanImage> sceneImage);
 
@@ -36,7 +37,7 @@ namespace PXTEngine {
 		void createDescriptorSets();
 		void defineShaderGroups();
         void createPipelineLayout(DescriptorSetLayout& setLayout);
-        void createPipeline();
+        void createPipeline(bool useCompiledSpirvFiles = true);
 		void createShaderBindingTable();
 
         Context& m_context;

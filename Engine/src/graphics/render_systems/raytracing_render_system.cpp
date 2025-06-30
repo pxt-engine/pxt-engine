@@ -74,7 +74,7 @@ namespace PXTEngine {
 				{
 					// Shader stages + filepaths
 					// only one shader stage for raygen is permitted
-					{VK_SHADER_STAGE_RAYGEN_BIT_KHR, SPV_SHADERS_PATH + "pathtracing.rgen.spv"}
+					{VK_SHADER_STAGE_RAYGEN_BIT_KHR, "pathtracing.rgen"}
 				}
 			},
 			// General Miss Group
@@ -83,7 +83,7 @@ namespace PXTEngine {
 				{
 					// Shader stages + filepaths
 					// here we can have multiple miss shaders
-					{VK_SHADER_STAGE_MISS_BIT_KHR, SPV_SHADERS_PATH + "pathtracing.rmiss.spv"}
+					{VK_SHADER_STAGE_MISS_BIT_KHR, "pathtracing.rmiss"}
 				}
 			},
 			// Visibility Miss Group
@@ -92,7 +92,7 @@ namespace PXTEngine {
 				{
 					// Shader stages + filepaths
 					// here we can have multiple miss shaders
-					{VK_SHADER_STAGE_MISS_BIT_KHR, SPV_SHADERS_PATH + "visibility.rmiss.spv"}
+					{VK_SHADER_STAGE_MISS_BIT_KHR, "visibility.rmiss"}
 				}
 			},
 			// Closest Hit Group (Triangle Hit Group)
@@ -101,7 +101,7 @@ namespace PXTEngine {
 				{
 					// Shader stages + filepaths
 					// here there can be a chit, ahit or intersection shader (every combination of these)
-					{VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, SPV_SHADERS_PATH + "pathtracing.rchit.spv"}
+					{VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, "pathtracing.rchit"}
 				}
 			},
 			// Closest Hit Group (Visibility Hit Group)
@@ -110,7 +110,7 @@ namespace PXTEngine {
 				{
 					// Shader stages + filepaths
 					// here there can be a chit, ahit or intersection shader (every combination of these)
-					{VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, SPV_SHADERS_PATH + "visibility.rchit.spv"}
+					{VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, "visibility.rchit"}
 				}
 			},
 		};
@@ -140,11 +140,21 @@ namespace PXTEngine {
 		}
 	}
 
-	void RayTracingRenderSystem::createPipeline() {
+	void RayTracingRenderSystem::createPipeline(bool useCompiledSpirvFiles) {
 		RayTracingPipelineConfigInfo pipelineConfig{};
 		pipelineConfig.shaderGroups = m_shaderGroups;
 		pipelineConfig.pipelineLayout = m_pipelineLayout;
 		pipelineConfig.maxPipelineRayRecursionDepth = 2; // for now
+
+		const std::string baseShaderPath = useCompiledSpirvFiles ? SPV_SHADERS_PATH : SHADERS_PATH + "raytracing/";
+		const std::string filenameSuffix = useCompiledSpirvFiles ? ".spv" : "";
+
+		for (auto& group : pipelineConfig.shaderGroups) {
+			for (auto& stage : group.stages) {
+				stage.second = baseShaderPath + stage.second + filenameSuffix;
+			}
+		}
+
 		m_pipeline = createUnique<Pipeline>(
 			m_context,
 			pipelineConfig
@@ -376,5 +386,11 @@ namespace PXTEngine {
 			VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR,
 			VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT
 		);
+	}
+	void RayTracingRenderSystem::reloadShaders() {
+		PXT_INFO("Reloading shaders...");
+
+		createPipeline(false);
+		createShaderBindingTable();
 	}
 }

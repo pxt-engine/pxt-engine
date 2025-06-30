@@ -21,9 +21,6 @@ namespace PXTEngine {
 	}
 
 	Pipeline::~Pipeline() {
-		for (const auto shaderModule : m_shaderModules) {
-			vkDestroyShaderModule(m_context.getDevice(), shaderModule, nullptr);
-		}
         vkDestroyPipeline(m_context.getDevice(), m_pipeline, nullptr);
     }
 
@@ -145,6 +142,7 @@ namespace PXTEngine {
 		// Containers to keep created shader stage infos and shader group infos.
 		std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
 		std::vector<VkRayTracingShaderGroupCreateInfoKHR> shaderGroups;
+		std::vector<Unique<VulkanShader>> shaders{};
 
 		// Loop each group
 		for (const auto& group : configInfo.shaderGroups) {
@@ -161,23 +159,10 @@ namespace PXTEngine {
 			shaderGroupInfo.pShaderGroupCaptureReplayHandle = nullptr; // Optional
 
 			for (const auto& [stage, filepath] : group.stages) {
-				// Read the shader binary code from the file.
-				auto shaderCode = readFile(filepath);
+				// create vulkan shader
+				shaders.push_back(createUnique<VulkanShader>(m_context, filepath));
 
-				// Create the shader module.
-				VkShaderModule shaderModule;
-				createShaderModule(shaderCode, &shaderModule);
-				m_shaderModules.push_back(shaderModule);
-
-				// Prepare the shader stage create info.
-				VkPipelineShaderStageCreateInfo shaderStageInfo{};
-				shaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-				shaderStageInfo.stage = stage;
-				shaderStageInfo.module = shaderModule;
-				shaderStageInfo.pName = "main";
-				shaderStageInfo.flags = 0;
-				shaderStageInfo.pNext = nullptr;
-				shaderStages.push_back(shaderStageInfo);
+				shaderStages.push_back(shaders.back()->getShaderStageCreateInfo());
 
 				uint32_t currentStageIndex = static_cast<uint32_t>(shaderStages.size() - 1);
 
@@ -237,13 +222,6 @@ namespace PXTEngine {
 		}
 
 		m_pipelineBindPoint = VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR;
-
-		// --- Clean up: Destroy the shader modules ---
-		for (auto& shaderModule : m_shaderModules) {
-			vkDestroyShaderModule(m_context.getDevice(), shaderModule, nullptr);
-			shaderModule = VK_NULL_HANDLE;
-		}
-		m_shaderModules.clear();
 	}
 
 	void Pipeline::bind(VkCommandBuffer commandBuffer) {
