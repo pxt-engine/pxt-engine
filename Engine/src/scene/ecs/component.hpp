@@ -46,6 +46,49 @@ namespace PXTEngine
 		operator const glm::vec3& () const { return color; }
 	};
 
+	struct VolumeComponent {
+		// Absorption coefficient for the medium
+		glm::vec3 absorption{ 0.0f, 0.0f, 0.0f };
+
+		// Scattering coefficient for the medium
+		glm::vec3 scattering{ 0.0f, 0.0f, 0.0f };
+
+		// Phase function parameter for Henyey-Greenstein phase function
+		float phaseFunctionG = 0.0f;
+
+		VolumeComponent() = default;
+		VolumeComponent(const VolumeComponent&) = default;
+		VolumeComponent(const glm::vec3& absorption, const glm::vec3& scattering, float phaseFunctionG)
+			: absorption(absorption), scattering(scattering), phaseFunctionG(phaseFunctionG) {
+		}
+
+		struct Builder {
+			glm::vec3 absorption{ 0.0f, 0.0f, 0.0f };
+			glm::vec3 scattering{ 0.0f, 0.0f, 0.0f };
+			float phaseFunctionG = 0.0f;
+
+			Builder& setAbsorption(const glm::vec3& absorption) {
+				this->absorption = absorption;
+				return *this;
+			}
+
+			Builder& setScattering(const glm::vec3& scattering) {
+				this->scattering = scattering;
+				return *this;
+			}
+
+			Builder& setPhaseFunctionG(float phaseFunctionG) {
+				this->phaseFunctionG = phaseFunctionG;
+				return *this;
+			}
+
+			VolumeComponent build() {
+				return VolumeComponent(absorption, scattering, phaseFunctionG);
+			}
+		};
+	
+	};
+
 	struct MaterialComponent {
 		Shared<Material> material;
 		float tilingFactor = 1.0f;
