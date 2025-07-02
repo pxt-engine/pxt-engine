@@ -42,8 +42,11 @@ float pow2(float x) {
     return x * x;
 }
 
+/**
+ * Computes x^4 using only multiply operations.
+ */
 float pow4(float x) {
-    float x2 = x * x;
+    const float x2 = x * x;
     return x2 * x2;
 }
 
@@ -51,7 +54,7 @@ float pow4(float x) {
  * Computes x^5 using only multiply operations.
  */
 float pow5(float x) {
-    float x2 = x * x;
+    const float x2 = x * x;
     return x2 * x2 * x;
 }
 
