@@ -2,10 +2,10 @@
 #define _RAY_
 
 // Minimum intersection distance
-#define RAY_T_MIN 0.001
+#define RAY_T_MIN 0.01
 
 // Maximum intersection distance
-#define RAY_T_MAX 10000.0
+#define RAY_T_MAX 100.0
 
 struct Ray {
 	vec3 origin;
