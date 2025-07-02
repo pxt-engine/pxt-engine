@@ -1,6 +1,7 @@
 #include "graphics/render_systems/raytracing_scene_manager_system.hpp"
 
 #include "scene/ecs/component.hpp"
+#include "scene/ecs/entity.hpp"
 
 namespace PXTEngine {
 	RayTracingSceneManagerSystem::RayTracingSceneManagerSystem(Context& context, MaterialRegistry& materialRegistry, 
@@ -27,13 +28,17 @@ namespace PXTEngine {
 		std::vector<VkAccelerationStructureInstanceKHR> instances;
 	
 		//  Get all BLAS and components from entities that have transform & mesh components 
-		auto view = frameInfo.scene.getEntitiesWith<TransformComponent, MeshComponent, MaterialComponent>();
+		auto view = frameInfo.scene.getEntitiesWith<TransformComponent, MeshComponent>();
 
 		int instanceIndex = 0;
-		for (auto entity : view) {
-			const auto& [transformComponent, meshComponent, materialComponent] = view.get<TransformComponent, MeshComponent, MaterialComponent>(entity);
+		for (auto entityHandle : view) {
+			Entity entity(entityHandle, &frameInfo.scene);
+
+			if (!entity.hasAny<MaterialComponent, VolumeComponent>()) continue;
+
+
+			const auto& [transformComponent, meshComponent] = view.get<TransformComponent, MeshComponent>(entityHandle);
 			
-			auto material = materialComponent.material;
 			auto mesh = meshComponent.mesh;
 
 			Shared<BLAS> blas = m_blasRegistry.getOrCreateBLAS(mesh);
@@ -52,12 +57,35 @@ namespace PXTEngine {
 
 			auto vkMesh = static_pointer_cast<VulkanMesh>(mesh);
 
+			const uint32_t invalidIndex = std::numeric_limits<uint32_t>::max();
+
 			MeshInstanceData meshInstanceData{};
 			meshInstanceData.vertexBufferAddress = vkMesh->getVertexBufferDeviceAddress();
 			meshInstanceData.indexBufferAddress = vkMesh->getIndexBufferDeviceAddress();
-			meshInstanceData.materialIndex = m_materialRegistry.getIndex(material->id);
-			meshInstanceData.textureTintColor = glm::vec4(materialComponent.tint, 1.0f);
-			meshInstanceData.textureTilingFactor = materialComponent.tilingFactor;
+			meshInstanceData.materialIndex = invalidIndex;
+			meshInstanceData.volumeIndex = invalidIndex;
+		
+			// Add material properties to the instance data
+			if (entity.has<MaterialComponent>()) {
+				instance.mask = 0xFF;
+				auto& materialComponent = entity.get<MaterialComponent>();
+
+				meshInstanceData.materialIndex = m_materialRegistry.getIndex(materialComponent.material->id);
+				meshInstanceData.textureTintColor = glm::vec4(materialComponent.tint, 1.0f);
+				meshInstanceData.textureTilingFactor = materialComponent.tilingFactor;
+
+				// register entities with emissive materials
+				if (materialComponent.material->isEmissive()) {
+					EmitterData emitterData{};
+					emitterData.instanceIndex = instanceIndex;
+					emitterData.numberOfFaces = vkMesh->getIndexCount() / 3;
+					m_emitters.push_back(emitterData);
+				}
+			} else if (entity.has<VolumeComponent>()) {
+				// TODO
+				meshInstanceData.volumeIndex = 0;
+			}
+			
 
 			// TODO: may be passed as mat4x3 in the shader for memory bandwidth optimization
 			glm::mat4 transform = transformComponent.mat4();
@@ -67,20 +95,10 @@ namespace PXTEngine {
 
 			m_meshInstanceData.push_back(meshInstanceData);
 
-			// register entities with emissive materials
-			if (materialComponent.material->isEmissive()) {
-				EmitterData emitterData{};
-				emitterData.instanceIndex = instanceIndex;
-				emitterData.numberOfFaces = vkMesh->getIndexCount() / 3; 
-				m_emitters.push_back(emitterData);
-			}
-
 
 			// we can get it in the shader via InstanceCustomIndexKHR
 			instance.instanceCustomIndex = instanceIndex++; // Unique index for each instance
 
-
-			instance.mask = 0xFF; // Visible to all rays initially
 			instance.instanceShaderBindingTableRecordOffset = 0; // this is 0 for every instance for now
 			                                                     // it is the offset in the SBT hit region
 			                                                     // (which hit shader the instance should use)

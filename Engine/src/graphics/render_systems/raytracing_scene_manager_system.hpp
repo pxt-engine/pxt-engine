@@ -12,11 +12,12 @@ namespace PXTEngine {
 		VkDeviceAddress vertexBufferAddress;		// offset 0, size 8
 		VkDeviceAddress indexBufferAddress;			// offset 8, size 8
 		uint32_t materialIndex;						// offset 16, size 4
-		float textureTilingFactor;					// offset 20, size 4
-													// offset 24 -> 8 bit padding 
+		uint32_t volumeIndex;						// offset 20, size 4
+		float textureTilingFactor;					// offset 24, size 4
+													// offset 28 -> 4 bit padding 
 		alignas(16) glm::vec4 textureTintColor;		// offset 32, size 16
-		alignas(16) glm::mat4 objectToWorldMatrix;				// offset 48, size 64 (4x4 matrix, 16 bytes per row)
-		alignas(16) glm::mat4 worldToObjectMatrix;				// offset 112, size 64 (4x4 matrix, 16 bytes per row)
+		alignas(16) glm::mat4 objectToWorldMatrix;	// offset 48, size 64 (4x4 matrix, 16 bytes per row)
+		alignas(16) glm::mat4 worldToObjectMatrix;	// offset 112, size 64 (4x4 matrix, 16 bytes per row)
 	};
 
 	struct alignas(uint32_t) EmitterData {

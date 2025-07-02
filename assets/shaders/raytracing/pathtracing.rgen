@@ -9,8 +9,11 @@
 #include "../common/payload.glsl"
 #include "../common/random.glsl"
 #include "../common/tone_mapping.glsl"
+#include "../common/volume.glsl"
+#include "sky.glsl"
 
 layout(location = PathTracePayloadLocation) rayPayloadEXT PathTracePayload p_pathTrace;
+layout(location = DistancePayloadLocation) rayPayloadEXT float p_distance;
 
 // Declare the top-level acceleration structure (TLAS)
 layout(set = 1, binding = 0) uniform accelerationStructureEXT TLAS;
@@ -53,7 +56,7 @@ void main()
     vec3 finalColor = vec3(0.0);
 
     const uint samplesPerPixel = 1;
-    const int maxBounces = 3;
+    const int maxBounces = 4;
 
     for (uint currentSample = 0; currentSample < samplesPerPixel; ++currentSample) {
         uint seed = tea(gl_LaunchIDEXT.y * gl_LaunchSizeEXT.x + gl_LaunchIDEXT.x, uint(ubo.frameCount));
@@ -69,20 +72,81 @@ void main()
         p_pathTrace.seed = seed;
         p_pathTrace.isSpecularBounce = false;
 
-        while(!p_pathTrace.done && p_pathTrace.depth < maxBounces) {
+        while (!p_pathTrace.done && p_pathTrace.depth < maxBounces) {
+
+            // Query the distance to the nearest surface
+            p_distance = 0.0;
             traceRayEXT(
-                TLAS,               
-                gl_RayFlagsOpaqueEXT, // Ray Flags  
-                0xFF, // Cull Mask          
-                0,                  
-                0,                  
-                0,                  
-                p_pathTrace.origin,     
-                RAY_T_MIN,               
-                p_pathTrace.direction,  
-                RAY_T_MAX,               
-                PathTracePayloadLocation               
+                TLAS,
+                gl_RayFlagsOpaqueEXT,
+                0xFF, 
+                2, 0, 2,
+                p_pathTrace.origin, 
+                RAY_T_MIN,
+                p_pathTrace.direction, 
+                RAY_T_MAX,
+                DistancePayloadLocation
             );
+            float t_hit = p_distance;
+
+            // Sample the medium using Delta Tracking
+            vec3 sigma_a = VOLUME_SIGMA_A;
+            vec3 sigma_s = VOLUME_SIGMA_S;
+            vec3 sigma_t = sigma_a + sigma_s;
+            float sigma_t_maj = maxComponent(sigma_t); // Majorant extinction
+
+            float t_medium = -log(randomFloat(seed)) / sigma_t_maj;
+
+            // Find ray segment inside the volume AABB
+            vec2 volume_interval = intersectAABB(p_pathTrace.origin, p_pathTrace.direction, vec3(-1.2), vec3(1.2));
+            float t_max_volume = min(t_hit, volume_interval.y);
+            
+            // Compare distances and decide event type
+            if (volume_interval.x < t_max_volume && t_medium < (t_max_volume - volume_interval.x)) {
+                // Volumetric Interaction Occurs
+                
+                // Advance ray to the interaction point
+                p_pathTrace.origin += p_pathTrace.direction * (volume_interval.x + t_medium);
+                
+                // Real vs. Null Collision (using Woodcock tracking)
+                vec3 current_sigma_t = sigma_t; // Assuming homogeneous for now
+                if (maxComponent(current_sigma_t) / sigma_t_maj > randomFloat(seed)) {
+                    // It's a "real" collision
+                    vec3 albedo = sigma_s / current_sigma_t;
+
+                    p_pathTrace.isSpecularBounce = true;
+
+                    // Update throughput with scattering albedo
+                    p_pathTrace.throughput *= albedo;
+                    
+                    // Sample new direction using phase function
+                    p_pathTrace.direction = sampleHenyeyGreenstein(p_pathTrace.direction, VOLUME_PHASE_G, seed);
+                    p_pathTrace.depth++;
+
+                }
+
+            } else {
+                // Surface Interaction or No Interaction
+                
+                // No medium interaction happened in the segment. Attenuate by transmittance.
+                // Note: In delta tracking, this is implicitly handled. If a collision was
+                // sampled beyond t_hit, it means no collision happened. We don't need explicit
+                // transmittance multiplication here because the sampling process itself accounts for it.
+                
+                if (t_hit < RAY_T_MAX) {
+                     traceRayEXT(
+                        TLAS,
+                        gl_RayFlagsOpaqueEXT,
+                        0xFF, 
+                        0, 0, 0,
+                        p_pathTrace.origin, 
+                        RAY_T_MIN,
+                        p_pathTrace.direction, 
+                        t_hit + FLT_EPSILON,
+                        PathTracePayloadLocation
+                    );                    
+                } 
+            }            
         }
         
         finalColor += p_pathTrace.radiance;  

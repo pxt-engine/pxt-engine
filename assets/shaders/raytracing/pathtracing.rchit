@@ -13,6 +13,7 @@
 #include "../common/geometry.glsl"
 #include "../common/random.glsl"
 #include "../common/tone_mapping.glsl"
+#include "../common/volume.glsl"
 #include "../ubo/global_ubo.glsl"
 #include "../material/surface_normal.glsl"
 #include "../material/pbr/bsdf.glsl"
@@ -32,10 +33,17 @@ struct Material {
     int emissiveMapIndex;
 };
 
+struct Volume {
+    vec3 absorption;
+    vec3 scattering;
+    float phaseFunctionG;
+};
+
 struct MeshInstanceDescription {
     uint64_t vertexAddress;  
     uint64_t indexAddress;   
     uint materialIndex; 
+    uint volumeIndex; 
     float textureTilingFactor;
     vec4 textureTintColor;
     mat4 objectToWorld;
@@ -275,6 +283,14 @@ void directLighting(SurfaceData surface, vec3 worldPosition, vec3 outLightDir) {
     sampleEmitter(surface, worldPosition, emitterSample);
 
     if (emitterSample.isVisible && emitterSample.radiance != vec3(0.0)) {
+
+        // Volumetric Attenuation for the ray
+        vec3 sigma_t = VOLUME_SIGMA_A + VOLUME_SIGMA_S;
+        if (maxComponent(sigma_t) > 0.0) {
+            vec3 transmittance = exp(-sigma_t * emitterSample.lightDistance);
+            emitterSample.radiance *= transmittance;
+        }
+    
         const vec3 halfVector = normalize(outLightDir + emitterSample.inLightDir);
         const float receiverCos = cosThetaTangent(emitterSample.inLightDir);
 
@@ -387,4 +403,5 @@ void main() {
     p_pathTrace.depth++;
     p_pathTrace.origin = worldPosition + geometricNormal * FLT_EPSILON;
     p_pathTrace.direction = outgoingLightDirection;
+    p_pathTrace.hitDistance = gl_RayTmaxEXT;
 }

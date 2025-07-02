@@ -1,0 +1,49 @@
+#ifndef _VOLUME_
+#define _VOLUME_
+
+#define VOLUME_SIGMA_A vec3(0.5)
+#define VOLUME_SIGMA_S vec3(0.2)
+#define VOLUME_PHASE_G 0.8
+
+
+vec2 intersectAABB(vec3 rayOrigin, vec3 rayDir, vec3 boxMin, vec3 boxMax) {
+    vec3 tMin = (boxMin - rayOrigin) / rayDir;
+    vec3 tMax = (boxMax - rayOrigin) / rayDir;
+    vec3 t1 = min(tMin, tMax);
+    vec3 t2 = max(tMin, tMax);
+    float tNear = max(max(t1.x, t1.y), t1.z);
+    float tFar = min(min(t2.x, t2.y), t2.z);
+    return vec2(tNear, tFar);
+}
+
+float evalHenyeyGreenstein(float cos_theta, float g) {
+    float g2 = g * g;
+    return (1.0 - g2) / (4.0 * PI * pow(1.0 + g2 - 2.0 * g * cos_theta, 1.5));
+}
+
+// Henyey-Greenstein phase function sampling.
+// Returns a new direction in tangent space around (0,0,1)
+vec3 sampleHenyeyGreenstein(vec3 wo, float g, inout uint seed) {
+    float cos_theta;
+    if (abs(g) < 1e-4) {
+        // Isotropic scattering
+        cos_theta = 2.0 * randomFloat(seed) - 1.0;
+    } else {
+        float g2 = g * g;
+        float term = (1.0 - g2) / (1.0 - g + 2.0 * g * randomFloat(seed));
+        cos_theta = (1.0 + g2 - term * term) / (2.0 * g);
+    }
+
+    float sin_theta = sqrt(max(0.0, 1.0 - cos_theta * cos_theta));
+    float phi = 2.0 * PI * randomFloat(seed);
+
+    // Create a local coordinate system
+    vec3 w = wo;
+    vec3 u = (abs(w.x) > 0.1) ? vec3(0, 1, 0) : vec3(1, 0, 0);
+    u = normalize(cross(u, w));
+    vec3 v = cross(w, u);
+
+    return normalize(u * cos(phi) * sin_theta + v * sin(phi) * sin_theta + w * cos_theta);
+}
+
+#endif
