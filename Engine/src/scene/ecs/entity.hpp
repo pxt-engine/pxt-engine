@@ -26,6 +26,17 @@ namespace PXTEngine {
         }
 
         /**
+         * @brief Check if entity has any of the provided components
+         * 
+         * @tparam Component type
+         * @return true if entity has any of the provided components, false otherwise
+		 */
+		template<typename... Components>
+        bool hasAny() {
+            return m_scene->m_registry.any_of<Components...>(m_enttEntity);
+		}
+
+        /**
          * @brief Get a component from entity
          * 
          * @tparam Component type
