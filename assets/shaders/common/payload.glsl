@@ -3,6 +3,7 @@
 
 #define PathTracePayloadLocation  0
 #define VisibilityPayloadLocation 1
+#define DistancePayloadLocation   2
 
 
 struct PathTracePayload {
@@ -20,6 +21,8 @@ struct PathTracePayload {
 
     // The direction of the ray in world space.
     vec3 direction;
+
+	float hitDistance;
 
     // A flag to signal that the path has been terminated (e.g., hit the sky, absorbed).
     bool done;
