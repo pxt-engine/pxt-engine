@@ -1,9 +1,14 @@
 #ifndef _VOLUME_
 #define _VOLUME_
 
-#define VOLUME_SIGMA_A vec3(0.5)
-#define VOLUME_SIGMA_S vec3(0.2)
-#define VOLUME_PHASE_G 0.8
+#define VOLUME_SIGMA_A vec3(0.2) // Absorption coefficient
+#define VOLUME_SIGMA_S vec3(0.2) // Scattering coefficient
+// Henyey-Greenstein phase function parameter [-1.0, 1.0].
+// VOLUME_PHASE_G = 0.0 for isotropic scattering
+// VOLUME_PHASE_G > 0.0 for forward scattering
+// VOLUME_PHASE_G < 0.0 for backward scattering
+#define VOLUME_PHASE_G 0.2
+
 
 
 vec2 intersectAABB(vec3 rayOrigin, vec3 rayDir, vec3 boxMin, vec3 boxMax) {
