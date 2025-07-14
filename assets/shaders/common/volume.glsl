@@ -2,15 +2,25 @@
 #define _VOLUME_
 
 #define VOLUME_SIGMA_A vec3(0.2) // Absorption coefficient
-#define VOLUME_SIGMA_S vec3(0.2) // Scattering coefficient
+#define VOLUME_SIGMA_S vec3(0.8) // Scattering coefficient
 // Henyey-Greenstein phase function parameter [-1.0, 1.0].
 // VOLUME_PHASE_G = 0.0 for isotropic scattering
 // VOLUME_PHASE_G > 0.0 for forward scattering
 // VOLUME_PHASE_G < 0.0 for backward scattering
-#define VOLUME_PHASE_G 0.2
+#define VOLUME_PHASE_G 0.5
 
 
-
+// Finds the intersection points with a bounding box along the given ray.
+// Returns a vec2 with tNear (distance along the ray to the near intersection),
+// and tFar (distance to the far intersection).
+// Interpretation of the intersection result:
+// No Intersection:
+//   - If tNear > tFar: The ray completely missed the box. This occurs if the entry point along one axis is beyond the exit point along another.
+//   - If tFar < 0: The AABB is entirely behind the ray's origin.
+// Intersection:
+//   - If tNear <= tFar && tFar >= 0: A valid intersection occurred.
+//     - If tNear < 0: The ray's origin is inside the AABB. The effective entry point is at t=0 (the ray's origin), and tFar is the exit point.
+//     - If tNear >= 0: The ray enters the AABB at tNear and exits at tFar.
 vec2 intersectAABB(vec3 rayOrigin, vec3 rayDir, vec3 boxMin, vec3 boxMax) {
     vec3 tMin = (boxMin - rayOrigin) / rayDir;
     vec3 tMax = (boxMax - rayOrigin) / rayDir;
