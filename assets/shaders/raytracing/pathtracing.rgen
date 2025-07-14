@@ -94,19 +94,24 @@ void main()
             vec3 sigma_s = VOLUME_SIGMA_S;
             vec3 sigma_t = sigma_a + sigma_s;
             float sigma_t_maj = maxComponent(sigma_t); // Majorant extinction
-
+            
+            // kind of the type of medium interaction ?
             float t_medium = -log(randomFloat(seed)) / sigma_t_maj;
 
             // Find ray segment inside the volume AABB
-            vec2 volume_interval = intersectAABB(p_pathTrace.origin, p_pathTrace.direction, vec3(-1.2), vec3(1.2));
-            float t_max_volume = min(t_hit, volume_interval.y);
+            vec2 volumeIntersectionInterval = intersectAABB(p_pathTrace.origin, p_pathTrace.direction, vec3(-1.2), vec3(1.2));
+            float t_max_volume = min(t_hit, volumeIntersectionInterval.y);
             
             // Compare distances and decide event type
-            if (volume_interval.x < t_max_volume && t_medium < (t_max_volume - volume_interval.x)) {
+            // essentialy the t_medium < t_max_volume - volumeIntersectionInterval.x is a way to say:
+            // "can the ray interact with the medium while passing through it? if the volume is dense or
+            // high scattering, then t_medium is likely to be small, so the ray will interact with the medium
+            // in a short distance from the nearest intersection point".
+            if (volumeIntersectionInterval.x < t_max_volume && t_medium < (t_max_volume - volumeIntersectionInterval.x)) {
                 // Volumetric Interaction Occurs
                 
-                // Advance ray to the interaction point
-                p_pathTrace.origin += p_pathTrace.direction * (volume_interval.x + t_medium);
+                // Advance ray to the interaction point (intersection point + t_medium)
+                p_pathTrace.origin += p_pathTrace.direction * (volumeIntersectionInterval.x + t_medium);
                 
                 // Real vs. Null Collision (using Woodcock tracking)
                 vec3 current_sigma_t = sigma_t; // Assuming homogeneous for now
