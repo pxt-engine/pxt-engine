@@ -95,7 +95,9 @@ void main()
             vec3 sigma_t = sigma_a + sigma_s;
             float sigma_t_maj = maxComponent(sigma_t); // Majorant extinction
             
-            // kind of the type of medium interaction ?
+            // describes the strength of the medium, higher means high probability of being
+            // affected by the medium (so t_medium is the minimum distance to travel inside
+            // the medium before interaction).
             float t_medium = -log(randomFloat(seed)) / sigma_t_maj;
 
             // Find ray segment inside the volume AABB
@@ -117,12 +119,13 @@ void main()
                 vec3 current_sigma_t = sigma_t; // Assuming homogeneous for now
                 if (maxComponent(current_sigma_t) / sigma_t_maj > randomFloat(seed)) {
                     // It's a "real" collision
-                    vec3 albedo = sigma_s / current_sigma_t;
+                    vec3 scatteringAlbedo = sigma_s / current_sigma_t;
 
                     p_pathTrace.isSpecularBounce = true;
 
+                    //TODO: probably to change is incorect
                     // Update throughput with scattering albedo
-                    p_pathTrace.throughput *= albedo;
+                    p_pathTrace.throughput *= scatteringAlbedo;
                     
                     // Sample new direction using phase function
                     p_pathTrace.direction = sampleHenyeyGreenstein(p_pathTrace.direction, VOLUME_PHASE_G, seed);
