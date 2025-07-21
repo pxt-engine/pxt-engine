@@ -19,9 +19,6 @@
 #include "../material/pbr/bsdf.glsl"
 #include "sky.glsl"
 
-// Min depth for Russian Roulette termination
-#define MIN_DEPTH 3
-
 struct Material {
 	vec4 albedoColor;
     vec4 emissiveColor;
@@ -327,22 +324,9 @@ void indirectLighting(SurfaceData surface, vec3 outLightDir, out vec3 inLightDir
         p_pathTrace.done = true;
         return;
     }
-
-    // Apply Russian Roulette termination 
-    float russianRouletteProbability = 1.0f;
-    if (p_pathTrace.depth > MIN_DEPTH) {
-        // Calculate the Russian Roulette probability based on the max component of the throughput
-        // to ensure that the path is terminated with a probability proportional to its contribution.
-        russianRouletteProbability = maxComponent(p_pathTrace.throughput);
-
-        if (randomFloat(p_pathTrace.seed) > russianRouletteProbability) {
-            p_pathTrace.done = true;
-            return;
-        }
-    }
     
     p_pathTrace.isSpecularBounce = isSpecular;
-    p_pathTrace.throughput *= brdf_multiplier / russianRouletteProbability;
+    p_pathTrace.throughput *= brdf_multiplier;
 }
 
 void main() {

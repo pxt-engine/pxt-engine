@@ -12,6 +12,10 @@
 #include "../common/volume.glsl"
 #include "sky.glsl"
 
+
+// Min depth for Russian Roulette termination
+#define RR_MIN_DEPTH 3
+
 layout(location = PathTracePayloadLocation) rayPayloadEXT PathTracePayload p_pathTrace;
 layout(location = DistancePayloadLocation) rayPayloadEXT float p_distance;
 
@@ -154,12 +158,30 @@ void main()
                         PathTracePayloadLocation
                     );                    
                 } 
-            }            
+            }  
+
+            // Apply Russian Roulette Termination
+            if (p_pathTrace.depth > RR_MIN_DEPTH) {
+                // Calculate the Russian Roulette probability based on the max component of the throughput
+                // to ensure that the path is terminated with a probability proportional to its contribution.
+                float russianRouletteProbability = maxComponent(p_pathTrace.throughput);
+
+                if (randomFloat(p_pathTrace.seed) > russianRouletteProbability) {
+                    // if we need to terminate we go to the next sample
+                    p_pathTrace.done = true;
+                    break;
+                }
+
+                // Otherwise, we continue the path tracing with a reduced throughput
+                p_pathTrace.throughput /= russianRouletteProbability;
+            }
         }
         
+        // we add the sample radiance to the final color
         finalColor += p_pathTrace.radiance;  
     }
 
+    // then we average the final color by the number of samples
     finalColor /= samplesPerPixel;
 
     if (ubo.accumulationEnabled) {
