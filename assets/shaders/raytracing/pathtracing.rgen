@@ -9,15 +9,11 @@
 #include "../common/payload.glsl"
 #include "../common/random.glsl"
 #include "../common/tone_mapping.glsl"
-#include "../common/volume.glsl"
-#include "sky.glsl"
-
 
 // Min depth for Russian Roulette termination
 #define RR_MIN_DEPTH 3
 
 layout(location = PathTracePayloadLocation) rayPayloadEXT PathTracePayload p_pathTrace;
-layout(location = DistancePayloadLocation) rayPayloadEXT float p_distance;
 
 // Declare the top-level acceleration structure (TLAS)
 layout(set = 1, binding = 0) uniform accelerationStructureEXT TLAS;
@@ -60,7 +56,7 @@ void main()
     vec3 finalColor = vec3(0.0);
 
     const uint samplesPerPixel = 1;
-    const int maxBounces = 4;
+    const int maxBounces = 3;
 
     for (uint currentSample = 0; currentSample < samplesPerPixel; ++currentSample) {
         uint seed = tea(gl_LaunchIDEXT.y * gl_LaunchSizeEXT.x + gl_LaunchIDEXT.x, uint(ubo.frameCount));
@@ -76,89 +72,20 @@ void main()
         p_pathTrace.seed = seed;
         p_pathTrace.isSpecularBounce = false;
 
-        while (!p_pathTrace.done && p_pathTrace.depth < maxBounces) {
-
-            // Query the distance to the nearest surface
-            p_distance = 0.0;
+        while(!p_pathTrace.done && p_pathTrace.depth < maxBounces) {
             traceRayEXT(
-                TLAS,
-                gl_RayFlagsOpaqueEXT,
-                0xFF, 
-                2, 0, 2,
-                p_pathTrace.origin, 
-                RAY_T_MIN,
-                p_pathTrace.direction, 
-                RAY_T_MAX,
-                DistancePayloadLocation
+                TLAS,               
+                gl_RayFlagsOpaqueEXT, // Ray Flags  
+                0xFF, // Cull Mask          
+                0,                  
+                0,                  
+                0,                  
+                p_pathTrace.origin,     
+                RAY_T_MIN,               
+                p_pathTrace.direction,  
+                RAY_T_MAX,               
+                PathTracePayloadLocation               
             );
-            float t_hit = p_distance;
-
-            // Sample the medium using Delta Tracking
-            vec3 sigma_a = VOLUME_SIGMA_A;
-            vec3 sigma_s = VOLUME_SIGMA_S;
-            vec3 sigma_t = sigma_a + sigma_s;
-            float sigma_t_maj = maxComponent(sigma_t); // Majorant extinction
-            
-            // describes the strength of the medium, higher means high probability of being
-            // affected by the medium (so t_medium is the minimum distance to travel inside
-            // the medium before interaction).
-            float t_medium = -log(randomFloat(seed)) / sigma_t_maj;
-
-            // Find ray segment inside the volume AABB
-            vec2 volumeIntersectionInterval = intersectAABB(p_pathTrace.origin, p_pathTrace.direction, vec3(-1.2), vec3(1.2));
-            float t_max_volume = min(t_hit, volumeIntersectionInterval.y);
-            
-            // Compare distances and decide event type
-            // essentialy the t_medium < t_max_volume - volumeIntersectionInterval.x is a way to say:
-            // "can the ray interact with the medium while passing through it? if the volume is dense or
-            // high scattering, then t_medium is likely to be small, so the ray will interact with the medium
-            // in a short distance from the nearest intersection point".
-            if (volumeIntersectionInterval.x < t_max_volume && t_medium < (t_max_volume - volumeIntersectionInterval.x)) {
-                // Volumetric Interaction Occurs
-                
-                // Advance ray to the interaction point (intersection point + t_medium)
-                p_pathTrace.origin += p_pathTrace.direction * (volumeIntersectionInterval.x + t_medium);
-                
-                // Real vs. Null Collision (using Woodcock tracking)
-                vec3 current_sigma_t = sigma_t; // Assuming homogeneous for now
-                if (maxComponent(current_sigma_t) / sigma_t_maj > randomFloat(seed)) {
-                    // It's a "real" collision
-                    vec3 scatteringAlbedo = sigma_s / current_sigma_t;
-
-                    p_pathTrace.isSpecularBounce = true;
-
-                    //TODO: probably to change is incorect
-                    // Update throughput with scattering albedo
-                    p_pathTrace.throughput *= scatteringAlbedo;
-                    
-                    // Sample new direction using phase function
-                    p_pathTrace.direction = sampleHenyeyGreenstein(p_pathTrace.direction, VOLUME_PHASE_G, seed);
-                    p_pathTrace.depth++;
-
-                }
-
-            } else {
-                // Surface Interaction or No Interaction
-                
-                // No medium interaction happened in the segment. Attenuate by transmittance.
-                // Note: In delta tracking, this is implicitly handled. If a collision was
-                // sampled beyond t_hit, it means no collision happened. We don't need explicit
-                // transmittance multiplication here because the sampling process itself accounts for it.
-                
-                if (t_hit < RAY_T_MAX) {
-                     traceRayEXT(
-                        TLAS,
-                        gl_RayFlagsOpaqueEXT,
-                        0xFF, 
-                        0, 0, 0,
-                        p_pathTrace.origin, 
-                        RAY_T_MIN,
-                        p_pathTrace.direction, 
-                        t_hit + FLT_EPSILON,
-                        PathTracePayloadLocation
-                    );                    
-                } 
-            }  
 
             // Apply Russian Roulette Termination
             if (p_pathTrace.depth > RR_MIN_DEPTH) {
@@ -177,11 +104,9 @@ void main()
             }
         }
         
-        // we add the sample radiance to the final color
         finalColor += p_pathTrace.radiance;  
     }
 
-    // then we average the final color by the number of samples
     finalColor /= samplesPerPixel;
 
     if (ubo.accumulationEnabled) {

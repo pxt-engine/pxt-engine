@@ -66,5 +66,155 @@ namespace PXTEngine {
 		Unique<DescriptorSetLayout> m_storageImageDescriptorSetLayout = nullptr;
 
         uint32_t m_ptAccumulationFrameCount = 0;
+
+		const std::vector<ShaderGroupInfo> SHADER_GROUPS_PT = {
+				// General RayGen Group
+				{
+					VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR,
+					{
+					// Shader stages + filepaths
+					// only one shader stage for raygen is permitted
+					{VK_SHADER_STAGE_RAYGEN_BIT_KHR, "pathtracing.rgen"}
+				}
+			},
+				// General Miss Group
+				{
+					VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR,
+					{
+					// Shader stages + filepaths
+					// here we can have multiple miss shaders
+					{VK_SHADER_STAGE_MISS_BIT_KHR, "pathtracing.rmiss"}
+				}
+			},
+				// Visibility Miss Group
+				{
+					VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR,
+					{
+					// Shader stages + filepaths
+					// here we can have multiple miss shaders
+					{VK_SHADER_STAGE_MISS_BIT_KHR, "visibility.rmiss"}
+				}
+			},
+				// Visibility Miss Group
+				{
+					VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR,
+					{
+					// Shader stages + filepaths
+					// here we can have multiple miss shaders
+					{VK_SHADER_STAGE_MISS_BIT_KHR, "visibility.rmiss"}
+				}
+			},
+				// Distance Miss Group
+				{
+					VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR,
+					{
+					// Shader stages + filepaths
+					// here we can have multiple miss shaders
+					{VK_SHADER_STAGE_MISS_BIT_KHR, "distance.rmiss"}
+				}
+			},
+				// Closest Hit Group (Triangle Hit Group)
+				{
+					VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR,
+					{
+					// Shader stages + filepaths
+					// here there can be a chit, ahit or intersection shader (every combination of these)
+					{VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, "pathtracing.rchit"}
+				}
+			},
+				// Closest Hit Group (Visibility Hit Group)
+				{
+					VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR,
+					{
+					// Shader stages + filepaths
+					// here there can be a chit, ahit or intersection shader (every combination of these)
+					{VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, "visibility.rchit"}
+				}
+			},
+				// Closest Hit Group (Distance Hit Group)
+				{
+					VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR,
+					{
+					// Shader stages + filepaths
+					// here there can be a chit, ahit or intersection shader (every combination of these)
+					{VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, "distance.rchit"}
+				}
+			},
+		};
+
+		const std::vector<ShaderGroupInfo> SHADER_GROUPS_VOL_PT = {
+				// General RayGen Group
+				{
+					VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR,
+					{
+					// Shader stages + filepaths
+					// only one shader stage for raygen is permitted
+					{VK_SHADER_STAGE_RAYGEN_BIT_KHR, "vol_pathtracing.rgen"}
+				}
+			},
+				// General Miss Group
+				{
+					VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR,
+					{
+					// Shader stages + filepaths
+					// here we can have multiple miss shaders
+					{VK_SHADER_STAGE_MISS_BIT_KHR, "vol_pathtracing.rmiss"}
+				}
+			},
+				// Visibility Miss Group
+				{
+					VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR,
+					{
+					// Shader stages + filepaths
+					// here we can have multiple miss shaders
+					{VK_SHADER_STAGE_MISS_BIT_KHR, "visibility.rmiss"}
+				}
+			},
+				// Visibility Miss Group
+				{
+					VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR,
+					{
+					// Shader stages + filepaths
+					// here we can have multiple miss shaders
+					{VK_SHADER_STAGE_MISS_BIT_KHR, "visibility.rmiss"}
+				}
+			},
+				// Distance Miss Group
+				{
+					VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR,
+					{
+					// Shader stages + filepaths
+					// here we can have multiple miss shaders
+					{VK_SHADER_STAGE_MISS_BIT_KHR, "distance.rmiss"}
+				}
+			},
+				// Closest Hit Group (Triangle Hit Group)
+				{
+					VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR,
+					{
+					// Shader stages + filepaths
+					// here there can be a chit, ahit or intersection shader (every combination of these)
+					{VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, "vol_pathtracing.rchit"}
+				}
+			},
+				// Closest Hit Group (Visibility Hit Group)
+				{
+					VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR,
+					{
+					// Shader stages + filepaths
+					// here there can be a chit, ahit or intersection shader (every combination of these)
+					{VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, "visibility.rchit"}
+				}
+			},
+				// Closest Hit Group (Distance Hit Group)
+				{
+					VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR,
+					{
+					// Shader stages + filepaths
+					// here there can be a chit, ahit or intersection shader (every combination of these)
+					{VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, "distance.rchit"}
+				}
+			},
+		};
     };
 }
