@@ -273,6 +273,18 @@ public:
         ImageInfo albedoInfo{};
         albedoInfo.format = RGBA8_SRGB;
 
+        // create first volume
+		auto cubeModel = rm.get<Mesh>(MODELS_PATH + "cube.obj");
+
+        auto volumeCubeEntity = getScene().createEntity("Volume Cube")
+            .add<TransformComponent>(glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3{ 0.1f, 0.1f, 0.1f }, glm::vec3{ 0.0f, 0.0f, 0.0f })
+            .add<MeshComponent>(cubeModel)
+            .add<VolumeComponent>(VolumeComponent::Builder()
+				.setAbsorption(glm::vec4{ 0.2f })
+				.setScattering(glm::vec4{ 0.8f })
+                .setPhaseFunctionG(0.5f)
+				.build());
+
         auto bunny = rm.get<Mesh>(MODELS_PATH + "bunny/bunny.obj");
         /*auto bunnyMaterial = Material::Builder()
             .setAlbedoMap(rm.get<Image>(MODELS_PATH + "bunny/terracotta.jpg", &albedoInfo))
