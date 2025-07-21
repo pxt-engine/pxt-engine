@@ -1,7 +1,7 @@
 #pragma once
 
 #include "core/pch.hpp"
-#include "core/uuid.hpp"               
+#include "core/uuid.hpp"
 #include "resources/types/mesh.hpp"
 #include "resources/types/material.hpp" 
 #include "scene/camera.hpp"       
@@ -47,43 +47,54 @@ namespace PXTEngine
 	};
 
 	struct VolumeComponent {
-		// Absorption coefficient for the medium
-		glm::vec3 absorption{ 0.0f, 0.0f, 0.0f };
+		struct Volume {
+			glm::vec4 absorption{0.0f};
+			glm::vec4 scattering{0.0f};
+			// Henyey-Greenstein phase function parameter [-1.0, 1.0].
+			// phaseFunctionG = 0.0 for isotropic scattering
+			// phaseFunctionG > 0.0 for forward scattering
+			// phaseFunctionG < 0.0 for backward scattering
+			float phaseFunctionG = 0;
+			uint32_t densityTextureId = std::numeric_limits<uint32_t>::max();
+			uint32_t detailTextureId = std::numeric_limits<uint32_t>::max(); // for edge details of the volume
+		};
 
-		// Scattering coefficient for the medium
-		glm::vec3 scattering{ 0.0f, 0.0f, 0.0f };
-
-		// Phase function parameter for Henyey-Greenstein phase function
-		float phaseFunctionG = 0.0f;
+		Volume volume;
 
 		VolumeComponent() = default;
 		VolumeComponent(const VolumeComponent&) = default;
-		VolumeComponent(const glm::vec3& absorption, const glm::vec3& scattering, float phaseFunctionG)
-			: absorption(absorption), scattering(scattering), phaseFunctionG(phaseFunctionG) {
-		}
+		VolumeComponent(const Volume volume) : volume(volume) {}
 
 		struct Builder {
-			glm::vec3 absorption{ 0.0f, 0.0f, 0.0f };
-			glm::vec3 scattering{ 0.0f, 0.0f, 0.0f };
-			float phaseFunctionG = 0.0f;
+			Volume volume;
 
-			Builder& setAbsorption(const glm::vec3& absorption) {
-				this->absorption = absorption;
+			Builder& setAbsorption(const glm::vec4& absorption) {
+				volume.absorption = absorption;
 				return *this;
 			}
 
-			Builder& setScattering(const glm::vec3& scattering) {
-				this->scattering = scattering;
+			Builder& setScattering(const glm::vec4& scattering) {
+				volume.scattering = scattering;
 				return *this;
 			}
 
 			Builder& setPhaseFunctionG(float phaseFunctionG) {
-				this->phaseFunctionG = phaseFunctionG;
+				volume.phaseFunctionG = phaseFunctionG;
+				return *this;
+			}
+
+			Builder& setDensityTextureId(uint32_t textureId) {
+				volume.densityTextureId = textureId;
+				return *this;
+			}
+
+			Builder& setDetailTextureId(uint32_t textureId) {
+				volume.detailTextureId = textureId;
 				return *this;
 			}
 
 			VolumeComponent build() {
-				return VolumeComponent(absorption, scattering, phaseFunctionG);
+				return VolumeComponent(volume);
 			}
 		};
 	
