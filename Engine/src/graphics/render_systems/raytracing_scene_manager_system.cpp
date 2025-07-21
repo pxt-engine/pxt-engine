@@ -13,6 +13,7 @@ namespace PXTEngine {
 		createTLASDescriptorSet();
 		createMeshInstanceDescriptorSet();
 		createEmittersDescriptorSet();
+		createVolumesDescriptorSet();
 	}
 
 	RayTracingSceneManagerSystem::~RayTracingSceneManagerSystem() {
@@ -31,6 +32,7 @@ namespace PXTEngine {
 		auto view = frameInfo.scene.getEntitiesWith<TransformComponent, MeshComponent>();
 
 		int instanceIndex = 0;
+		int volumeIndex = 0; // for now just iterative increase
 		for (auto entityHandle : view) {
 			Entity entity(entityHandle, &frameInfo.scene);
 
@@ -81,9 +83,32 @@ namespace PXTEngine {
 					emitterData.numberOfFaces = vkMesh->getIndexCount() / 3;
 					m_emitters.push_back(emitterData);
 				}
+
+			// --------- VOLUMES ----------
 			} else if (entity.has<VolumeComponent>()) {
-				// TODO
-				meshInstanceData.volumeIndex = 0;
+				VolumeComponent::Volume volume = entity.get<VolumeComponent>().volume;
+				//maybe mask
+				//instance.mask = 0x80;
+				meshInstanceData.volumeIndex = volumeIndex++;
+				
+				// TODO: do defaults better
+				if (volume.densityTextureId == invalidIndex) {
+					volume.densityTextureId = 2; //grey default
+				}
+
+				if (volume.detailTextureId == invalidIndex) {
+					volume.detailTextureId = 2; //grey default
+				}
+
+				m_volumes.push_back(
+					VolumeData{
+						.absorption = volume.absorption,
+						.scattering = volume.scattering,
+						.phaseFunctionG = volume.phaseFunctionG,
+						.densityTextureId = volume.densityTextureId,
+						.detailTextureId = volume.detailTextureId,
+					}
+				);
 			}
 			
 
@@ -111,6 +136,7 @@ namespace PXTEngine {
 		//TODO: maybe move from here?
 		updateMeshInstanceDescriptorSet();
 		updateEmittersDescriptorSet();
+		updateVolumesDescriptorSet();
 
 		// Upload Instance Data 
 		uint32_t instanceCount = static_cast<uint32_t>(instances.size());
@@ -409,5 +435,49 @@ namespace PXTEngine {
 		DescriptorWriter(m_context, *m_emittersDescriptorSetLayout)
 			.writeBuffer(0, &bufferInfo)
 			.updateSet(m_emittersDescriptorSet);
+	}
+
+	void RayTracingSceneManagerSystem::createVolumesDescriptorSet() {
+		m_volumesDescriptorSetLayout = DescriptorSetLayout::Builder(m_context)
+			.addBinding(0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, 1)
+			.build();
+
+		m_descriptorAllocator->allocate(
+			m_volumesDescriptorSetLayout->getDescriptorSetLayout(),
+			m_volumesDescriptorSet
+		);
+	}
+
+	void RayTracingSceneManagerSystem::updateVolumesDescriptorSet() {
+		if (m_volumesDescriptorSet != VK_NULL_HANDLE) {
+			return;
+		}
+		VkDeviceSize bufferSize = sizeof(VolumeData) * m_volumes.size();
+		Unique<VulkanBuffer> stagingBuffer = createUnique<VulkanBuffer>(
+			m_context,
+			bufferSize,
+			1,
+			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+		);
+
+		stagingBuffer->map();
+		stagingBuffer->writeToBuffer(m_volumes.data(), bufferSize);
+		stagingBuffer->unmap();
+
+		m_volumesBuffer = createUnique<VulkanBuffer>(
+			m_context,
+			bufferSize,
+			1,
+			VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+		);
+
+		m_context.copyBuffer(stagingBuffer->getBuffer(), m_volumesBuffer->getBuffer(), bufferSize);
+
+		auto bufferInfo = m_volumesBuffer->descriptorInfo();
+		DescriptorWriter(m_context, *m_volumesDescriptorSetLayout)
+			.writeBuffer(0, &bufferInfo)
+			.updateSet(m_volumesDescriptorSet);
 	}
 }

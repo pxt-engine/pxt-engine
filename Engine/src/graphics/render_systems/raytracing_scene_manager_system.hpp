@@ -25,6 +25,14 @@ namespace PXTEngine {
 		uint32_t numberOfFaces;
 	};
 
+	struct alignas(16) VolumeData {
+		glm::vec4 absorption;
+		glm::vec4 scattering;
+		float phaseFunctionG;
+		uint32_t densityTextureId;
+		uint32_t detailTextureId;
+	};
+
 	class RayTracingSceneManagerSystem {
 	public:
 		RayTracingSceneManagerSystem(Context& context, MaterialRegistry& materialRegistry, BLASRegistry& blasRegistry, 
@@ -45,6 +53,9 @@ namespace PXTEngine {
 
 		VkDescriptorSet getEmittersDescriptorSet() const { return m_emittersDescriptorSet; }
 		VkDescriptorSetLayout getEmittersDescriptorSetLayout() const { return m_emittersDescriptorSetLayout->getDescriptorSetLayout(); }
+
+		VkDescriptorSet getVolumeDescriptorSet() const { return m_volumesDescriptorSet; }
+		VkDescriptorSetLayout getVolumeDescriptorSetLayout() const { return m_volumesDescriptorSetLayout->getDescriptorSetLayout(); }
 	private:
 		void destroyTLAS();
 		VkTransformMatrixKHR glmToVkTransformMatrix(const glm::mat4& glmMatrix);
@@ -57,6 +68,9 @@ namespace PXTEngine {
 
 		void createEmittersDescriptorSet();
 		void updateEmittersDescriptorSet();
+
+		void createVolumesDescriptorSet();
+		void updateVolumesDescriptorSet();
 
 		Context& m_context;
 		MaterialRegistry& m_materialRegistry;
@@ -80,5 +94,10 @@ namespace PXTEngine {
 		Shared<DescriptorSetLayout> m_emittersDescriptorSetLayout = nullptr;
 		Unique<VulkanBuffer> m_emittersBuffer = nullptr;
 		VkDescriptorSet m_emittersDescriptorSet = VK_NULL_HANDLE;
+
+		std::vector<VolumeData> m_volumes;
+		Shared<DescriptorSetLayout> m_volumesDescriptorSetLayout = nullptr;
+		Unique<VulkanBuffer> m_volumesBuffer = nullptr;
+		VkDescriptorSet m_volumesDescriptorSet = VK_NULL_HANDLE;
 	};
 }
