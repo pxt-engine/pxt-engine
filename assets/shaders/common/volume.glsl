@@ -3,12 +3,20 @@
 
 #define VOLUME_SIGMA_A vec3(0.2) // Absorption coefficient
 #define VOLUME_SIGMA_S vec3(0.8) // Scattering coefficient
-// Henyey-Greenstein phase function parameter [-1.0, 1.0].
-// VOLUME_PHASE_G = 0.0 for isotropic scattering
-// VOLUME_PHASE_G > 0.0 for forward scattering
-// VOLUME_PHASE_G < 0.0 for backward scattering
+
 #define VOLUME_PHASE_G 0.5
 
+struct Volume {
+    vec4 absorption;
+    vec4 scattering;
+    // Henyey-Greenstein phase function parameter [-1.0, 1.0].
+    // phaseFunctionG = 0.0 for isotropic scattering
+    // phaseFunctionG > 0.0 for forward scattering
+    // phaseFunctionG < 0.0 for backward scattering
+    float phaseFunctionG;
+    uint densityTextureId;
+    uint detailTextureId; // for edge details of the volume
+};
 
 // Finds the intersection points with a bounding box along the given ray.
 // Returns a vec2 with tNear (distance along the ray to the near intersection),
