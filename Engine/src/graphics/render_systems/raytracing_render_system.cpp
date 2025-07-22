@@ -78,7 +78,8 @@ namespace PXTEngine {
 			m_materialRegistry.getDescriptorSetLayout(),
 			m_skybox->getDescriptorSetLayout(),
 			m_rtSceneManager.getMeshInstanceDescriptorSetLayout(),
-			m_rtSceneManager.getEmittersDescriptorSetLayout()
+			m_rtSceneManager.getEmittersDescriptorSetLayout(),
+			m_rtSceneManager.getVolumeDescriptorSetLayout()
 		};
 
 		VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
@@ -297,7 +298,7 @@ namespace PXTEngine {
 	void RayTracingRenderSystem::render(FrameInfo& frameInfo, Renderer& renderer) {
 		m_pipeline->bind(frameInfo.commandBuffer);
 
-		std::array<VkDescriptorSet, 8> descriptorSets = { 
+		std::array<VkDescriptorSet, 9> descriptorSets = { 
 			frameInfo.globalDescriptorSet, 
 			m_rtSceneManager.getTLASDescriptorSet(), 
 			m_textureRegistry.getDescriptorSet(),
@@ -305,7 +306,8 @@ namespace PXTEngine {
 			m_materialRegistry.getDescriptorSet(),
 			m_skybox->getDescriptorSet(),
 			m_rtSceneManager.getMeshInstanceDescriptorSet(),
-			m_rtSceneManager.getEmittersDescriptorSet()
+			m_rtSceneManager.getEmittersDescriptorSet(),
+			m_rtSceneManager.getVolumeDescriptorSet()
 		};
 	
 		vkCmdBindDescriptorSets(
