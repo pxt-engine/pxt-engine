@@ -24,6 +24,10 @@ struct PathTracePayload {
 
 	float hitDistance;
 
+    // The medium (volume) the ray is currently in. (index)
+    // If -1, we are in the void.
+    int mediumIndex;
+
     // A flag to signal that the path has been terminated (e.g., hit the sky, absorbed).
     bool done;
 

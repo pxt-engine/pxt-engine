@@ -256,6 +256,8 @@ void directLighting(SurfaceData surface, vec3 worldPosition, vec3 outLightDir) {
         // Volumetric Attenuation for the ray
         vec3 sigma_t = VOLUME_SIGMA_A + VOLUME_SIGMA_S;
         if (maxComponent(sigma_t) > 0.0) {
+        // TODO: it is not emitterSample.lightDistance, but the distance from the first intersection point
+        // and exit point of the volume (if there are multiple volumes, we need to multiply each transmittance)
             vec3 transmittance = exp(-sigma_t * emitterSample.lightDistance);
             emitterSample.radiance *= transmittance;
         }

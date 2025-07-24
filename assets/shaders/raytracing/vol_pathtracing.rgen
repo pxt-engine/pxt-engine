@@ -78,9 +78,10 @@ void main()
         p_pathTrace.done = false;
         p_pathTrace.seed = seed;
         p_pathTrace.isSpecularBounce = false;
+        // TODO: set the medium index based on the volume the ray starts in
+        p_pathTrace.mediumIndex = -1; // Assuming no medium at the start
 
         while (!p_pathTrace.done && p_pathTrace.depth < maxBounces) {
-
             // Query the distance to the nearest surface
             p_distance = 0.0;
             traceRayEXT(
@@ -123,7 +124,11 @@ void main()
                 p_pathTrace.origin += p_pathTrace.direction * (volumeIntersectionInterval.x + t_medium);
                 
                 // Real vs. Null Collision (using Woodcock tracking)
-                vec3 current_sigma_t = sigma_t; // Assuming homogeneous for now
+
+                // Assuming homogeneous for now - if heterogeneous:
+                // - we have to obtain the current sigma_t of the medium at pointX 
+                // - we then check if maxComponent(current_sigma_t(pointX)) / sigma_t_maj(pointX)
+                vec3 current_sigma_t = sigma_t;
                 if (maxComponent(current_sigma_t) / sigma_t_maj > randomFloat(seed)) {
                     // It's a "real" collision
                     vec3 scatteringAlbedo = sigma_s / current_sigma_t;
@@ -139,6 +144,9 @@ void main()
                     p_pathTrace.depth++;
 
                 }
+
+                // If it's a null collision, we just continue without changing the direction or throughput.
+                // we just changed the new origin to the point of interaction.
 
             } else {
                 // Surface Interaction or No Interaction
