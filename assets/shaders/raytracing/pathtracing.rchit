@@ -183,16 +183,16 @@ void sampleEmitter(SurfaceData surface, vec3 worldPosition, out EmitterSample sm
     }
 
     p_isVisible = true;
-
+    
     const float tMax = max(0.0, smpl.lightDistance - FLT_EPSILON); 
     // Check if we can see the emitter
     traceRayEXT(
         TLAS,               
         gl_RayFlagsTerminateOnFirstHitEXT, // Ray Flags           
         0xFF,  // Cull Mask         
-        1,                  
-        0,                  
-        1,                  
+        1,     // sbtRecordOffset     
+        0,     // sbtRecordStride
+        1,     // missOffset             
         worldPosition,      
         RAY_T_MIN,               
         worldInLightDir,    
