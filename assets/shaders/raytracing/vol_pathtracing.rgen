@@ -112,6 +112,12 @@ void main()
             vec2 volumeIntersectionInterval = intersectAABB(p_pathTrace.origin, p_pathTrace.direction, vec3(-1.2), vec3(1.2));
             float t_max_volume = min(t_hit, volumeIntersectionInterval.y);
             
+            //if (gl_LaunchIDEXT.x == 100 && gl_LaunchIDEXT.y == 100) {
+                // Debugging output
+            //    debugPrintfEXT("t_hit: %f, t_medium: %f, volumeIntersectionInterval: (%f, %f), t_max_volume: %f\n",
+            //        t_hit, t_medium, volumeIntersectionInterval.x, volumeIntersectionInterval.y, t_max_volume);
+            //}
+
             // Compare distances and decide event type
             // essentialy the t_medium < t_max_volume - volumeIntersectionInterval.x is a way to say:
             // "can the ray interact with the medium while passing through it? if the volume is dense or
@@ -149,26 +155,18 @@ void main()
                 // we just changed the new origin to the point of interaction.
 
             } else {
-                // Surface Interaction or No Interaction
-                
-                // No medium interaction happened in the segment. Attenuate by transmittance.
-                // Note: In delta tracking, this is implicitly handled. If a collision was
-                // sampled beyond t_hit, it means no collision happened. We don't need explicit
-                // transmittance multiplication here because the sampling process itself accounts for it.
-                
-                if (t_hit < RAY_T_MAX) {
-                     traceRayEXT(
-                        TLAS,
-                        gl_RayFlagsOpaqueEXT,
-                        0xFF, 
-                        0, 0, 0,
-                        p_pathTrace.origin, 
-                        RAY_T_MIN,
-                        p_pathTrace.direction, 
-                        t_hit + FLT_EPSILON,
-                        PathTracePayloadLocation
-                    );                    
-                } 
+                // Surface Interaction or No Interaction (miss)
+                traceRayEXT(
+                    TLAS,
+                    gl_RayFlagsOpaqueEXT,
+                    0xFF, 
+                    0, 0, 0,
+                    p_pathTrace.origin, 
+                    RAY_T_MIN,
+                    p_pathTrace.direction, 
+                    t_hit + FLT_EPSILON,
+                    PathTracePayloadLocation
+                );                    
             }  
 
             // Apply Russian Roulette Termination
