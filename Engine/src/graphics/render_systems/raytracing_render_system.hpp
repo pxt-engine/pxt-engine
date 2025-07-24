@@ -95,15 +95,6 @@ namespace PXTEngine {
 					{VK_SHADER_STAGE_MISS_BIT_KHR, "visibility.rmiss"}
 				}
 			},
-				// Visibility Miss Group
-				{
-					VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR,
-					{
-					// Shader stages + filepaths
-					// here we can have multiple miss shaders
-					{VK_SHADER_STAGE_MISS_BIT_KHR, "visibility.rmiss"}
-				}
-			},
 				// Distance Miss Group
 				{
 					VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR,
@@ -159,15 +150,6 @@ namespace PXTEngine {
 					// Shader stages + filepaths
 					// here we can have multiple miss shaders
 					{VK_SHADER_STAGE_MISS_BIT_KHR, "vol_pathtracing.rmiss"}
-				}
-			},
-				// Visibility Miss Group
-				{
-					VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR,
-					{
-					// Shader stages + filepaths
-					// here we can have multiple miss shaders
-					{VK_SHADER_STAGE_MISS_BIT_KHR, "visibility.rmiss"}
 				}
 			},
 				// Visibility Miss Group
