@@ -2,7 +2,7 @@
 #define _VOLUME_
 
 #define VOLUME_SIGMA_A vec3(0.5) // Absorption coefficient
-#define VOLUME_SIGMA_S vec3(0.2) // Scattering coefficient
+#define VOLUME_SIGMA_S vec3(0.8) // Scattering coefficient
 
 #define VOLUME_PHASE_G 0.8
 

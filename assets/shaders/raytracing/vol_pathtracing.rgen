@@ -109,7 +109,7 @@ void main()
             float t_medium = -log(randomFloat(seed)) / sigma_t_maj;
 
             // Find ray segment inside the volume AABB
-            vec2 volumeIntersectionInterval = intersectAABB(p_pathTrace.origin, p_pathTrace.direction, vec3(-1.2), vec3(1.2));
+            vec2 volumeIntersectionInterval = intersectAABB(p_pathTrace.origin, p_pathTrace.direction, vec3(-0.5), vec3(0.5));
             float t_max_volume = min(t_hit, volumeIntersectionInterval.y);
             
             //if (gl_LaunchIDEXT.x == 100 && gl_LaunchIDEXT.y == 100) {
