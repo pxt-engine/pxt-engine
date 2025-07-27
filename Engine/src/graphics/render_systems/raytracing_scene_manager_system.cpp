@@ -31,6 +31,10 @@ namespace PXTEngine {
 		//  Get all BLAS and components from entities that have transform & mesh components 
 		auto view = frameInfo.scene.getEntitiesWith<TransformComponent, MeshComponent>();
 
+		m_emitters.clear();
+		m_volumes.clear();
+		m_meshInstanceData.clear();
+
 		int instanceIndex = 0;
 		int volumeIndex = 0; // for now just iterative increase
 		for (auto entityHandle : view) {
