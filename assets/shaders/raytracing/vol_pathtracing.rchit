@@ -305,61 +305,72 @@ void indirectLighting(SurfaceData surface, vec3 outLightDir, out vec3 inLightDir
 
 void main() {
     const MeshInstanceDescription instance = meshInstances.i[gl_InstanceCustomIndexEXT];
-    const Material material = materials.m[instance.materialIndex];
+    
     const Triangle triangle = getTriangle(instance.indexAddress, instance.vertexAddress, gl_PrimitiveID);
 
     const vec2 uv = getTextureCoords(triangle, barycentrics) * instance.textureTilingFactor;
 
     // Tangent, Bi-tangent, Normal (TBN) matrix to transform tangent space to world space
     mat3 tbn = calculateTBN(triangle, mat3(instance.objectToWorld), barycentrics);
-    const vec3 surfaceNormal = calculateSurfaceNormal(textures[nonuniformEXT(material.normalMapIndex)], uv, tbn);
 
-    SurfaceData surface;
-    surface.tbn = tbn;
-    surface.albedo = getAlbedo(material, uv, instance.textureTintColor);
-    surface.metalness = getMetalness(material, uv);
-    surface.roughness = getRoughness(material, uv);
-    surface.reflectance = calculateReflectance(surface.albedo, surface.metalness);
-    surface.specularProbability = calculateSpecularProbability(surface.albedo, surface.metalness, surface.reflectance);
-    
-    const vec3 emission = getEmission(material, uv);
-
-    if (maxComponent(emission) > 0.0) {
-        // Add the light's emission to the total radiance if:
-        // 1. It's the first hit (the camera sees the light directly).
-        // 2. The ray that hit the light came from a perfect mirror bounce.
-        if (p_pathTrace.depth == 0 || p_pathTrace.isSpecularBounce) {
-            p_pathTrace.radiance += emission * p_pathTrace.throughput;
-        }
-        
-        // The path ends at the light source.
-        p_pathTrace.done = true;
-        return;
+    // VOLUME
+    if (instance.volumeIndex != UINT_MAX) {
+    //
     }
+
+    // MATERIAL
+    else {
+        const Material material = materials.m[instance.materialIndex];
+
+        const vec3 surfaceNormal = calculateSurfaceNormal(textures[nonuniformEXT(material.normalMapIndex)], uv, tbn);
+        
+        SurfaceData surface;
+        surface.tbn = tbn;
+        surface.albedo = getAlbedo(material, uv, instance.textureTintColor);
+        surface.metalness = getMetalness(material, uv);
+        surface.roughness = getRoughness(material, uv);
+        surface.reflectance = calculateReflectance(surface.albedo, surface.metalness);
+        surface.specularProbability = calculateSpecularProbability(surface.albedo, surface.metalness, surface.reflectance);
     
-    const vec3 worldPosition = gl_WorldRayOriginEXT + gl_WorldRayDirectionEXT * gl_RayTmaxEXT;
+        const vec3 emission = getEmission(material, uv);
 
-    // The ray has the opposite direction to that of the light.
-    // The "incoming" ray hitting the surface is actually the outgoing light direction.
-    // We perform calculation in tangent space
-    vec3 outgoingLightDirection = worldToTangent(tbn, -gl_WorldRayDirectionEXT);
-    vec3 incomingLightDirection;
-
-    directLighting(surface, worldPosition, outgoingLightDirection);
-
-    indirectLighting(surface, outgoingLightDirection, incomingLightDirection);
+        if (maxComponent(emission) > 0.0) {
+            // Add the light's emission to the total radiance if:
+            // 1. It's the first hit (the camera sees the light directly).
+            // 2. The ray that hit the light came from a perfect mirror bounce.
+            if (p_pathTrace.depth == 0 || p_pathTrace.isSpecularBounce) {
+                p_pathTrace.radiance += emission * p_pathTrace.throughput;
+            }
+        
+            // The path ends at the light source.
+            p_pathTrace.done = true;
+            return;
+        }
     
-    // We change the geometric normal with the surface normal in the TBN before converting back to
-    // world space the incoming light direction. By doing this, we apply the normals from the normal map.
-    const vec3 geometricNormal = tbn[2];
-    tbn[2] = surfaceNormal;
+        const vec3 worldPosition = gl_WorldRayOriginEXT + gl_WorldRayDirectionEXT * gl_RayTmaxEXT;
 
-    // Convert back to world space
-    outgoingLightDirection = tangentToWorld(tbn, incomingLightDirection);
+        // The ray has the opposite direction to that of the light.
+        // The "incoming" ray hitting the surface is actually the outgoing light direction.
+        // We perform calculation in tangent space
+        vec3 outgoingLightDirection = worldToTangent(tbn, -gl_WorldRayDirectionEXT);
+        vec3 incomingLightDirection;
 
-    // Update the payload for the next bounce
-    p_pathTrace.depth++;
-    p_pathTrace.origin = worldPosition + geometricNormal * FLT_EPSILON;
-    p_pathTrace.direction = outgoingLightDirection;
-    p_pathTrace.hitDistance = gl_RayTmaxEXT;
+        directLighting(surface, worldPosition, outgoingLightDirection);
+
+        indirectLighting(surface, outgoingLightDirection, incomingLightDirection);
+    
+        // We change the geometric normal with the surface normal in the TBN before converting back to
+        // world space the incoming light direction. By doing this, we apply the normals from the normal map.
+        const vec3 geometricNormal = tbn[2];
+        tbn[2] = surfaceNormal;
+
+        // Convert back to world space
+        outgoingLightDirection = tangentToWorld(tbn, incomingLightDirection);
+
+        // Update the payload for the next bounce
+        p_pathTrace.depth++;
+        p_pathTrace.origin = worldPosition + geometricNormal * FLT_EPSILON;
+        p_pathTrace.direction = outgoingLightDirection;
+        p_pathTrace.hitDistance = gl_RayTmaxEXT;
+    }
 }
