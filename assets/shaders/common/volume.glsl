@@ -1,10 +1,10 @@
 #ifndef _VOLUME_
 #define _VOLUME_
 
-#define VOLUME_SIGMA_A vec3(0.5) // Absorption coefficient
-#define VOLUME_SIGMA_S vec3(0.8) // Scattering coefficient
+#define VOLUME_SIGMA_A vec3(0.9, 0.0, 0.0) // Absorption coefficient
+#define VOLUME_SIGMA_S vec3(0.3) // Scattering coefficient
 
-#define VOLUME_PHASE_G 0.8
+#define VOLUME_PHASE_G 0.6
 
 struct Volume {
     vec4 absorption;
@@ -45,7 +45,7 @@ float evalHenyeyGreenstein(float cos_theta, float g) {
 }
 
 // Henyey-Greenstein phase function sampling.
-// Returns a new direction in tangent space around (0,0,1)
+// Returns a new direction in world space
 vec3 sampleHenyeyGreenstein(vec3 wo, float g, inout uint seed) {
     float cos_theta;
     if (abs(g) < 1e-4) {

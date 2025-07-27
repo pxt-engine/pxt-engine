@@ -135,19 +135,30 @@ void main()
                 // - we have to obtain the current sigma_t of the medium at pointX 
                 // - we then check if maxComponent(current_sigma_t(pointX)) / sigma_t_maj(pointX)
                 vec3 current_sigma_t = sigma_t;
+
+                // here we also account for the sum of scattering and absorption probabilities
+                // (fine if not emissive volmus in the scene)
+                // https://graphics.pixar.com/library/ProductionVolumeRendering/paper.pdf
                 if (maxComponent(current_sigma_t) / sigma_t_maj > randomFloat(seed)) {
                     // It's a "real" collision
+
+                    // Single Scattering Albedo. It is a common way to do Delta Tracking when
+                    // emissive volumes are not present. Directly simulates the amount of light
+                    // scattered by the medium at the point of interaction.
+                    // https://graphics.pixar.com/library/ProductionVolumeRendering/paper.pdf (Section 2.1.1)
                     vec3 scatteringAlbedo = sigma_s / current_sigma_t;
 
                     p_pathTrace.isSpecularBounce = true;
 
-                    //TODO: probably to change is incorect
-                    // Update throughput with scattering albedo
+                    // Update throughput with single scattering albedo
                     p_pathTrace.throughput *= scatteringAlbedo;
                     
                     // Sample new direction using phase function
                     p_pathTrace.direction = sampleHenyeyGreenstein(p_pathTrace.direction, VOLUME_PHASE_G, seed);
                     p_pathTrace.depth++;
+
+                    // TODO: implement multiple importance sampling for multiple scattering volumes
+                    // https://graphics.pixar.com/library/ProductionVolumeRendering/paper.pdf (section 4.2)
 
                 }
 
