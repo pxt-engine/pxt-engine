@@ -110,7 +110,11 @@ void main()
 
             // Find ray segment inside the volume AABB
             vec2 volumeIntersectionInterval = intersectAABB(p_pathTrace.origin, p_pathTrace.direction, vec3(-0.5), vec3(0.5));
-            float t_max_volume = min(t_hit, volumeIntersectionInterval.y);
+
+            const float t_entry = max(0.0, volumeIntersectionInterval.x);
+            const float t_exit = volumeIntersectionInterval.y;
+
+            float t_max_volume = min(t_hit, t_exit);
             
             //if (gl_LaunchIDEXT.x == 100 && gl_LaunchIDEXT.y == 100) {
                 // Debugging output
@@ -123,11 +127,11 @@ void main()
             // "can the ray interact with the medium while passing through it? if the volume is dense or
             // high scattering, then t_medium is likely to be small, so the ray will interact with the medium
             // in a short distance from the nearest intersection point".
-            if (volumeIntersectionInterval.x < t_max_volume && t_medium < (t_max_volume - volumeIntersectionInterval.x)) {
+            if (t_entry < t_max_volume && t_medium < (t_max_volume - t_entry)) {
                 // Volumetric Interaction Occurs
                 
                 // Advance ray to the interaction point (intersection point + t_medium)
-                p_pathTrace.origin += p_pathTrace.direction * (volumeIntersectionInterval.x + t_medium);
+                p_pathTrace.origin += p_pathTrace.direction * (t_entry + t_medium);
                 
                 // Real vs. Null Collision (using Woodcock tracking)
 
