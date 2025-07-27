@@ -154,11 +154,19 @@ void main()
 
                     p_pathTrace.isSpecularBounce = true;
 
-                    // Update throughput with single scattering albedo
-                    p_pathTrace.throughput *= scatteringAlbedo;
-                    
                     // Sample new direction using phase function
-                    p_pathTrace.direction = sampleHenyeyGreenstein(p_pathTrace.direction, VOLUME_PHASE_G, seed);
+                    vec3 newDirection = sampleHenyeyGreenstein(p_pathTrace.direction, VOLUME_PHASE_G, seed);
+                    
+                    // calculate the angle between the old and new direction
+                    float cosTheta = dot(p_pathTrace.direction, newDirection);
+
+                    // Then evaluate the phase function PDF value (prob of choosing that direction)
+                    float phaseFunctionPDF = evalHenyeyGreenstein(cosTheta, VOLUME_PHASE_G);
+
+                    // Update throughput with single scattering albedo
+                    p_pathTrace.throughput *= scatteringAlbedo / phaseFunctionPDF;
+                    
+                    p_pathTrace.direction = newDirection;
                     p_pathTrace.depth++;
 
                     // TODO: implement multiple importance sampling for multiple scattering volumes
