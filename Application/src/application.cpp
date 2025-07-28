@@ -277,12 +277,12 @@ public:
 		auto cubeModel = rm.get<Mesh>(MODELS_PATH + "cube.obj");
 
         auto volumeCubeEntity = getScene().createEntity("Volume Cube")
-            .add<TransformComponent>(glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3{ 0.1f, 0.1f, 0.1f }, glm::vec3{ 0.0f, 0.0f, 0.0f })
+            .add<TransformComponent>(glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3{ 1.05f, 1.05f, 1.05f }, glm::vec3{ 0.0f, 0.0f, 0.0f })
             .add<MeshComponent>(cubeModel)
             .add<VolumeComponent>(VolumeComponent::Builder()
-				.setAbsorption(glm::vec4{ 0.2f })
-				.setScattering(glm::vec4{ 0.8f })
-                .setPhaseFunctionG(0.5f)
+				.setAbsorption(glm::vec4{ 0.02f })
+				.setScattering(glm::vec4{ 0.01f })
+                .setPhaseFunctionG(0.8f)
 				.build());
 
         auto bunny = rm.get<Mesh>(MODELS_PATH + "bunny/bunny.obj");
@@ -302,7 +302,7 @@ public:
 		rm.add(bunnyMaterial, "bunny_material");
 
         Entity entity = getScene().createEntity("Bunny")
-            .add<TransformComponent>(glm::vec3{ 0.0f, 0.99f, 0.0f }, glm::vec3{ 2.5f, 2.5f, 2.5f }, glm::vec3{ glm::pi<float>(), 0.0f, 0.0f })
+            .add<TransformComponent>(glm::vec3{ 0.0f, 0.95f, 0.0f }, glm::vec3{ 2.5f, 2.5f, 2.5f }, glm::vec3{ glm::pi<float>(), 0.0f, 0.0f })
             .add<MeshComponent>(bunny)
             .add<MaterialComponent>(MaterialComponent::Builder()
                 .setMaterial(bunnyMaterial)
