@@ -1,11 +1,6 @@
 #ifndef _VOLUME_
 #define _VOLUME_
 
-#define VOLUME_SIGMA_A vec3(0.5) // Absorption coefficient
-#define VOLUME_SIGMA_S vec3(0.6) // Scattering coefficient
-
-#define VOLUME_PHASE_G 0.8
-
 struct Volume {
     vec4 absorption;
     vec4 scattering;

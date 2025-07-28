@@ -269,14 +269,6 @@ void directLighting(SurfaceData surface, vec3 worldPosition, vec3 outLightDir) {
                 emitterSample.radiance *= transmittance;
             }
         }
-
-        vec3 sigma_t = VOLUME_SIGMA_A + VOLUME_SIGMA_S;
-        if (maxComponent(sigma_t) > 0.0) {
-        // TODO: it is not emitterSample.lightDistance, but the distance from the first intersection point
-        // and exit point of the volume (if there are multiple volumes, we need to multiply each transmittance)
-            vec3 transmittance = exp(-sigma_t * emitterSample.lightDistance);
-            emitterSample.radiance *= transmittance;
-        }
     
         const vec3 halfVector = normalize(outLightDir + emitterSample.inLightDir);
         const float receiverCos = cosThetaTangent(emitterSample.inLightDir);
@@ -326,7 +318,6 @@ void main() {
      // Tangent, Bi-tangent, Normal (TBN) matrix to transform tangent space to world space
     mat3 tbn = calculateTBN(triangle, mat3(instance.objectToWorld), barycentrics);
 
-
     // Check if the hit object is a volume boundary
     if (instance.volumeIndex != UINT_MAX) {
         // HIT A VOLUME BOUNDARY
@@ -345,8 +336,13 @@ void main() {
         }
 
         // Update ray origin to continue tracing from the hit point.
+        // in the case of volumes we need higher precision in the RAY_T_MIN value.
+        // Instead of modifying it directly, we offset the origin backwards so that
+        // the new ray begins tracing from the new origin + RAY_T_MIN. is the same as
+        // setting the RAY_T_MIN to an ESPILON VALUE before tracing for the volumes.
+        // In general we dont want smaller RAY_T_MIN values, for performance.
         // Offset slightly to avoid immediate self-intersection.
-        p_pathTrace.origin += p_pathTrace.direction * (gl_RayTmaxEXT + FLT_EPSILON);
+        p_pathTrace.origin += p_pathTrace.direction * (gl_HitTEXT - RAY_T_MIN + FLT_EPSILON);
 
         p_pathTrace.done = false;
         return; 
@@ -405,5 +401,5 @@ void main() {
     p_pathTrace.depth++;
     p_pathTrace.origin = worldPosition + geometricNormal * FLT_EPSILON;
     p_pathTrace.direction = outgoingLightDirection;
-    p_pathTrace.hitDistance = gl_RayTmaxEXT;
+    p_pathTrace.hitDistance = gl_HitTEXT;
 }

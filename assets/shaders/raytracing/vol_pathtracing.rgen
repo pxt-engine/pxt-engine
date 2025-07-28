@@ -99,7 +99,8 @@ void main()
                     RAY_T_MAX,
                     PathTracePayloadLocation
                 );  
-            } 
+            }
+
             // We're inside a medium, perform Delta Tracking (Woodcock Tracking)
             else {
                 // Find distance to the next surface. This is our maximum travel distance.
@@ -140,7 +141,7 @@ void main()
                 }
 
                 // Compare the distances to decide the next volume event
-                if (t_medium <= t_hit) {
+                if (t_medium < t_hit) {
                     // Volumetric interaction occurs (real or null collision)
 
                     // Advance ray to the interaction point (origin + direction * t_medium)

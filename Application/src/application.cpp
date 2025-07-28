@@ -277,13 +277,13 @@ public:
 		auto cubeModel = rm.get<Mesh>(MODELS_PATH + "cube.obj");
 
         auto volumeCubeEntity = getScene().createEntity("Volume Cube")
-            .add<TransformComponent>(glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3{ 1.05f, 1.05f, 1.05f }, glm::vec3{ 0.0f, 0.0f, 0.0f })
+            .add<TransformComponent>(glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3{ 0.3 }, glm::vec3{ 0.0f, 0.0f, 0.0f })
             .add<MeshComponent>(cubeModel)
             .add<VolumeComponent>(VolumeComponent::Builder()
-				.setAbsorption(glm::vec4{ 0.02f })
-				.setScattering(glm::vec4{ 0.01f })
+                .setAbsorption(glm::vec4{ 0.9f })
+                .setScattering(glm::vec4{ 0.3f })
                 .setPhaseFunctionG(0.8f)
-				.build());
+                .build());
 
         auto bunny = rm.get<Mesh>(MODELS_PATH + "bunny/bunny.obj");
         /*auto bunnyMaterial = Material::Builder()
