@@ -253,7 +253,23 @@ void directLighting(SurfaceData surface, vec3 worldPosition, vec3 outLightDir) {
 
     if (emitterSample.isVisible && emitterSample.radiance != vec3(0.0)) {
 
-        // Volumetric Attenuation for the ray
+        // Volumetric Attenuation for the ray:
+        // if the shadow ray starts inside a medium, calculate attenuation
+        if (p_pathTrace.mediumIndex != -1) {
+            Volume currentVolume = volumes.volumes[p_pathTrace.mediumIndex];
+            vec3 sigma_t = currentVolume.absorption.rgb + currentVolume.scattering.rgb;
+            if (maxComponent(sigma_t) > 0.0) {
+                // Note: This assumes the entire path to the light is within this medium.
+                // A fully general solution would need to trace the shadow ray through
+                // multiple volume boundaries, which is significantly more complex.
+
+                // Beer-Lambert law for transmittance
+                vec3 transmittance = exp(-sigma_t * emitterSample.lightDistance);
+
+                emitterSample.radiance *= transmittance;
+            }
+        }
+
         vec3 sigma_t = VOLUME_SIGMA_A + VOLUME_SIGMA_S;
         if (maxComponent(sigma_t) > 0.0) {
         // TODO: it is not emitterSample.lightDistance, but the distance from the first intersection point
@@ -305,13 +321,41 @@ void indirectLighting(SurfaceData surface, vec3 outLightDir, out vec3 inLightDir
 
 void main() {
     const MeshInstanceDescription instance = meshInstances.i[gl_InstanceCustomIndexEXT];
-    const Material material = materials.m[instance.materialIndex];
     const Triangle triangle = getTriangle(instance.indexAddress, instance.vertexAddress, gl_PrimitiveID);
+
+     // Tangent, Bi-tangent, Normal (TBN) matrix to transform tangent space to world space
+    mat3 tbn = calculateTBN(triangle, mat3(instance.objectToWorld), barycentrics);
+
+
+    // Check if the hit object is a volume boundary
+    if (instance.volumeIndex != UINT_MAX) {
+        // HIT A VOLUME BOUNDARY
+
+        const vec3 geometricNormal = tbn[2];
+
+        // If the ray and normal are in opposite directions, we are entering the volume.
+        const bool isEntering = dot(gl_WorldRayDirectionEXT, geometricNormal) < 0.0;
+
+        if (isEntering) {
+            p_pathTrace.mediumIndex = int(instance.volumeIndex);
+        } else {
+            // Exiting the volume. We assume it exits into a vacuum.
+            // For overlapping/nested volumes, we'd need a medium stack.
+            p_pathTrace.mediumIndex = -1;
+        }
+
+        // Update ray origin to continue tracing from the hit point.
+        // Offset slightly to avoid immediate self-intersection.
+        p_pathTrace.origin += p_pathTrace.direction * (gl_RayTmaxEXT + FLT_EPSILON);
+
+        p_pathTrace.done = false;
+        return; 
+    }
+
+    const Material material = materials.m[instance.materialIndex];
 
     const vec2 uv = getTextureCoords(triangle, barycentrics) * instance.textureTilingFactor;
 
-    // Tangent, Bi-tangent, Normal (TBN) matrix to transform tangent space to world space
-    mat3 tbn = calculateTBN(triangle, mat3(instance.objectToWorld), barycentrics);
     const vec3 surfaceNormal = calculateSurfaceNormal(textures[nonuniformEXT(material.normalMapIndex)], uv, tbn);
 
     SurfaceData surface;

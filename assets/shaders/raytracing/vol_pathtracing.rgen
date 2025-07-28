@@ -78,108 +78,17 @@ void main()
         p_pathTrace.done = false;
         p_pathTrace.seed = seed;
         p_pathTrace.isSpecularBounce = false;
+
         // TODO: set the medium index based on the volume the ray starts in
+        // Assume camera starts in a vacuum. A more complex scene might require
+        // a point-in-mesh test to determine if the camera is inside a volume.
         p_pathTrace.mediumIndex = -1; // Assuming no medium at the start
 
         while (!p_pathTrace.done && p_pathTrace.depth < maxBounces) {
-            // Query the distance to the nearest surface
-            p_distance = 0.0;
-            traceRayEXT(
-                TLAS,
-                gl_RayFlagsOpaqueEXT,
-                0xFF, 
-                2, 0, 2,
-                p_pathTrace.origin, 
-                RAY_T_MIN,
-                p_pathTrace.direction, 
-                RAY_T_MAX,
-                DistancePayloadLocation
-            );
-            float t_hit = p_distance;
 
-            // Sample the medium using Delta Tracking
-            vec3 sigma_a = VOLUME_SIGMA_A;
-            vec3 sigma_s = VOLUME_SIGMA_S;
-            vec3 sigma_t = sigma_a + sigma_s;
-            float sigma_t_maj = maxComponent(sigma_t); // Majorant extinction
-            
-            // describes the strength of the medium, higher means high probability of being
-            // affected by the medium (so t_medium is the minimum distance to travel inside
-            // the medium before interaction).
-            float t_medium = -log(randomFloat(seed)) / sigma_t_maj;
-
-            // Find ray segment inside the volume AABB
-            vec2 volumeIntersectionInterval = intersectAABB(p_pathTrace.origin, p_pathTrace.direction, vec3(-0.5), vec3(0.5));
-
-            const float t_entry = max(0.0, volumeIntersectionInterval.x);
-            const float t_exit = volumeIntersectionInterval.y;
-
-            float t_max_volume = min(t_hit, t_exit);
-            
-            //if (gl_LaunchIDEXT.x == 100 && gl_LaunchIDEXT.y == 100) {
-                // Debugging output
-            //    debugPrintfEXT("t_hit: %f, t_medium: %f, volumeIntersectionInterval: (%f, %f), t_max_volume: %f\n",
-            //        t_hit, t_medium, volumeIntersectionInterval.x, volumeIntersectionInterval.y, t_max_volume);
-            //}
-
-            // Compare distances and decide event type
-            // essentialy the t_medium < t_max_volume - volumeIntersectionInterval.x is a way to say:
-            // "can the ray interact with the medium while passing through it? if the volume is dense or
-            // high scattering, then t_medium is likely to be small, so the ray will interact with the medium
-            // in a short distance from the nearest intersection point".
-            if (t_entry < t_max_volume && t_medium < (t_max_volume - t_entry)) {
-                // Volumetric Interaction Occurs
-                
-                // Advance ray to the interaction point (intersection point + t_medium)
-                p_pathTrace.origin += p_pathTrace.direction * (t_entry + t_medium);
-                
-                // Real vs. Null Collision (using Woodcock tracking)
-
-                // Assuming homogeneous for now - if heterogeneous:
-                // - we have to obtain the current sigma_t of the medium at pointX 
-                // - we then check if maxComponent(current_sigma_t(pointX)) / sigma_t_maj(pointX)
-                vec3 current_sigma_t = sigma_t;
-
-                // here we also account for the sum of scattering and absorption probabilities
-                // (fine if not emissive volmus in the scene)
-                // https://graphics.pixar.com/library/ProductionVolumeRendering/paper.pdf
-                if (maxComponent(current_sigma_t) / sigma_t_maj > randomFloat(seed)) {
-                    // It's a "real" collision
-
-                    // Single Scattering Albedo. It is a common way to do Delta Tracking when
-                    // emissive volumes are not present. Directly simulates the amount of light
-                    // scattered by the medium at the point of interaction.
-                    // https://graphics.pixar.com/library/ProductionVolumeRendering/paper.pdf (Section 2.1.1)
-                    vec3 scatteringAlbedo = sigma_s / current_sigma_t;
-
-                    p_pathTrace.isSpecularBounce = true;
-
-                    // Sample new direction using phase function
-                    vec3 newDirection = sampleHenyeyGreenstein(p_pathTrace.direction, VOLUME_PHASE_G, seed);
-                    
-                    // calculate the angle between the old and new direction
-                    float cosTheta = dot(p_pathTrace.direction, newDirection);
-
-                    // Then evaluate the phase function PDF value (prob of choosing that direction)
-                    float phaseFunctionPDF = evalHenyeyGreenstein(cosTheta, VOLUME_PHASE_G);
-
-                    // Update throughput with single scattering albedo
-                    p_pathTrace.throughput *= scatteringAlbedo / phaseFunctionPDF;
-                    
-                    p_pathTrace.direction = newDirection;
-                    p_pathTrace.depth++;
-
-                    // TODO: implement multiple importance sampling for multiple scattering volumes
-                    // https://graphics.pixar.com/library/ProductionVolumeRendering/paper.pdf (section 4.2)
-
-                }
-
-                // If it's a null collision, we just continue without changing the direction or throughput.
-                // we just changed the new origin to the point of interaction.
-
-            } else {
-                // Surface Interaction or No Interaction (miss)
-                traceRayEXT(
+            // We're currently in vacuum, so we simply trace the ray to find the nearest surface.
+            if (p_pathTrace.mediumIndex == -1) {
+                 traceRayEXT(
                     TLAS,
                     gl_RayFlagsOpaqueEXT,
                     0xFF, 
@@ -187,9 +96,112 @@ void main()
                     p_pathTrace.origin, 
                     RAY_T_MIN,
                     p_pathTrace.direction, 
-                    t_hit + FLT_EPSILON,
+                    RAY_T_MAX,
                     PathTracePayloadLocation
-                );                    
+                );  
+            } 
+            // We're inside a medium, perform Delta Tracking (Woodcock Tracking)
+            else {
+                // Find distance to the next surface. This is our maximum travel distance.
+                p_distance = 0.0;
+                traceRayEXT(
+                    TLAS,
+                    gl_RayFlagsOpaqueEXT,
+                    0xFF, 
+                    2, 0, 2,
+                    p_pathTrace.origin, 
+                    RAY_T_MIN,
+                    p_pathTrace.direction, 
+                    RAY_T_MAX,
+                    DistancePayloadLocation
+                );
+                float t_hit = p_distance;
+
+                // Sample the current medium
+                Volume currentVolume = volumes.volumes[p_pathTrace.mediumIndex];
+
+                vec3 sigma_a = currentVolume.absorption.rgb;
+                vec3 sigma_s = currentVolume.scattering.rgb;
+                vec3 sigma_t = sigma_a + sigma_s;
+                float sigma_t_maj = maxComponent(sigma_t);
+
+                float phaseFunctionG = currentVolume.phaseFunctionG;
+
+                //if (gl_LaunchIDEXT.x == 100 && gl_LaunchIDEXT.y == 100) {
+                //    debugPrintfEXT("%v3f, %v3f, %d\n", sigma_a, sigma_s, p_pathTrace.mediumIndex);
+                //}
+
+                float t_medium = RAY_T_MAX;
+
+                // If the medium is not empty, we sample the distance to the next interaction point
+                if (sigma_t_maj > 0.0f) {
+                    // This is the distance to the next interaction point in the medium
+                    t_medium = -log(randomFloat(p_pathTrace.seed)) / sigma_t_maj;
+                }
+
+                // Compare the distances to decide the next volume event
+                if (t_medium <= t_hit) {
+                    // Volumetric interaction occurs (real or null collision)
+
+                    // Advance ray to the interaction point (origin + direction * t_medium)
+                    p_pathTrace.origin += p_pathTrace.direction * t_medium;
+
+                    // Assuming homogeneous for now - if heterogeneous:
+                    // - we have to obtain the current sigma_t of the medium at pointX 
+                    // - we then check if maxComponent(current_sigma_t(pointX)) / sigma_t_maj(pointX)
+                    vec3 current_sigma_t = sigma_t;
+
+                    // Use Woodcock tracking (null-scattering) to decide if it's a real event.
+                    // For heterogeneous media, you'd sample density at the new origin.
+                    if (maxComponent(current_sigma_t) / sigma_t_maj > randomFloat(p_pathTrace.seed)) {
+                        // It's a "real" scattering event.
+
+                        // Single Scattering Albedo. It is a common way to do Delta Tracking when
+                        // emissive volumes are not present. Directly simulates the amount of light
+                        // scattered by the medium at the point of interaction.
+                        // https://graphics.pixar.com/library/ProductionVolumeRendering/paper.pdf (Section 2.1.1)
+                        vec3 scatteringAlbedo = sigma_s / current_sigma_t;
+
+                        // Sample new direction using phase function
+                        vec3 newDirection = sampleHenyeyGreenstein(p_pathTrace.direction, phaseFunctionG, p_pathTrace.seed);
+                    
+                        // calculate the angle between the old and new direction
+                        float cosTheta = dot(p_pathTrace.direction, newDirection);
+
+                        // Then evaluate the phase function PDF value (prob of choosing that direction)
+                        float phaseFunctionPDF = evalHenyeyGreenstein(cosTheta, phaseFunctionG);
+
+                        // TODO: implement multiple importance sampling for multiple scattering volumes
+                        // https://graphics.pixar.com/library/ProductionVolumeRendering/paper.pdf (section 4.2)   
+
+                        // Update throughput
+                        if (phaseFunctionPDF > 0.0) {
+                            p_pathTrace.throughput *= scatteringAlbedo / phaseFunctionPDF;
+                        }
+
+                        p_pathTrace.direction = newDirection;
+                        p_pathTrace.depth++;
+
+                        // Treat volume scatter as "specular" to disable NEE on the next bounce
+                        p_pathTrace.isSpecularBounce = true;
+                    }
+                    // (Else) If it's a null collision, we do nothing. The ray continues from the 
+                    // new origin in the same direction, which is handled by the next loop iteration.
+
+                } else {
+                    // Surface Interaction or No Interaction (miss)
+                    traceRayEXT(
+                        TLAS,
+                        gl_RayFlagsOpaqueEXT,
+                        0xFF, 
+                        0, 0, 0,
+                        p_pathTrace.origin, 
+                        RAY_T_MIN,
+                        p_pathTrace.direction, 
+                        t_hit + FLT_EPSILON,
+                        PathTracePayloadLocation
+                    );        
+                }          
             }  
 
             // Apply Russian Roulette Termination
