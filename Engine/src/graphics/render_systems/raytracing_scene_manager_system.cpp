@@ -87,15 +87,15 @@ namespace PXTEngine {
 					emitterData.numberOfFaces = vkMesh->getIndexCount() / 3;
 					m_emitters.push_back(emitterData);
 				}
-
-			// --------- VOLUMES ----------
+		
 			} else if (entity.has<VolumeComponent>()) {
 				VolumeComponent::Volume volume = entity.get<VolumeComponent>().volume;
-				//maybe mask
-				//instance.mask = 0x80;
+				//maybe use a different mask
+				instance.mask = 0xFF;
+
 				meshInstanceData.volumeIndex = volumeIndex++;
 				
-				// TODO: do defaults better
+				// TODO: handle defaults differently
 				if (volume.densityTextureId == invalidIndex) {
 					volume.densityTextureId = 2; //grey default
 				}
@@ -453,7 +453,7 @@ namespace PXTEngine {
 	}
 
 	void RayTracingSceneManagerSystem::updateVolumesDescriptorSet() {
-		if (m_volumesDescriptorSet != VK_NULL_HANDLE) {
+		if (m_volumesBuffer != VK_NULL_HANDLE) {
 			return;
 		}
 		VkDeviceSize bufferSize = sizeof(VolumeData) * m_volumes.size();
