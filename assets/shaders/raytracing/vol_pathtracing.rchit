@@ -76,6 +76,7 @@ struct EmitterSample {
     vec3 radiance;
     vec3 inLightDir;
     float lightDistance;
+    float emitterCosTheta;
     float pdf;
     bool isVisible; 
 };
@@ -177,14 +178,14 @@ void sampleEmitter(SurfaceData surface, vec3 worldPosition, out EmitterSample sm
 
         vec3 outLightDir = outLightVec / smpl.lightDistance;
 
-        float emitterCosTheta = cosTheta(emitterNormal, outLightDir);
-        if (emitterCosTheta <= 0.0) {
+        smpl.emitterCosTheta = cosTheta(emitterNormal, outLightDir);
+        if (smpl.emitterCosTheta <= 0.0) {
             return;
         }
 
         worldInLightDir = -outLightDir; 
         smpl.inLightDir = worldToTangent(surface.tbn, worldInLightDir);
-        smpl.pdf = pow2(smpl.lightDistance) / (emitterCosTheta * areaWorld * totalSamplableEmitters * emitter.numberOfFaces);
+        smpl.pdf = pow2(smpl.lightDistance) / (smpl.emitterCosTheta * areaWorld * totalSamplableEmitters * emitter.numberOfFaces);
     }
 
     p_isVisible = true;
@@ -274,11 +275,18 @@ void directLighting(SurfaceData surface, vec3 worldPosition, vec3 outLightDir) {
         const float receiverCos = cosThetaTangent(emitterSample.inLightDir);
 
         const vec3 bsdf = evaluateBSDF(surface, outLightDir, emitterSample.inLightDir, halfVector);
-        const float bsdfPdf = pdfBSDF(surface, outLightDir, emitterSample.inLightDir, halfVector);
+        const float bsdfPdfSolidAngle = pdfBSDF(surface, outLightDir, emitterSample.inLightDir, halfVector);
+
+        // Jacobian for PDF conversion from solid angle to area
+        const float G_term = emitterSample.emitterCosTheta / pow2(emitterSample.lightDistance);
+
+        // Convert the BSDF PDF from solid angle to area so it can be used in MIS with the NEE pdf
+        // that is already in area units.
+        const float bsdfPdfarea = bsdfPdfSolidAngle * G_term;
             
         const vec3 contribution = (emitterSample.radiance * bsdf * receiverCos) / emitterSample.pdf;        
 
-        const float weight = powerHeuristic(emitterSample.pdf, bsdfPdf);
+        const float weight = powerHeuristic(emitterSample.pdf, bsdfPdfarea);
 
         p_pathTrace.radiance += contribution * p_pathTrace.throughput * weight;
     }
