@@ -63,7 +63,7 @@ void main()
     vec3 finalColor = vec3(0.0);
 
     const uint samplesPerPixel = 1;
-    const int maxBounces = 4;
+    const int maxBounces = 5;
 
     for (uint currentSample = 0; currentSample < samplesPerPixel; ++currentSample) {
         uint seed = tea(
@@ -209,10 +209,10 @@ void main()
             }  
 
             // Apply Russian Roulette Termination
-            if (p_pathTrace.depth > RR_MIN_DEPTH) {
+            if (p_pathTrace.depth >= RR_MIN_DEPTH) {
                 // Calculate the Russian Roulette probability based on the max component of the throughput
                 // to ensure that the path is terminated with a probability proportional to its contribution.
-                float russianRouletteProbability = maxComponent(p_pathTrace.throughput);
+                float russianRouletteProbability = min(maxComponent(p_pathTrace.throughput), 0.95);
 
                 if (randomFloat(p_pathTrace.seed) > russianRouletteProbability) {
                     // if we need to terminate we go to the next sample
