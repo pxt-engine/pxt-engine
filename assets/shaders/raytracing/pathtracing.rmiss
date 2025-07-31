@@ -13,7 +13,7 @@ layout(location = PathTracePayloadLocation) rayPayloadInEXT PathTracePayload p_p
 void main()
 {
 #if USE_SKY_AS_NEE_EMITTER
-    if (p_pathTrace.depth == 0) {
+    if (p_pathTrace.depth == 0 || p_pathTrace.isSpecularBounce) {
         p_pathTrace.radiance += getSkyRadiance(gl_WorldRayDirectionEXT) * p_pathTrace.throughput;
     }
 #else
