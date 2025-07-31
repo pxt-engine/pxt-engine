@@ -66,7 +66,10 @@ void main()
     const int maxBounces = 4;
 
     for (uint currentSample = 0; currentSample < samplesPerPixel; ++currentSample) {
-        uint seed = tea(gl_LaunchIDEXT.y * gl_LaunchSizeEXT.x + gl_LaunchIDEXT.x, uint(ubo.frameCount));
+        uint seed = tea(
+            tea(gl_LaunchIDEXT.x, gl_LaunchIDEXT.y),
+            tea(uint(ubo.frameCount), currentSample)
+        );
 
         Ray worldRay = getCameraRay(seed);
 
@@ -230,7 +233,7 @@ void main()
     finalColor /= samplesPerPixel;
 
     if (ubo.accumulationEnabled) {
-        vec3 previousColor = imageLoad(outputImage, ivec2(gl_LaunchIDEXT.xy)).rgb;
+        vec3 previousColor = imageLoad(outputImage, ivec2(gl_LaunchIDEXT.xy)).rgb;          
         float weight = 1.0 / float(ubo.ptAccumulationCount + 1);
         finalColor = mix(previousColor, finalColor, weight);
     } 
