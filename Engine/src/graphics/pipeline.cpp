@@ -20,6 +20,12 @@ namespace PXTEngine {
 		createRayTracingPipeline(configInfo);
 	}
 
+	Pipeline::Pipeline(Context& context, const std::string& shaderFilePath,
+		const ComputePipelineConfigInfo& configInfo)
+		: m_context(context) {
+		createComputePipeline(shaderFilePath, configInfo);
+	}
+
 	Pipeline::~Pipeline() {
         vkDestroyPipeline(m_context.getDevice(), m_pipeline, nullptr);
     }
@@ -223,6 +229,36 @@ namespace PXTEngine {
 
 		m_pipelineBindPoint = VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR;
 	}
+
+	void Pipeline::createComputePipeline(const std::string& shaderFilePath, const ComputePipelineConfigInfo& configInfo) {
+		PXT_ASSERT(configInfo.pipelineLayout != nullptr,
+			"Cannot create compute pipeline: no pipelineLayout provided in config info");
+
+		// A compute pipeline has only one shader stage
+		Unique<VulkanShader> computeShader = createUnique<VulkanShader>(m_context, shaderFilePath);
+		VkPipelineShaderStageCreateInfo shaderStageInfo = computeShader->getShaderStageCreateInfo();
+
+		VkComputePipelineCreateInfo pipelineInfo{};
+		pipelineInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+		pipelineInfo.stage = shaderStageInfo;
+		pipelineInfo.layout = configInfo.pipelineLayout;
+		pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
+		pipelineInfo.basePipelineIndex = -1;
+
+		if (vkCreateComputePipelines(
+			m_context.getDevice(),
+			VK_NULL_HANDLE,
+			1,
+			&pipelineInfo,
+			nullptr,
+			&m_pipeline) != VK_SUCCESS) {
+			throw std::runtime_error("failed to create compute pipeline!");
+		}
+
+		// Set the correct bind point for vkCmdBindPipeline
+		m_pipelineBindPoint = VK_PIPELINE_BIND_POINT_COMPUTE;
+	}
+
 
 	void Pipeline::bind(VkCommandBuffer commandBuffer) {
         vkCmdBindPipeline(commandBuffer, m_pipelineBindPoint, m_pipeline);
