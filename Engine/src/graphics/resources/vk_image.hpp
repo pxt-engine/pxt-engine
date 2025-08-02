@@ -77,6 +77,14 @@ namespace PXTEngine {
 			return Type::Image;
 		}
 
+		VkDescriptorImageInfo getImageInfo(bool useSampler = true) {
+			return VkDescriptorImageInfo{
+				.sampler = useSampler ? m_sampler : VK_NULL_HANDLE,
+				.imageView = m_imageView,
+				.imageLayout = m_currentLayout
+			};
+		}
+
 		VkExtent2D getExtent() const {
 			return { m_info.width, m_info.height };
 		}
