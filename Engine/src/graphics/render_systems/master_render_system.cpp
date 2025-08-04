@@ -323,6 +323,12 @@ namespace PXTEngine {
 			*m_globalSetLayout,
 			m_sceneImage
 		);
+
+		m_denoiserRenderSystem = createUnique<DenoiserRenderSystem>(
+			m_context,
+			m_descriptorAllocator,
+			m_renderer.getSwapChainExtent()
+		);
 	}
 
 	void MasterRenderSystem::reloadShaders() {
@@ -334,6 +340,7 @@ namespace PXTEngine {
 		// reload shaders in all render systems
 		if (m_isRaytracingEnabled) {
 			m_rayTracingRenderSystem->reloadShaders();
+			m_denoiserRenderSystem->reloadShaders();
 		} else {
 			m_materialRenderSystem->reloadShaders();
 			m_debugRenderSystem->reloadShaders();
@@ -354,6 +361,10 @@ namespace PXTEngine {
 
 			// update scene image for raytracing
 			m_rayTracingRenderSystem->updateSceneImage(m_sceneImage);
+
+			// update the denoiser's images with new extent
+			m_denoiserRenderSystem->updateImages(swapChainExtent);
+
 			m_lastFrameSwapChainExtent = swapChainExtent;
 		}
 
@@ -396,8 +407,14 @@ namespace PXTEngine {
 		// render to offscreen main render pass
 		if (m_isRaytracingEnabled) {
 			m_rayTracingRenderSystem->render(frameInfo, m_renderer);
+
+			//m_denoiserRenderSystem->denoise(
+			//	frameInfo,
+			//	m_sceneImage
+			//);
+
 			// this transitions the scene image back to shader_read_only_optimal for the next
-			// renderpass (for now only point light billboards)
+			// renderpass (for now only point light billboards or ImGui Presentation)
 			m_rayTracingRenderSystem->transitionImageToShaderReadOnlyOptimal(frameInfo);
 
 			//begin offscreen render pass for point light billboards

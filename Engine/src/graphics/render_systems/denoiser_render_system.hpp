@@ -6,7 +6,7 @@
 #include "graphics/frame_info.hpp"
 #include "graphics/descriptors/descriptors.hpp"
 #include "graphics/resources/texture_registry.hpp"
-#include "graphics/resources/image.hpp"
+#include "graphics/resources/vk_image.hpp"
 
 namespace PXTEngine {
 
@@ -19,26 +19,31 @@ namespace PXTEngine {
         DenoiserRenderSystem& operator=(const DenoiserRenderSystem&) = delete;
 
         // The main function to run the denoising pipeline
-        void denoise(FrameInfo& frameInfo, VkDescriptorImageInfo newFrameImageInfo);
+        void denoise(FrameInfo& frameInfo, Shared<VulkanImage> sceneImage);
 
         // Utility to clear the accumulation buffer (e.g., on camera move)
         void resetAccumulation();
 
+        void updateImages(VkExtent2D swapChainExtent);
+        void reloadShaders();
+
     private:
         // Helper methods for pipeline setup
-        void createBuffers(VkExtent2D swapChainExtent);
+        void createImages(VkExtent2D swapChainExtent);
         void createAccumulationPipelineLayout();
         void createTemporalFilterPipelineLayout();
         void createSpatialFilterPipelineLayout();
 
-        void createAccumulationPipeline();
-        void createTemporalFilterPipeline();
-        void createSpatialFilterPipeline();
+        void createAccumulationPipeline(bool useCompiledSpirvFiles = true);
+        void createTemporalFilterPipeline(bool useCompiledSpirvFiles = true);
+        void createSpatialFilterPipeline(bool useCompiledSpirvFiles = true);
 
         // Helper methods for descriptor sets
         void createAccumulationDescriptorSet();
         void createTemporalFilterDescriptorSet();
         void createSpatialFilterDescriptorSet();
+
+        void copyDenoisedIntoSceneImage(VkCommandBuffer commandBuffer, Shared<VulkanImage> sceneImage);
 
         Context& m_context;
         Shared<DescriptorAllocatorGrowable> m_descriptorAllocator;
@@ -66,9 +71,9 @@ namespace PXTEngine {
         VkDescriptorSet m_spatialFilterDescriptorSet{};
 
         // Resources needed for denoising
-        Unique<Image> m_accumulationImage;
-        Unique<Image> m_temporalHistoryImage; // For temporal filtering
-        Unique<Image> m_tempTemporalOutputImage;
+        Unique<VulkanImage> m_accumulationImage;
+        Unique<VulkanImage> m_temporalHistoryImage; // For temporal filtering
+        Unique<VulkanImage> m_tempTemporalOutputImage;
 
         std::string m_accumulationShaderPath = "accumulation_cs.spv";
         std::string m_temporalShaderPath = "temporal_cs.spv";
