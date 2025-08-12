@@ -7,6 +7,9 @@ layout (local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 // Define push constants
 layout(push_constant) uniform PushConstants {
     uint frameCount;
+    float temporalAlpha;
+    float spatialSigmaColor;
+    float spatialSigmaSpace;
 } pushConstants;
 
 // Binding 0: New noisy frame (read as a sampled image)

@@ -5,39 +5,72 @@
 layout (local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 
 layout(push_constant) uniform PushConstants {
-    float spatialSigmaColor; // Color similarity threshold for bilateral filter
-    float spatialSigmaSpace; // Spatial distance threshold for bilateral filter (e.g., filter radius)
+    uint frameCount;
+    float temporalAlpha;
+    float spatialSigmaColor;
+    float spatialSigmaSpace;
 } pushConstants;
 
 // Descriptor Set 0: Spatial Filter Pass Bindings
-// Binding 0: The output from the temporal filter. Read as a sampled image.
-layout(set = 0, binding = 0) uniform sampler2D temporalOutputSampler;
+layout(set = 0, binding = 0) uniform sampler2D temporalOutputSampler; // Unused in this example
+layout(set = 0, binding = 1) uniform sampler2D newNoisyFrameForGuidanceSampler; // Input image
+layout(set = 0, binding = 2, rgba16f) uniform image2D finalDenoisedOutputImage; // Output image
 
-// Binding 1: The raw, noisy new frame. Often used as a "guidance" image for bilateral filtering
-// to preserve edges based on original scene details. Read as a sampled image.
-layout(set = 0, binding = 1) uniform sampler2D newNoisyFrameForGuidanceSampler;
+// Define a kernel size. A 5x5 kernel is a good balance of performance and quality.
+#define KERNEL_RADIUS 2
+#define KERNEL_SIZE (KERNEL_RADIUS * 2 + 1)
 
-// Binding 2: The final denoised output for the current frame. This will also serve as
-// the history buffer for the *next* frame. Written to as a storage image.
-layout(set = 0, binding = 2, rgba16f) uniform image2D finalDenoisedOutputImage;
+// Function to generate a 1D Gaussian weight
+float gaussian(float x, float sigma) {
+    return exp(-(x * x) / (2.0 * sigma * sigma));
+}
 
 void main() {
-    // Get the global invocation ID, which corresponds to the pixel coordinate NOT NORMALIZED UV
+    // Get the global invocation ID, which corresponds to the pixel coordinate
     ivec2 texelCoord = ivec2(gl_GlobalInvocationID.xy);
     
-    // Read the dimensions of the output image (and thus also the input images, assuming they are same size)
+    // Read the dimensions of the output image
     ivec2 imageDimensions = imageSize(finalDenoisedOutputImage);
 
-    // Boundary check to ensure we don't go out of bounds
+    // Boundary check
     if (texelCoord.x >= imageDimensions.x || texelCoord.y >= imageDimensions.y) {
         return;
     }
 
-    vec4 color = texture(newNoisyFrameForGuidanceSampler, texelCoord);
-    
-    // Store the sampled color to the final output image
-    imageStore(finalDenoisedOutputImage, texelCoord, color);
+    vec3 finalColor = vec3(0.0);
+    float totalWeight = 0.0;
 
-    // If you want to force red output for testing:
-    // imageStore(finalDenoisedOutputImage, texelCoord, vec4(1.0, 0.0, 0.0, 1.0));
+    // A simple 2D Gaussian filter is separable, meaning it can be done with two 1D passes
+    // (one horizontal, one vertical) for better performance.
+    // However, for simplicity and clarity, this example uses a single 2D pass.
+    for (int y = -KERNEL_RADIUS; y <= KERNEL_RADIUS; ++y) {
+        for (int x = -KERNEL_RADIUS; x <= KERNEL_RADIUS; ++x) {
+            ivec2 currentOffset = ivec2(x, y);
+            ivec2 currentCoord = texelCoord + currentOffset;
+
+            // Check if the current pixel is within the image bounds
+            if (currentCoord.x >= 0 && currentCoord.x < imageDimensions.x &&
+                currentCoord.y >= 0 && currentCoord.y < imageDimensions.y) {
+
+                // Calculate the 2D Gaussian weight
+                float distanceSq = float(currentOffset.x * currentOffset.x + currentOffset.y * currentOffset.y);
+                // The `spatialSigmaSpace` is the standard deviation (sigma) for our Gaussian
+                float weight = exp(-distanceSq / (2.0 * pushConstants.spatialSigmaSpace * pushConstants.spatialSigmaSpace));
+
+                // Sample the color from the input image at the current offset
+                vec3 currentSample = texture(newNoisyFrameForGuidanceSampler, currentCoord).rgb;
+
+                finalColor += currentSample * weight;
+                totalWeight += weight;
+            }
+        }
+    }
+
+    // Normalize the final color by the sum of all weights
+    if (totalWeight > 0.0) {
+        finalColor /= totalWeight;
+    }
+
+    // Store the final denoised color to the output image
+    imageStore(finalDenoisedOutputImage, texelCoord, vec4(finalColor, 1.0));
 }

@@ -435,7 +435,7 @@ namespace PXTEngine {
 
         DenoiserPushConstantData spatialPush{};
         spatialPush.spatialSigmaColor = 0.1f; // Example sigma values, tune
-        spatialPush.spatialSigmaSpace = 2.0f;
+		spatialPush.spatialSigmaSpace = 1.0f; // Example spatial sigma, tune
         vkCmdPushConstants(
             commandBuffer,
             m_spatialFilterPipelineLayout,
