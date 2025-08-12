@@ -25,7 +25,7 @@ namespace PXTEngine {
 
         void update(FrameInfo& frameInfo);
         void render(FrameInfo& frameInfo, Renderer& renderer);
-		void transitionImageToShaderReadOnlyOptimal(FrameInfo& frameInfo);
+		void transitionImageToShaderReadOnlyOptimal(FrameInfo& frameInfo, VkPipelineStageFlagBits lastStage);
 		void reloadShaders();
 
         void updateSceneImage(Shared<VulkanImage> sceneImage);

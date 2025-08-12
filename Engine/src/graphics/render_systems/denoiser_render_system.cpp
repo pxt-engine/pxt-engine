@@ -65,10 +65,17 @@ namespace PXTEngine {
 		imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
 		imageViewCreateInfo.subresourceRange.layerCount = 1;
 
+        // we create a single simpler for every image
 		VkSamplerCreateInfo samplerCreateInfo = {};
 		samplerCreateInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
 		samplerCreateInfo.magFilter = VK_FILTER_NEAREST;
 		samplerCreateInfo.minFilter = VK_FILTER_NEAREST;
+		samplerCreateInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE; // Clamp to edge to avoid artifacts on the borders
+		samplerCreateInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		samplerCreateInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE; // Not used, but set for completeness
+		samplerCreateInfo.unnormalizedCoordinates = VK_TRUE; // We use unnormalized coordinates for direct texel access
+
+        m_imageSamplerNearest = m_context.createSampler(samplerCreateInfo);
 
         // Create an accumulation buffer
         // This buffer accumulates raw path-traced samples.
@@ -81,21 +88,7 @@ namespace PXTEngine {
 
         m_accumulationImage->
              createImageView(imageViewCreateInfo)
-            .createSampler(samplerCreateInfo);
-
-        // Create a history buffer for temporal filtering.
-        // This buffer stores the final denoised output of the PREVIOUS frame,
-        // and will store the final denoised output of the CURRENT frame.
-        m_temporalHistoryImage = createUnique<VulkanImage>(
-            m_context,
-            imageCreateInfo,
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
-        );
-        imageViewCreateInfo.image = m_temporalHistoryImage->getVkImage();
-
-        m_temporalHistoryImage->
-             createImageView(imageViewCreateInfo)
-            .createSampler(samplerCreateInfo);
+            .setImageSampler(m_imageSamplerNearest);
 
         // Create a temporary buffer for the output of the temporal filter.
         // This serves as input for the spatial filter.
@@ -107,8 +100,24 @@ namespace PXTEngine {
         imageViewCreateInfo.image = m_tempTemporalOutputImage->getVkImage();
 
         m_tempTemporalOutputImage->
+            createImageView(imageViewCreateInfo)
+            .setImageSampler(m_imageSamplerNearest);
+
+        // Create a history buffer for temporal filtering.
+        // This buffer stores the final denoised output of the PREVIOUS frame,
+        // and will store the final denoised output of the CURRENT frame.
+		imageCreateInfo.usage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT; // Allow transfer for copying to scene image later
+
+        m_temporalHistoryImage = createUnique<VulkanImage>(
+            m_context,
+            imageCreateInfo,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+        );
+        imageViewCreateInfo.image = m_temporalHistoryImage->getVkImage();
+
+        m_temporalHistoryImage->
              createImageView(imageViewCreateInfo)
-            .createSampler(samplerCreateInfo);
+            .setImageSampler(m_imageSamplerNearest);
     }
 
     void DenoiserRenderSystem::createAccumulationDescriptorSet() {
@@ -277,7 +286,10 @@ namespace PXTEngine {
     void DenoiserRenderSystem::denoise(FrameInfo& frameInfo, Shared<VulkanImage> sceneImage) {
         m_frameCount++;
         VkCommandBuffer commandBuffer = frameInfo.commandBuffer;
+
 		VkDescriptorImageInfo newFrameImageInfo = sceneImage->getImageInfo();
+		newFrameImageInfo.sampler = m_imageSamplerNearest; // Use nearest sampler for denoising
+
         VkDescriptorImageInfo accumulationImageInfo;
 		VkDescriptorImageInfo temporalHistoryImageInfo;
 		VkDescriptorImageInfo tempTemporalOutputImageInfo;
@@ -287,6 +299,7 @@ namespace PXTEngine {
         const uint32_t workGroupCountX = (m_extent.width + workGroupSize - 1) / workGroupSize;
         const uint32_t workGroupCountY = (m_extent.height + workGroupSize - 1) / workGroupSize;
 
+        
         // --- Pass 1: Accumulation ---
         // Inputs: newFrameImageInfo (noisy path-traced frame)
         // Output: m_accumulationImage (accumulated samples)
@@ -326,52 +339,30 @@ namespace PXTEngine {
 
         vkCmdDispatch(commandBuffer, workGroupCountX, workGroupCountY, 1);
 
-        // TODO: Add a barrier function -> it is essentially the transitionLayout function
-        // Barrier: Ensure accumulation write is complete before temporal filter reads from it
-        VkImageMemoryBarrier accumulationBarrier{};
-        accumulationBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-        accumulationBarrier.image = m_accumulationImage->getVkImage();
-        accumulationBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-        accumulationBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-        accumulationBarrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
-        accumulationBarrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
-        accumulationBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        accumulationBarrier.subresourceRange.baseArrayLayer = 0;
-        accumulationBarrier.subresourceRange.layerCount = 1;
-        accumulationBarrier.subresourceRange.baseMipLevel = 0;
-        accumulationBarrier.subresourceRange.levelCount = 1;
-
-        vkCmdPipelineBarrier(
-            commandBuffer,
-            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-            0, 0, nullptr, 0, nullptr, 1, &accumulationBarrier
-        );
+        // --- Pass 2: Temporal Filter ---
+        // Inputs: m_accumulationImage (from Pass 1), m_temporalHistoryImage (previous frame's final output), newFrameImageInfo (raw)
+        // Output: m_tempTemporalOutputImage
 
         m_accumulationImage->transitionImageLayout(
             commandBuffer,
-			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
             VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
             VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT
-		);
-        
+        );
+
         m_temporalHistoryImage->transitionImageLayout(
             commandBuffer,
-            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 
-            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+			VK_PIPELINE_STAGE_TRANSFER_BIT, // because it was copied from in the previous frame
             VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT
-		);
+        );
 
         m_tempTemporalOutputImage->transitionImageLayout(
             commandBuffer,
             VK_IMAGE_LAYOUT_GENERAL, // General layout for storage
             VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
             VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT
-		);
-
-        // --- Pass 2: Temporal Filter ---
-        // Inputs: m_accumulationImage (from Pass 1), m_temporalHistoryImage (previous frame's final output), newFrameImageInfo (raw)
-        // Output: m_tempTemporalOutputImage
+        );
 
 		accumulationImageInfo = m_accumulationImage->getImageInfo(); // Sampled image info
 		temporalHistoryImageInfo = m_temporalHistoryImage->getImageInfo(); // Sampled image info
@@ -406,44 +397,23 @@ namespace PXTEngine {
 
         vkCmdDispatch(commandBuffer, workGroupCountX, workGroupCountY, 1);
 
-        // Barrier: Ensure temporal filter write is complete before spatial filter reads from it
-        VkImageMemoryBarrier temporalBarrier{};
-        temporalBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-        temporalBarrier.image = m_tempTemporalOutputImage->getVkImage();
-        temporalBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-        temporalBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-        temporalBarrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
-        temporalBarrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
-        temporalBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        temporalBarrier.subresourceRange.baseArrayLayer = 0;
-        temporalBarrier.subresourceRange.layerCount = 1;
-        temporalBarrier.subresourceRange.baseMipLevel = 0;
-        temporalBarrier.subresourceRange.levelCount = 1;
-
-        vkCmdPipelineBarrier(
-            commandBuffer,
-            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-            0, 0, nullptr, 0, nullptr, 1, &temporalBarrier
-        );
+        // --- Pass 3: Spatial Filter (e.g., Bilateral or Low-Pass) ---
+        // Inputs: m_tempTemporalOutputImage (from Pass 2), newFrameImageInfo (raw for guidance)
+        // Output: m_temporalHistoryImage (final denoised output for current frame, becomes history for next)
 
         m_tempTemporalOutputImage->transitionImageLayout(
             commandBuffer,
             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, // Ready for sampling in spatial filter
             VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
             VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT
-		);
+        );
 
         m_temporalHistoryImage->transitionImageLayout(
             commandBuffer,
             VK_IMAGE_LAYOUT_GENERAL, // General layout for storage
             VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-			VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT
-		);
-
-        // --- Pass 3: Spatial Filter (e.g., Bilateral or Low-Pass) ---
-        // Inputs: m_tempTemporalOutputImage (from Pass 2), newFrameImageInfo (raw for guidance)
-        // Output: m_temporalHistoryImage (final denoised output for current frame, becomes history for next)
+            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT
+        );
 
         tempTemporalOutputImageInfo = m_tempTemporalOutputImage->getImageInfo(); // Sampled image info
         temporalHistoryImageInfo = m_temporalHistoryImage->getImageInfo(false); 
@@ -491,7 +461,7 @@ namespace PXTEngine {
 		sceneImage->transitionImageLayout(
 			commandBuffer,
 			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
 			VK_PIPELINE_STAGE_TRANSFER_BIT
 		);
 

@@ -75,6 +75,9 @@ namespace PXTEngine {
         Unique<VulkanImage> m_temporalHistoryImage; // For temporal filtering
         Unique<VulkanImage> m_tempTemporalOutputImage;
 
+		// Sampler for images (with nearest filtering)
+		VkSampler m_imageSamplerNearest;
+
         std::string m_accumulationShaderPath = "accumulation.comp";
         std::string m_temporalShaderPath = "temporal.comp";
         std::string m_spatialShaderPath = "spatial.comp";

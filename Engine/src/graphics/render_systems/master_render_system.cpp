@@ -152,7 +152,8 @@ namespace PXTEngine {
 		sceneImageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 		sceneImageInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | // to be writable in a renderpass
 							   VK_IMAGE_USAGE_SAMPLED_BIT |			 // to be readable in a shader
-							   VK_IMAGE_USAGE_STORAGE_BIT;			 // to be writable for raytracing shaders
+							   VK_IMAGE_USAGE_STORAGE_BIT |			 // to be writable for raytracing shaders
+							   VK_IMAGE_USAGE_TRANSFER_DST_BIT;		 // to copy to it later (denoised image)
 		sceneImageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 		sceneImageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
@@ -408,6 +409,9 @@ namespace PXTEngine {
 		if (m_isRaytracingEnabled) {
 			m_rayTracingRenderSystem->render(frameInfo, m_renderer);
 
+			// transition the scene image to shader_read_only_optimal layout for denoiser sampling
+			m_rayTracingRenderSystem->transitionImageToShaderReadOnlyOptimal(frameInfo, VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR);
+
 			m_denoiserRenderSystem->denoise(
 				frameInfo,
 				m_sceneImage
@@ -415,8 +419,8 @@ namespace PXTEngine {
 
 			// this transitions the scene image back to shader_read_only_optimal for the next
 			// renderpass (for now only point light billboards or ImGui Presentation)
-			m_rayTracingRenderSystem->transitionImageToShaderReadOnlyOptimal(frameInfo);
-
+			m_rayTracingRenderSystem->transitionImageToShaderReadOnlyOptimal(frameInfo, VK_PIPELINE_STAGE_TRANSFER_BIT);
+			
 			//begin offscreen render pass for point light billboards
 			/*m_renderer.beginRenderPass(frameInfo.commandBuffer, m_offscreenRenderPass->getVkRenderPass(),
 				m_offscreenFb, m_renderer.getSwapChainExtent());
