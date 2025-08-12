@@ -96,6 +96,7 @@ namespace PXTEngine {
 		VkImage getVkImage() { return m_vkImage; }
 		const VkImageView getImageView() { return m_imageView; }
 		const VkSampler getImageSampler() { return m_sampler; }
+		const void setImageSampler(const VkSampler sampler) { m_sampler = sampler; }
 		const VkFormat getImageFormat() { return m_imageFormat; }
 
 		const VkImageLayout getCurrentLayout() const { return m_currentLayout; }
