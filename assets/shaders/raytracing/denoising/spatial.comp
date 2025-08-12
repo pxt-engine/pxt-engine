@@ -22,17 +22,22 @@ layout(set = 0, binding = 1) uniform sampler2D newNoisyFrameForGuidanceSampler;
 layout(set = 0, binding = 2, rgba16f) uniform image2D finalDenoisedOutputImage;
 
 void main() {
-     // Get the global invocation ID, which corresponds to the pixel coordinate
+    // Get the global invocation ID, which corresponds to the pixel coordinate NOT NORMALIZED UV
     ivec2 texelCoord = ivec2(gl_GlobalInvocationID.xy);
     
-    // Read the dimensions of the output image
-    ivec2 finalImageSize = imageSize(finalDenoisedOutputImage);
+    // Read the dimensions of the output image (and thus also the input images, assuming they are same size)
+    ivec2 imageDimensions = imageSize(finalDenoisedOutputImage);
 
     // Boundary check to ensure we don't go out of bounds
-    if (texelCoord.x >= finalImageSize.x || texelCoord.y >= finalImageSize.y) {
+    if (texelCoord.x >= imageDimensions.x || texelCoord.y >= imageDimensions.y) {
         return;
     }
 
-    // Write a solid red color to the final output image
-    imageStore(finalDenoisedOutputImage, texelCoord, vec4(1.0, 0.0, 0.0, 1.0));
+    vec4 color = texture(newNoisyFrameForGuidanceSampler, texelCoord);
+    
+    // Store the sampled color to the final output image
+    imageStore(finalDenoisedOutputImage, texelCoord, color);
+
+    // If you want to force red output for testing:
+    // imageStore(finalDenoisedOutputImage, texelCoord, vec4(1.0, 0.0, 0.0, 1.0));
 }
