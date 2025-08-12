@@ -1,0 +1,49 @@
+#version 460
+#extension GL_ARB_separate_shader_objects : enable
+
+// Define workgroup size
+layout (local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+// Define push constants
+layout(push_constant) uniform PushConstants {
+    uint frameCount;
+} pushConstants;
+
+// Binding 0: New noisy frame (read as a sampled image)
+layout(set = 0, binding = 0) uniform sampler2D newFrameSampler;
+
+// Binding 1: Accumulation buffer (read/write as a storage image)
+layout(set = 0, binding = 1, rgba16f) uniform image2D accumulationImage;
+
+void main() {
+    /*
+    // Get the global invocation ID, which corresponds to the pixel coordinate
+    ivec2 texelCoord = ivec2(gl_GlobalInvocationID.xy);
+
+    // Read the dimensions of the images
+    ivec2 imageSize = imageSize(accumulationImage);
+
+    // Boundary check to ensure we don't go out of bounds
+    if (texelCoord.x >= imageSize.x || texelCoord.y >= imageSize.y) {
+        return;
+    }
+
+    // Get the color from the new noisy frame
+    vec4 newColor = texture(newFrameSampler, vec2(texelCoord) / vec2(imageSize));
+
+    // Handle accumulation based on the frame count
+    if (pushConstants.frameCount == 1) {
+        // First frame: simply write the new color to the accumulation image
+        imageStore(accumulationImage, texelCoord, newColor);
+    } else {
+        // Subsequent frames: blend the new color with the existing accumulation
+        // Note: The frameCount starts at 1, so the current sample count is frameCount.
+        // The weight of the new sample is 1/frameCount.
+        // The weight of the previous accumulation is (frameCount - 1)/frameCount.
+        vec4 prevAccumulation = imageLoad(accumulationImage, texelCoord);
+        vec4 accumulatedColor = (prevAccumulation * (pushConstants.frameCount - 1.0) + newColor) / float(pushConstants.frameCount);
+
+        imageStore(accumulationImage, texelCoord, accumulatedColor);
+    }
+    */
+}

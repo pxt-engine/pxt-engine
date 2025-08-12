@@ -408,10 +408,10 @@ namespace PXTEngine {
 		if (m_isRaytracingEnabled) {
 			m_rayTracingRenderSystem->render(frameInfo, m_renderer);
 
-			//m_denoiserRenderSystem->denoise(
-			//	frameInfo,
-			//	m_sceneImage
-			//);
+			m_denoiserRenderSystem->denoise(
+				frameInfo,
+				m_sceneImage
+			);
 
 			// this transitions the scene image back to shader_read_only_optimal for the next
 			// renderpass (for now only point light billboards or ImGui Presentation)

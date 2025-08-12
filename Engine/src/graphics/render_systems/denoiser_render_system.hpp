@@ -75,9 +75,9 @@ namespace PXTEngine {
         Unique<VulkanImage> m_temporalHistoryImage; // For temporal filtering
         Unique<VulkanImage> m_tempTemporalOutputImage;
 
-        std::string m_accumulationShaderPath = "accumulation_cs.spv";
-        std::string m_temporalShaderPath = "temporal_cs.spv";
-        std::string m_spatialShaderPath = "spatial_cs.spv";
+        std::string m_accumulationShaderPath = "accumulation.comp";
+        std::string m_temporalShaderPath = "temporal.comp";
+        std::string m_spatialShaderPath = "spatial.comp";
 
         uint32_t m_frameCount = 0;
     };

@@ -226,7 +226,7 @@ namespace PXTEngine {
         ComputePipelineConfigInfo pipelineConfig{};
         pipelineConfig.pipelineLayout = m_accumulationPipelineLayout;
 
-        const std::string baseShaderPath = useCompiledSpirvFiles ? SPV_SHADERS_PATH : SHADERS_PATH;
+        const std::string baseShaderPath = useCompiledSpirvFiles ? SPV_SHADERS_PATH : SHADERS_PATH + "raytracing/denoising/";
         const std::string filenameSuffix = useCompiledSpirvFiles ? ".spv" : "";
 
         std::string shaderFilePath = baseShaderPath + m_accumulationShaderPath + filenameSuffix;
@@ -244,7 +244,7 @@ namespace PXTEngine {
         ComputePipelineConfigInfo pipelineConfig{};
         pipelineConfig.pipelineLayout = m_temporalFilterPipelineLayout;
 
-        const std::string baseShaderPath = useCompiledSpirvFiles ? SPV_SHADERS_PATH : SHADERS_PATH;
+        const std::string baseShaderPath = useCompiledSpirvFiles ? SPV_SHADERS_PATH : SHADERS_PATH + "raytracing/denoising/";
         const std::string filenameSuffix = useCompiledSpirvFiles ? ".spv" : "";
 
         std::string shaderFilePath = baseShaderPath + m_temporalShaderPath + filenameSuffix;
@@ -262,7 +262,7 @@ namespace PXTEngine {
         ComputePipelineConfigInfo pipelineConfig{};
         pipelineConfig.pipelineLayout = m_spatialFilterPipelineLayout;
 
-        const std::string baseShaderPath = useCompiledSpirvFiles ? SPV_SHADERS_PATH : SHADERS_PATH;
+        const std::string baseShaderPath = useCompiledSpirvFiles ? SPV_SHADERS_PATH : SHADERS_PATH + "raytracing/denoising/";
         const std::string filenameSuffix = useCompiledSpirvFiles ? ".spv" : "";
 
         std::string shaderFilePath = baseShaderPath + m_spatialShaderPath + filenameSuffix;
@@ -278,6 +278,9 @@ namespace PXTEngine {
         m_frameCount++;
         VkCommandBuffer commandBuffer = frameInfo.commandBuffer;
 		VkDescriptorImageInfo newFrameImageInfo = sceneImage->getImageInfo();
+        VkDescriptorImageInfo accumulationImageInfo;
+		VkDescriptorImageInfo temporalHistoryImageInfo;
+		VkDescriptorImageInfo tempTemporalOutputImageInfo;
 
         // Calculate work group dimensions
 		const uint32_t workGroupSize = 16;
@@ -286,8 +289,8 @@ namespace PXTEngine {
 
         // --- Pass 1: Accumulation ---
         // Inputs: newFrameImageInfo (noisy path-traced frame)
-        // Output: m_accumulationBuffer (accumulated samples)
-        // m_accumulationBuffer is used as both read and write storage image,
+        // Output: m_accumulationImage (accumulated samples)
+        // m_accumulationImage is used as both read and write storage image,
         // so its layout should be VK_IMAGE_LAYOUT_GENERAL.
         m_accumulationImage->transitionImageLayout(
             commandBuffer,
@@ -296,9 +299,11 @@ namespace PXTEngine {
             VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT
         );
 
+		accumulationImageInfo = m_accumulationImage->getImageInfo(false); // Storage image info
+
         DescriptorWriter(m_context, *m_accumulationDescriptorSetLayout)
             .writeImage(0, &newFrameImageInfo) // New noisy frame (sampled)
-            .writeImage(1, &m_accumulationImage->getImageInfo()) // Accumulation buffer (storage)
+            .writeImage(1, &accumulationImageInfo) // Accumulation buffer (storage)
             .updateSet(m_accumulationDescriptorSet);
 
         m_accumulationPipeline->bind(commandBuffer);
@@ -365,13 +370,18 @@ namespace PXTEngine {
 		);
 
         // --- Pass 2: Temporal Filter ---
-        // Inputs: m_accumulationBuffer (from Pass 1), m_historyBuffer (previous frame's final output), newFrameImageInfo (raw)
+        // Inputs: m_accumulationImage (from Pass 1), m_temporalHistoryImage (previous frame's final output), newFrameImageInfo (raw)
         // Output: m_tempTemporalOutputImage
+
+		accumulationImageInfo = m_accumulationImage->getImageInfo(); // Sampled image info
+		temporalHistoryImageInfo = m_temporalHistoryImage->getImageInfo(); // Sampled image info
+		tempTemporalOutputImageInfo = m_tempTemporalOutputImage->getImageInfo(false); // Storage image info
+
         DescriptorWriter(m_context, *m_temporalFilterDescriptorSetLayout)
-            .writeImage(0, &m_accumulationImage->getImageInfo()) // Accumulation (sampled)
-            .writeImage(1, &m_temporalHistoryImage->getImageInfo()) // History (sampled)
+            .writeImage(0, &accumulationImageInfo) // Accumulation (sampled)
+            .writeImage(1, &temporalHistoryImageInfo) // History (sampled)
             .writeImage(2, &newFrameImageInfo) // New noisy frame (sampled)
-            .writeImage(3, &m_tempTemporalOutputImage->getImageInfo()) // Temporal output (storage)
+            .writeImage(3, &tempTemporalOutputImageInfo) // Temporal output (storage)
             .updateSet(m_temporalFilterDescriptorSet);
 
         m_temporalFilterPipeline->bind(commandBuffer);
@@ -433,11 +443,15 @@ namespace PXTEngine {
 
         // --- Pass 3: Spatial Filter (e.g., Bilateral or Low-Pass) ---
         // Inputs: m_tempTemporalOutputImage (from Pass 2), newFrameImageInfo (raw for guidance)
-        // Output: m_historyBuffer (final denoised output for current frame, becomes history for next)
+        // Output: m_temporalHistoryImage (final denoised output for current frame, becomes history for next)
+
+        tempTemporalOutputImageInfo = m_tempTemporalOutputImage->getImageInfo(); // Sampled image info
+        temporalHistoryImageInfo = m_temporalHistoryImage->getImageInfo(false); 
+
         DescriptorWriter(m_context, *m_spatialFilterDescriptorSetLayout)
-            .writeImage(0, &m_tempTemporalOutputImage->getImageInfo()) // Temporal output (sampled)
+            .writeImage(0, &tempTemporalOutputImageInfo) // Temporal output (sampled)
             .writeImage(1, &newFrameImageInfo) // New noisy frame (sampled, for bilateral guidance)
-            .writeImage(2, &m_temporalHistoryImage->getImageInfo()) // History buffer (storage, final output)
+            .writeImage(2, &temporalHistoryImageInfo) // History buffer (storage, final output)
             .updateSet(m_spatialFilterDescriptorSet);
 
         m_spatialFilterPipeline->bind(commandBuffer);
@@ -450,7 +464,7 @@ namespace PXTEngine {
         );
 
         DenoiserPushConstantData spatialPush{};
-        spatialPush.spatialSigmaColor = 0.1f; // Example sigma values, tune these
+        spatialPush.spatialSigmaColor = 0.1f; // Example sigma values, tune
         spatialPush.spatialSigmaSpace = 2.0f;
         vkCmdPushConstants(
             commandBuffer,
@@ -461,7 +475,7 @@ namespace PXTEngine {
 
         vkCmdDispatch(commandBuffer, workGroupCountX, workGroupCountY, 1);
 
-		// Then copy the denoised output to the scene image
+		// Copy the denoised output to the scene image
 		copyDenoisedIntoSceneImage(commandBuffer, sceneImage);
     }
 
@@ -504,8 +518,6 @@ namespace PXTEngine {
 			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			1, &copyRegion
 		);
-
-		
     }
 
     void DenoiserRenderSystem::resetAccumulation() {
@@ -526,5 +538,4 @@ namespace PXTEngine {
 		createTemporalFilterPipeline(false);
 		createSpatialFilterPipeline(false);
 	}
-
 } 
