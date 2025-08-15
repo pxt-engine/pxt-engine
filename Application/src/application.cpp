@@ -277,7 +277,7 @@ public:
 		auto cubeModel = rm.get<Mesh>(MODELS_PATH + "cube.obj");
 
         auto volumeCubeEntity = getScene().createEntity("Volume Cube")
-            .add<TransformComponent>(glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3{ 0.3 }, glm::vec3{ 0.0f, 0.0f, 0.0f })
+            .add<TransformComponent>(glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3{ 0.0 }, glm::vec3{ 0.0f, 0.0f, 0.0f })
             .add<MeshComponent>(cubeModel)
             .add<VolumeComponent>(VolumeComponent::Builder()
                 .setAbsorption(glm::vec4{ 0.9f })
@@ -304,16 +304,16 @@ public:
         Entity entity = getScene().createEntity("Bunny")
             .add<TransformComponent>(glm::vec3{ 0.0f, 0.95f, 0.0f }, glm::vec3{ 2.5f, 2.5f, 2.5f }, glm::vec3{ glm::pi<float>(), 0.0f, 0.0f })
             .add<MeshComponent>(bunny)
-            //.add<MaterialComponent>(MaterialComponent::Builder()
-            //    .setMaterial(bunnyMaterial)
-            //    .setTint(glm::vec3(1.0, 0.812, 0.408))
-                //.setTilingFactor(5.0f)
-            //    .build());
-            .add<VolumeComponent>(VolumeComponent::Builder()
+            .add<MaterialComponent>(MaterialComponent::Builder()
+                .setMaterial(bunnyMaterial)
+                .setTint(glm::vec3(1.0, 0.812, 0.408))
+                .setTilingFactor(5.0f)
+                .build());
+            /*.add<VolumeComponent>(VolumeComponent::Builder()
                 .setAbsorption(glm::vec4{ 0.0f, 0.5f, 0.2f, 0.0f })
                 .setScattering(glm::vec4{ 0.3f })
                 .setPhaseFunctionG(0.8f)
-                .build());
+                .build());*/
     }
 
     
