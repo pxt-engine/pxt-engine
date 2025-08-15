@@ -4,16 +4,19 @@
 // Define workgroup size
 layout (local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 
-layout(push_constant) uniform PushConstants {
+layout(push_constant) uniform Push {
     uint frameCount;
+    uint accumulationCount;
     float temporalAlpha;
     float spatialSigmaColor;
     float spatialSigmaSpace;
-} pushConstants;
+    bool isTemporalEnabled;
+    bool isSpatialEnabled;
+} push;
 
 // Descriptor Set 0: Spatial Filter Pass Bindings
-layout(set = 0, binding = 0) uniform sampler2D temporalOutputSampler; // Unused in this example
-layout(set = 0, binding = 1) uniform sampler2D newNoisyFrameForGuidanceSampler; // Input image
+layout(set = 0, binding = 0) uniform sampler2D temporalOutputSampler; // input from temporal filter
+layout(set = 0, binding = 1) uniform sampler2D newNoisyFrameForGuidanceSampler; // For other techniques
 layout(set = 0, binding = 2, rgba16f) uniform image2D finalDenoisedOutputImage; // Output image
 
 // Define a kernel size. A 5x5 kernel is a good balance of performance and quality.
@@ -37,6 +40,13 @@ void main() {
         return;
     }
 
+    // If the spatial filter is not enabled, we can just save the temporal filtering color.
+    if (!push.isSpatialEnabled) {
+        vec4 temporalColor = texture(temporalOutputSampler, texelCoord);
+        imageStore(finalDenoisedOutputImage, texelCoord, temporalColor);
+        return;
+    }
+
     vec3 finalColor = vec3(0.0);
     float totalWeight = 0.0;
 
@@ -55,10 +65,10 @@ void main() {
                 // Calculate the 2D Gaussian weight
                 float distanceSq = float(currentOffset.x * currentOffset.x + currentOffset.y * currentOffset.y);
                 // The `spatialSigmaSpace` is the standard deviation (sigma) for our Gaussian
-                float weight = exp(-distanceSq / (2.0 * pushConstants.spatialSigmaSpace * pushConstants.spatialSigmaSpace));
+                float weight = exp(-distanceSq / (2.0 * push.spatialSigmaSpace * push.spatialSigmaSpace));
 
                 // Sample the color from the input image at the current offset
-                vec3 currentSample = texture(newNoisyFrameForGuidanceSampler, currentCoord).rgb;
+                vec3 currentSample = texture(temporalOutputSampler, currentCoord).rgb;
 
                 finalColor += currentSample * weight;
                 totalWeight += weight;

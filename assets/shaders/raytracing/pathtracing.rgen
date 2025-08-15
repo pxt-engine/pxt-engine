@@ -112,11 +112,12 @@ void main()
 
     finalColor /= samplesPerPixel;
 
+    /* Now accumulation is done inside denoising shaders
     if (ubo.accumulationEnabled) {
-        vec3 previousColor = imageLoad(outputImage, ivec2(gl_LaunchIDEXT.xy)).rgb;
+        vec3 previousColor = imageLoad(outputImage, ivec2(gl_LaunchIDEXT.xy)).rgb;          
         float weight = 1.0 / float(ubo.ptAccumulationCount + 1);
         finalColor = mix(previousColor, finalColor, weight);
-    } 
+    } */
 
     finalColor = saturate(finalColor);
 
