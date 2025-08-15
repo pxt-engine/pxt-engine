@@ -389,14 +389,7 @@ namespace PXTEngine {
 
 		// update raytracing scene
 		if (m_isRaytracingEnabled) {
-			if (m_isAccumulationEnabled) {
-				ubo.accumulationEnabled = true;
-				ubo.ptAccumulationCount = m_rayTracingRenderSystem->getAndIncrementPathTracingAccumulationFrameCount();
-			} else {
-				ubo.accumulationEnabled = false;
-				ubo.ptAccumulationCount = 0;
-				m_rayTracingRenderSystem->resetPathTracingAccumulationFrameCount();
-			}
+			m_denoiserRenderSystem->update(ubo);
 			m_rayTracingRenderSystem->update(frameInfo);
 		}
 	}
@@ -412,14 +405,16 @@ namespace PXTEngine {
 			// transition the scene image to shader_read_only_optimal layout for denoiser sampling
 			m_rayTracingRenderSystem->transitionImageToShaderReadOnlyOptimal(frameInfo, VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR);
 
-			m_denoiserRenderSystem->denoise(
-				frameInfo,
-				m_sceneImage
-			);
+			if (m_isDenoisingEnabled) {
+				m_denoiserRenderSystem->denoise(
+					frameInfo,
+					m_sceneImage
+				);
 
-			// this transitions the scene image back to shader_read_only_optimal for the next
-			// renderpass (for now only point light billboards or ImGui Presentation)
-			m_rayTracingRenderSystem->transitionImageToShaderReadOnlyOptimal(frameInfo, VK_PIPELINE_STAGE_TRANSFER_BIT);
+				// this transitions the scene image back to shader_read_only_optimal for the next
+				// renderpass (for now only point light billboards or ImGui Presentation)
+				m_rayTracingRenderSystem->transitionImageToShaderReadOnlyOptimal(frameInfo, VK_PIPELINE_STAGE_TRANSFER_BIT);
+			}
 			
 			//begin offscreen render pass for point light billboards
 			/*m_renderer.beginRenderPass(frameInfo.commandBuffer, m_offscreenRenderPass->getVkRenderPass(),
@@ -553,7 +548,13 @@ namespace PXTEngine {
 		ImGui::Dummy(ImVec2(0.0f, 10.0f));
 
 		if (m_isRaytracingEnabled) {
-			ImGui::Checkbox("Enable Accumulation", &m_isAccumulationEnabled);
+			ImGui::Begin("Denoiser Settings");
+
+			ImGui::Checkbox("Enable Denoising", &m_isDenoisingEnabled);
+
+			if (m_isDenoisingEnabled) m_denoiserRenderSystem->updateUi();
+
+			ImGui::End();
 		}
 		
 		ImGui::End();

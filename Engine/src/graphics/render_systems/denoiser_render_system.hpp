@@ -21,8 +21,8 @@ namespace PXTEngine {
         // The main function to run the denoising pipeline
         void denoise(FrameInfo& frameInfo, Shared<VulkanImage> sceneImage);
 
-        // Utility to clear the accumulation buffer (e.g., on camera move)
-        void resetAccumulation();
+		void update(GlobalUbo& ubo);
+        void updateUi();
 
         void updateImages(VkExtent2D swapChainExtent);
         void reloadShaders();
@@ -80,8 +80,18 @@ namespace PXTEngine {
 
         std::string m_accumulationShaderPath = "accumulation.comp";
         std::string m_temporalShaderPath = "temporal.comp";
-        std::string m_spatialShaderPath = "spatial.comp";
+        std::string m_spatialShaderPath = "spatial_gaussian_2d.comp";
 
-        uint32_t m_frameCount = 0;
+        uint32_t m_accumulationCount = 0;
+		uint32_t m_frameCount = 0;
+
+		// for UI tuning
+        float m_temporalAlpha = 0.10f;
+        float m_spatialSigmaColor = 0.1f;
+        float m_spatialSigmaSpace = 0.2f;
+
+		bool m_isAccumulationEnabled = true;
+		bool m_isTemporalEnabled = true;
+		bool m_isSpatialEnabled = true;
     };
 }

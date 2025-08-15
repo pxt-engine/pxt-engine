@@ -5,10 +5,12 @@ namespace PXTEngine {
     // Struct for push constants, if needed
     struct DenoiserPushConstantData {
         uint32_t frameCount;
-        // Add more push constants as needed for temporal/spatial filters (e.g., thresholds, filter radii)
+		uint32_t accumulationCount; // number of frames passed from enabling accumulation
         float temporalAlpha;
         float spatialSigmaColor;
         float spatialSigmaSpace;
+		VkBool32 isTemporalEnabled;
+        VkBool32 isSpatialEnabled;
     };
 
     DenoiserRenderSystem::DenoiserRenderSystem(Context& context, Shared<DescriptorAllocatorGrowable> descriptorAllocator, VkExtent2D swapChainExtent)
@@ -284,7 +286,6 @@ namespace PXTEngine {
     }
 
     void DenoiserRenderSystem::denoise(FrameInfo& frameInfo, Shared<VulkanImage> sceneImage) {
-        m_frameCount++;
         VkCommandBuffer commandBuffer = frameInfo.commandBuffer;
 
 		VkDescriptorImageInfo newFrameImageInfo = sceneImage->getImageInfo();
@@ -299,6 +300,15 @@ namespace PXTEngine {
         const uint32_t workGroupCountX = (m_extent.width + workGroupSize - 1) / workGroupSize;
         const uint32_t workGroupCountY = (m_extent.height + workGroupSize - 1) / workGroupSize;
 
+		// Push constants for denoiser
+		DenoiserPushConstantData denoiserPush{};
+		denoiserPush.frameCount = m_frameCount;
+		denoiserPush.accumulationCount = m_accumulationCount;
+		denoiserPush.temporalAlpha = m_temporalAlpha;
+		denoiserPush.spatialSigmaColor = m_spatialSigmaColor;
+		denoiserPush.spatialSigmaSpace = m_spatialSigmaSpace;
+		denoiserPush.isTemporalEnabled = m_isTemporalEnabled;
+		denoiserPush.isSpatialEnabled = m_isSpatialEnabled;
         
         // --- Pass 1: Accumulation ---
         // Inputs: newFrameImageInfo (noisy path-traced frame)
@@ -312,7 +322,7 @@ namespace PXTEngine {
             VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT
         );
 
-		accumulationImageInfo = m_accumulationImage->getImageInfo(false); // Storage image info
+        accumulationImageInfo = m_accumulationImage->getImageInfo(false); // Storage image info
 
         DescriptorWriter(m_context, *m_accumulationDescriptorSetLayout)
             .writeImage(0, &newFrameImageInfo) // New noisy frame (sampled)
@@ -328,13 +338,11 @@ namespace PXTEngine {
             0, nullptr
         );
 
-        DenoiserPushConstantData accumulationPush{};
-        accumulationPush.frameCount = m_frameCount;
         vkCmdPushConstants(
             commandBuffer,
             m_accumulationPipelineLayout,
             VK_SHADER_STAGE_COMPUTE_BIT,
-            0, sizeof(uint32_t), &accumulationPush.frameCount // Only frameCount for this shader
+            0, sizeof(DenoiserPushConstantData), &denoiserPush
         );
 
         vkCmdDispatch(commandBuffer, workGroupCountX, workGroupCountY, 1);
@@ -353,7 +361,7 @@ namespace PXTEngine {
         m_temporalHistoryImage->transitionImageLayout(
             commandBuffer,
             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-			VK_PIPELINE_STAGE_TRANSFER_BIT, // because it was copied from in the previous frame
+            VK_PIPELINE_STAGE_TRANSFER_BIT, // because it was copied from in the previous frame
             VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT
         );
 
@@ -364,9 +372,9 @@ namespace PXTEngine {
             VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT
         );
 
-		accumulationImageInfo = m_accumulationImage->getImageInfo(); // Sampled image info
-		temporalHistoryImageInfo = m_temporalHistoryImage->getImageInfo(); // Sampled image info
-		tempTemporalOutputImageInfo = m_tempTemporalOutputImage->getImageInfo(false); // Storage image info
+        accumulationImageInfo = m_accumulationImage->getImageInfo(); // Sampled image info
+        temporalHistoryImageInfo = m_temporalHistoryImage->getImageInfo(); // Sampled image info
+        tempTemporalOutputImageInfo = m_tempTemporalOutputImage->getImageInfo(false); // Storage image info
 
         DescriptorWriter(m_context, *m_temporalFilterDescriptorSetLayout)
             .writeImage(0, &accumulationImageInfo) // Accumulation (sampled)
@@ -384,15 +392,11 @@ namespace PXTEngine {
             0, nullptr
         );
 
-        DenoiserPushConstantData temporalPush{};
-        temporalPush.frameCount = m_frameCount;
-        temporalPush.temporalAlpha = 0.05f; // Example alpha for blending, tune this
-        // You might add a motion detection threshold here too
         vkCmdPushConstants(
             commandBuffer,
-            m_temporalFilterPipelineLayout,
+            m_accumulationPipelineLayout,
             VK_SHADER_STAGE_COMPUTE_BIT,
-            0, sizeof(DenoiserPushConstantData), &temporalPush
+            0, sizeof(DenoiserPushConstantData), &denoiserPush
         );
 
         vkCmdDispatch(commandBuffer, workGroupCountX, workGroupCountY, 1);
@@ -416,7 +420,7 @@ namespace PXTEngine {
         );
 
         tempTemporalOutputImageInfo = m_tempTemporalOutputImage->getImageInfo(); // Sampled image info
-        temporalHistoryImageInfo = m_temporalHistoryImage->getImageInfo(false); 
+        temporalHistoryImageInfo = m_temporalHistoryImage->getImageInfo(false);
 
         DescriptorWriter(m_context, *m_spatialFilterDescriptorSetLayout)
             .writeImage(0, &tempTemporalOutputImageInfo) // Temporal output (sampled)
@@ -433,20 +437,49 @@ namespace PXTEngine {
             0, nullptr
         );
 
-        DenoiserPushConstantData spatialPush{};
-        spatialPush.spatialSigmaColor = 0.1f; // Example sigma values, tune
-		spatialPush.spatialSigmaSpace = 1.0f; // Example spatial sigma, tune
         vkCmdPushConstants(
             commandBuffer,
-            m_spatialFilterPipelineLayout,
+            m_accumulationPipelineLayout,
             VK_SHADER_STAGE_COMPUTE_BIT,
-            0, sizeof(DenoiserPushConstantData), &spatialPush
+            0, sizeof(DenoiserPushConstantData), &denoiserPush
         );
 
         vkCmdDispatch(commandBuffer, workGroupCountX, workGroupCountY, 1);
 
 		// Copy the denoised output to the scene image
 		copyDenoisedIntoSceneImage(commandBuffer, sceneImage);
+    }
+
+    void DenoiserRenderSystem::update(GlobalUbo& ubo) {
+		m_frameCount = ubo.frameCount;
+
+		m_accumulationCount = m_isAccumulationEnabled ? m_accumulationCount + 1 : 0;
+    }
+
+    void DenoiserRenderSystem::updateUi() {
+        // Accumulation Section
+        if (ImGui::CollapsingHeader("Accumulation Filter")) { // Collapsible header for sections
+			//TODO: Add a checkbox to enable/disable accumulation, move from master render system
+            ImGui::Checkbox("Enable Accumulation", &m_isAccumulationEnabled);
+            
+            ImGui::Text("Number of frames accumulated: %d", m_accumulationCount);
+            ImGui::Separator(); // Visual separator
+        }
+
+        // Temporal Section
+        if (ImGui::CollapsingHeader("Temporal Filter")) {
+            ImGui::Checkbox("Enable Temporal Processing", &m_isTemporalEnabled);
+            ImGui::SliderFloat("Temporal Strength", &m_temporalAlpha, 0.0f, 1.0f, "%.2f");
+            ImGui::Separator();
+        }
+
+        // Spatial Section
+        if (ImGui::CollapsingHeader("Spatial Filter")) {
+            ImGui::Checkbox("Enable Spatial Filtering", &m_isSpatialEnabled);
+            // Using DragFloat for numerical input with mouse drag and direct input
+            ImGui::DragFloat("Spatial Gaussian Standard Deviation", &m_spatialSigmaSpace, 0.05f, 0.05f, 10.0f, "%.2f", ImGuiSliderFlags_AlwaysClamp);
+            ImGui::Separator();
+        }
     }
 
     void DenoiserRenderSystem::copyDenoisedIntoSceneImage(VkCommandBuffer commandBuffer, Shared<VulkanImage> sceneImage) {
@@ -488,14 +521,6 @@ namespace PXTEngine {
 			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			1, &copyRegion
 		);
-    }
-
-    void DenoiserRenderSystem::resetAccumulation() {
-        m_frameCount = 0;
-        // To truly clear the accumulation buffer, you'd need to dispatch a compute shader
-        // that writes zeros to it, or use a vkCmdClearColorImage.
-        // For simplicity, resetting m_frameCount often suffices as the accumulation shader
-        // can be designed to reset accumulation when frameCount is 1.
     }
 
     void DenoiserRenderSystem::updateImages(VkExtent2D swapChainExtent) {

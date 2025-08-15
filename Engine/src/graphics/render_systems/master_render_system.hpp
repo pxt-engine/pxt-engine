@@ -100,7 +100,7 @@ namespace PXTEngine {
 
 		bool m_isDebugEnabled = false;
 		bool m_isRaytracingEnabled = true;
-		bool m_isAccumulationEnabled = false;
 		bool m_isReloadShadersButtonPressed = false;
+		bool m_isDenoisingEnabled = true;
 	};
 }
