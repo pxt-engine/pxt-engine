@@ -86,9 +86,10 @@ namespace PXTEngine {
 		uint32_t m_frameCount = 0;
 
 		// for UI tuning
-        float m_temporalAlpha = 0.10f;
+        float m_temporalAlpha = 0.65f;
+		uint32_t m_spatialKernelRadius = 2;
         float m_spatialSigmaColor = 0.1f;
-        float m_spatialSigmaSpace = 0.2f;
+        float m_spatialSigmaSpace = 0.35f;
 
 		bool m_isAccumulationEnabled = true;
 		bool m_isTemporalEnabled = true;

@@ -7,6 +7,8 @@ namespace PXTEngine {
         uint32_t frameCount;
 		uint32_t accumulationCount; // number of frames passed from enabling accumulation
         float temporalAlpha;
+		// Spatial filter parameters
+        uint32_t spatialKernelRadius;
         float spatialSigmaColor;
         float spatialSigmaSpace;
 		VkBool32 isTemporalEnabled;
@@ -305,6 +307,7 @@ namespace PXTEngine {
 		denoiserPush.frameCount = m_frameCount;
 		denoiserPush.accumulationCount = m_accumulationCount;
 		denoiserPush.temporalAlpha = m_temporalAlpha;
+		denoiserPush.spatialKernelRadius = m_spatialKernelRadius;
 		denoiserPush.spatialSigmaColor = m_spatialSigmaColor;
 		denoiserPush.spatialSigmaSpace = m_spatialSigmaSpace;
 		denoiserPush.isTemporalEnabled = m_isTemporalEnabled;
@@ -458,28 +461,22 @@ namespace PXTEngine {
 
     void DenoiserRenderSystem::updateUi() {
         // Accumulation Section
-        if (ImGui::CollapsingHeader("Accumulation Filter")) { // Collapsible header for sections
-			//TODO: Add a checkbox to enable/disable accumulation, move from master render system
-            ImGui::Checkbox("Enable Accumulation", &m_isAccumulationEnabled);
-            
-            ImGui::Text("Number of frames accumulated: %d", m_accumulationCount);
-            ImGui::Separator(); // Visual separator
-        }
-
+        ImGui::SeparatorText("Accumulation Filter");
+        ImGui::Checkbox("Enable Accumulation", &m_isAccumulationEnabled);
+        ImGui::Text("Number of frames accumulated: %d", m_accumulationCount);
+        
         // Temporal Section
-        if (ImGui::CollapsingHeader("Temporal Filter")) {
-            ImGui::Checkbox("Enable Temporal Processing", &m_isTemporalEnabled);
-            ImGui::SliderFloat("Temporal Strength", &m_temporalAlpha, 0.0f, 1.0f, "%.2f");
-            ImGui::Separator();
-        }
+        ImGui::SeparatorText("Temporal Filter");
+        ImGui::Checkbox("Enable Temporal Processing", &m_isTemporalEnabled);
+        ImGui::SliderFloat("Temporal Strength", &m_temporalAlpha, 0.0f, 1.0f, "%.2f");
 
         // Spatial Section
-        if (ImGui::CollapsingHeader("Spatial Filter")) {
-            ImGui::Checkbox("Enable Spatial Filtering", &m_isSpatialEnabled);
-            // Using DragFloat for numerical input with mouse drag and direct input
-            ImGui::DragFloat("Spatial Gaussian Standard Deviation", &m_spatialSigmaSpace, 0.05f, 0.05f, 10.0f, "%.2f", ImGuiSliderFlags_AlwaysClamp);
-            ImGui::Separator();
-        }
+        ImGui::SeparatorText("Spatial Filter");
+        ImGui::Checkbox("Enable Spatial Filtering", &m_isSpatialEnabled);
+        // Using DragFloat for numerical input with mouse drag and direct input
+		ImGui::DragInt("Spatial Kernel Radius", reinterpret_cast<int*>(&m_spatialKernelRadius), 1.0f, 0, 10, "%d", ImGuiSliderFlags_AlwaysClamp);
+        ImGui::DragFloat("Spatial Gaussian Space SD", &m_spatialSigmaSpace, 0.05f, 0.05f, 10.0f, "%.2f", ImGuiSliderFlags_AlwaysClamp);
+        ImGui::DragFloat("Spatial Gaussian Color SD", &m_spatialSigmaColor, 0.05f, 0.05f, 10.0f, "%.2f", ImGuiSliderFlags_AlwaysClamp);
     }
 
     void DenoiserRenderSystem::copyDenoisedIntoSceneImage(VkCommandBuffer commandBuffer, Shared<VulkanImage> sceneImage) {

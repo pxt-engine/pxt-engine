@@ -9,6 +9,7 @@ layout(push_constant) uniform Push {
     uint frameCount;
     uint accumulationCount;
     float temporalAlpha;
+    uint spatialKernelRadius;
     float spatialSigmaColor;
     float spatialSigmaSpace;
     bool isTemporalEnabled;
