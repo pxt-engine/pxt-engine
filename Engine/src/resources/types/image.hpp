@@ -15,8 +15,23 @@ namespace PXTEngine {
 		RGB8_SRGB = 0,
 		RGBA8_SRGB,
 		RGB8_LINEAR,
+		RGBA32_LINEAR,
 		RGBA8_LINEAR,
 	};
+
+	inline uint32_t getChannelBytePerPixelForFormat(ImageFormat format) {
+		switch (format) {
+		case ImageFormat::RGB8_SRGB:
+		case ImageFormat::RGB8_LINEAR:
+		case ImageFormat::RGBA8_SRGB:
+		case ImageFormat::RGBA8_LINEAR:
+			return 1;
+		case ImageFormat::RGBA32_LINEAR:
+			return 4;
+		default:
+			throw std::runtime_error("Unknown image format");
+		}
+	}
 
 	/**
 	 * @enum ImageFiltering
@@ -35,10 +50,20 @@ namespace PXTEngine {
 	 * @brief Enum representing different image flags.
 	 * This enum is used to specify additional properties or behaviors of images.
 	 */
-	enum class ImageFlags : uint8_t {
+	enum class ImageFlags : int32_t {
 		None = 0,          // No flags set
 		UnnormalizedCoordinates = 1 << 0, // Use unnormalized coordinates for sampling
 	};
+
+	inline ImageFlags operator&(ImageFlags a, ImageFlags b)
+	{
+		return static_cast<ImageFlags>(static_cast<int>(a) & static_cast<int>(b));
+	}
+
+	inline ImageFlags operator|(ImageFlags a, ImageFlags b)
+	{
+		return static_cast<ImageFlags>(static_cast<int>(a) | static_cast<int>(b));
+	}
 
 	/**
 	 * @struct ImageInfo

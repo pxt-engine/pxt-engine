@@ -24,12 +24,21 @@ namespace PXTEngine {
 		m_textures.push_back(image);
 		m_idToIndex[image->id] = index;
 
+		if (!texture->alias.empty()) {
+			m_aliasToIndex[texture->alias] = index;
+		}
+
 		return index;
 	}
 
 	uint32_t TextureRegistry::getIndex(const ResourceId& id) const {
 		auto it = m_idToIndex.find(id);
 		return it != m_idToIndex.end() ? it->second : 0;
+	}
+
+	uint32_t TextureRegistry::getIndex(const std::string& alias) const {
+		auto it = m_aliasToIndex.find(alias);
+		return it != m_aliasToIndex.end() ? it->second : 0;
 	}
 
 	VkDescriptorSet TextureRegistry::getDescriptorSet() {
@@ -42,7 +51,9 @@ namespace PXTEngine {
 
 	void TextureRegistry::createDescriptorSet() {
 		m_textureDescriptorSetLayout = DescriptorSetLayout::Builder(m_context)
-			.addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, static_cast<uint32_t>(m_textures.size()))
+			.addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+				VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_RAYGEN_BIT_KHR,
+				static_cast<uint32_t>(m_textures.size()))
 			.build();
 
 		std::vector<VkDescriptorImageInfo> imageInfos;

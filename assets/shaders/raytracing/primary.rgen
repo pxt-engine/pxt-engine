@@ -6,6 +6,7 @@
 // Include the global UBO definition
 #include "../ubo/global_ubo.glsl"
 #include "../common/ray.glsl"
+#include "./common/push.glsl"
 
 // Define the ray payload structure. This struct is passed between shader stages.
 // The layout(location = 0) specifies the location for the payload.

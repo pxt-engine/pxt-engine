@@ -40,6 +40,7 @@ namespace PXTEngine {
 
 		// The default constructor is called and the ID is set to a new UUID.
 		ResourceId id;
+		std::string alias = "";
 	};
 
 }

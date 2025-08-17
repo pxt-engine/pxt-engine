@@ -10,20 +10,7 @@ namespace PXTEngine {
 		m_imageView = VK_NULL_HANDLE;
 		m_sampler = VK_NULL_HANDLE;
 
-		switch (info.format)
-		{
-		case RGB8_LINEAR:
-			m_imageFormat = VK_FORMAT_R8G8B8_UNORM;
-			break;
-		case RGBA8_LINEAR:
-			m_imageFormat = VK_FORMAT_R8G8B8A8_UNORM;
-			break;
-		case RGB8_SRGB:
-			m_imageFormat = VK_FORMAT_R8G8B8_SRGB;
-			break;
-		case RGBA8_SRGB:
-			m_imageFormat = VK_FORMAT_R8G8B8A8_SRGB;
-		}
+		m_imageFormat = pxtToVulkanImageFormat(m_info.format);
 	}
 
 	VulkanImage::VulkanImage(Context& context, const VkImageCreateInfo& imageInfo, VkMemoryPropertyFlags memoryFlags)

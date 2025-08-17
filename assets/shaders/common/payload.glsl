@@ -34,6 +34,9 @@ struct PathTracePayload {
     // A seed for the random number generator, updated at each bounce.
     uint seed;
 
+    // A Noise value used for sampling. Can be white/blue etc...
+    vec2 samplingNoise;
+
     bool isSpecularBounce;
 };
 

@@ -537,17 +537,23 @@ namespace PXTEngine {
 		ImGui::Image(scene, m_sceneImageExtentInWindow);
 		ImGui::End();
 		ImGui::PopStyleVar();
+	}
+
+	void MasterRenderSystem::updateUi() {
+		updateSceneUi();
 
 		ImGui::Begin("Raytracing Renderer");
 		ImGui::Checkbox("Enable Raytracing", &m_isRaytracingEnabled);
 
-		ImGui::TextColored(ImVec4(0.8, 0.6, 0.1, 1.0), 
-			"If changes were made to the %s shaders\n(prior of switching render type), you need to reload them!", 
+		ImGui::TextColored(ImVec4(0.8, 0.6, 0.1, 1.0),
+			"If changes were made to the %s shaders\n(prior of switching render type), you need to reload them!",
 			m_isRaytracingEnabled ? "Raytracing" : "Rasterization");
 
 		ImGui::Dummy(ImVec2(0.0f, 10.0f));
 
 		if (m_isRaytracingEnabled) {
+			m_rayTracingRenderSystem->updateUi();
+
 			ImGui::Begin("Denoiser Settings");
 
 			ImGui::Checkbox("Enable Denoising", &m_isDenoisingEnabled);
@@ -556,7 +562,7 @@ namespace PXTEngine {
 
 			ImGui::End();
 		}
-		
+
 		ImGui::End();
 
 		ImGui::Begin("Debug Renderer");
@@ -568,14 +574,11 @@ namespace PXTEngine {
 		if (m_isDebugEnabled) {
 			ImGui::Text("Debug Renderer is enabled");
 			m_debugRenderSystem->updateUi();
-		} else {
+		}
+		else {
 			ImGui::Text("Debug Renderer is disabled");
 		}
 		ImGui::End();
-	}
-
-	void MasterRenderSystem::updateUi() {
-		updateSceneUi();
 
 		if (!m_isRaytracingEnabled) {
 			m_shadowMapRenderSystem->updateUi();

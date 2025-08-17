@@ -30,7 +30,7 @@ namespace PXTEngine {
 		 * @param info The texture information, including width, height, channels
 		 * @param buffer The buffer containing the pixel data
 		 */
-		void createTextureImage(const ImageInfo& info, const Buffer& buffer);
+		void createTextureImage(const Buffer& buffer);
 
 		/**
 		 * @brief Creates a Vulkan image.

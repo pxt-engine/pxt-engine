@@ -155,9 +155,27 @@ namespace PXTEngine {
         ResourceManager::defaultMaterial = defaultMaterial;
 
 		m_resourceManager.add(defaultMaterial, DEFAULT_MATERIAL);
+
+		// Create blue noise texture resources
+		ImageInfo blueNoiseInfo;
+		blueNoiseInfo.width = BLUE_NOISE_TEXTURE_SIZE;
+		blueNoiseInfo.height = BLUE_NOISE_TEXTURE_SIZE;
+		blueNoiseInfo.channels = 4;
+		blueNoiseInfo.format = RGBA32_LINEAR;
+        blueNoiseInfo.filtering = ImageFiltering::Nearest;
+        blueNoiseInfo.flags = ImageFlags::UnnormalizedCoordinates;
+
+		std::string blueNoiseFile;
+
+		for (uint32_t i = 0; i < BLUE_NOISE_TEXTURE_COUNT; i++) {
+			blueNoiseFile = BLUE_NOISE_FILE + std::to_string(i) + BLUE_NOISE_FILE_EXT;
+			m_resourceManager.get<Image>(blueNoiseFile, &blueNoiseInfo);
+		}
     }
 
     void Application::registerResources() {
+        // TODO: we will eventually redo all resource management, this sucks :)
+
 		// iterate over resource and register images
 		m_resourceManager.foreach([&](const Shared<Resource>& resource) {
             if (resource->getType() == Resource::Type::Image) {

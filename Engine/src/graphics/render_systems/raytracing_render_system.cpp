@@ -1,6 +1,11 @@
 #include "graphics/render_systems/raytracing_render_system.hpp"
 
 namespace PXTEngine {
+	struct RayTracingPushConstantData {
+		uint32_t noiseType;
+		uint32_t blueNoiseBaseIndex; // Index of the first blue noise texture in the texture registry
+	};
+
 	RayTracingRenderSystem::RayTracingRenderSystem(
 		Context& context, Shared<DescriptorAllocatorGrowable> descriptorAllocator,
 		TextureRegistry& textureRegistry, MaterialRegistry& materialRegistry,
@@ -78,12 +83,17 @@ namespace PXTEngine {
 			m_rtSceneManager.getVolumeDescriptorSetLayout()
 		};
 
+		VkPushConstantRange pushConstantRange{};
+		pushConstantRange.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR;
+		pushConstantRange.offset = 0;
+		pushConstantRange.size = sizeof(RayTracingPushConstantData);
+
 		VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
 		pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 		pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(descriptorSetLayouts.size());
 		pipelineLayoutInfo.pSetLayouts = descriptorSetLayouts.data();
-		pipelineLayoutInfo.pushConstantRangeCount = 0; // 0 for now
-		pipelineLayoutInfo.pPushConstantRanges = nullptr; // &pushConstantRange;
+		pipelineLayoutInfo.pushConstantRangeCount = 1; 
+		pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
 
 		if (vkCreatePipelineLayout(m_context.getDevice(), &pipelineLayoutInfo, nullptr, &m_pipelineLayout) != VK_SUCCESS) {
 			throw std::runtime_error("failed to create raytracingRenderSystem pipeline layout!");
@@ -291,6 +301,8 @@ namespace PXTEngine {
 		);
 	}
 
+
+
 	void RayTracingRenderSystem::render(FrameInfo& frameInfo, Renderer& renderer) {
 		m_pipeline->bind(frameInfo.commandBuffer);
 
@@ -315,6 +327,20 @@ namespace PXTEngine {
 			descriptorSets.data(),
 			0,
 			nullptr
+		);
+
+		// Push constants for blue noise texture index
+		RayTracingPushConstantData pushConstants;
+		pushConstants.noiseType = m_noiseType;
+		std::string blueNoiseFile = BLUE_NOISE_FILE + "0" + BLUE_NOISE_FILE_EXT;
+		pushConstants.blueNoiseBaseIndex = m_textureRegistry.getIndex(blueNoiseFile);
+		vkCmdPushConstants(
+			frameInfo.commandBuffer,
+			m_pipelineLayout,
+			VK_SHADER_STAGE_RAYGEN_BIT_KHR,
+			0,
+			sizeof(RayTracingPushConstantData),
+			&pushConstants
 		);
 
 		vkCmdTraceRaysKHR(
@@ -344,5 +370,9 @@ namespace PXTEngine {
 
 		createPipeline(false);
 		createShaderBindingTable();
+	}
+
+	void RayTracingRenderSystem::updateUi() {
+		ImGui::InputInt("Noise Type (0 -> white, 1 -> blue noise)", reinterpret_cast<int*>(&m_noiseType));
 	}
 }

@@ -126,7 +126,7 @@ void sampleEmitter(SurfaceData surface, vec3 worldPosition, out EmitterSample sm
 
     if (emitterIndex == numEmitters) {
         // Sample the sky as an emitter
-        smpl.inLightDir = sampleCosineWeightedHemisphere(randomVec2(p_pathTrace.seed));
+        smpl.inLightDir = sampleCosineWeightedHemisphere(p_pathTrace.samplingNoise);
 
         worldInLightDir = tangentToWorld(surface.tbn, smpl.inLightDir);
 
@@ -307,7 +307,7 @@ void directLighting(SurfaceData surface, vec3 worldPosition, vec3 outLightDir) {
 void indirectLighting(SurfaceData surface, vec3 outLightDir, out vec3 inLightDir) {
     float pdf;
     bool isSpecular;
-    vec3 brdf_multiplier = sampleBSDF(surface, outLightDir, inLightDir, pdf, isSpecular, p_pathTrace.seed);
+    vec3 brdf_multiplier = sampleBSDF(surface, outLightDir, inLightDir, pdf, isSpecular, p_pathTrace.seed, p_pathTrace.samplingNoise);
 
     if (brdf_multiplier == vec3(0.0)) {
         // No contribution from this surface

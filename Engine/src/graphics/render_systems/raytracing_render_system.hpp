@@ -28,6 +28,8 @@ namespace PXTEngine {
 		void transitionImageToShaderReadOnlyOptimal(FrameInfo& frameInfo, VkPipelineStageFlagBits lastStage);
 		void reloadShaders();
 
+		void updateUi();
+
         void updateSceneImage(Shared<VulkanImage> sceneImage);
 
     private:
@@ -61,6 +63,9 @@ namespace PXTEngine {
         Shared<VulkanImage> m_sceneImage = nullptr;
 		VkDescriptorSet m_storageImageDescriptorSet = VK_NULL_HANDLE;
 		Unique<DescriptorSetLayout> m_storageImageDescriptorSetLayout = nullptr;
+
+		// Ui variables
+		uint32_t m_noiseType = 0; // 0 for white noise, 1 for blue noise
 
 		const std::vector<ShaderGroupInfo> SHADER_GROUPS_PT = {
 				// General RayGen Group

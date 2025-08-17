@@ -9,6 +9,7 @@
 #include "../common/payload.glsl"
 #include "../common/random.glsl"
 #include "../common/tone_mapping.glsl"
+#include "./common/push.glsl"
 
 // Min depth for Russian Roulette termination
 #define RR_MIN_DEPTH 3
@@ -65,6 +66,8 @@ void main()
         );
 
         Ray worldRay = getCameraRay(seed);
+
+
 
         p_pathTrace.radiance = vec3(0.0);
         p_pathTrace.throughput = vec3(1.0);

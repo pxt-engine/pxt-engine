@@ -45,6 +45,15 @@ namespace PXTEngine {
 		 */
 		[[nodiscard]] uint32_t getIndex(const ResourceId& id) const;
 
+		/**
+		 * @brief Gets the index of a texture in the registry by its resource alias (string path or unique name).
+		 *
+		 * @param id Resource ID of the texture.
+		 *
+		 * @return Index if found, otherwise 0.
+		 */
+		[[nodiscard]] uint32_t getIndex(const std::string& alias) const;
+
 		uint32_t getTextureCount() const {
 			return static_cast<uint32_t>(m_textures.size());
 		}
@@ -74,6 +83,7 @@ namespace PXTEngine {
 	private:
 		std::vector<Shared<Image>> m_textures;
 		std::unordered_map<ResourceId, uint32_t> m_idToIndex;
+		std::unordered_map<std::string, uint32_t> m_aliasToIndex;
 
 		Context& m_context;
 		Shared<DescriptorAllocatorGrowable> m_descriptorAllocator;

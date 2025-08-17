@@ -10,6 +10,8 @@ namespace PXTEngine {
 		switch (format) {
 		case RGB8_LINEAR:
 			return VK_FORMAT_R8G8B8_UNORM;
+		case RGBA32_LINEAR:
+			return VK_FORMAT_R32G32B32A32_SFLOAT;
 		case RGBA8_LINEAR:
 			return VK_FORMAT_R8G8B8A8_UNORM;
 		case RGB8_SRGB:
@@ -25,6 +27,8 @@ namespace PXTEngine {
 		switch (format) {
 		case VK_FORMAT_R8G8B8_UNORM:
 			return RGB8_LINEAR;
+		case VK_FORMAT_R32G32B32A32_SFLOAT:
+			return RGBA32_LINEAR;
 		case VK_FORMAT_R8G8B8A8_UNORM:
 			return RGBA8_LINEAR;
 		case VK_FORMAT_R8G8B8_SRGB:
@@ -34,6 +38,26 @@ namespace PXTEngine {
 		default:
 			return RGBA8_SRGB;
 		}
+	}
+
+	static VkFilter pxtToVulkanImageFiltering(const ImageFiltering filtering) {
+		switch (filtering) {
+		case ImageFiltering::Nearest:
+			return VK_FILTER_NEAREST;
+		case ImageFiltering::Linear:
+			return VK_FILTER_LINEAR;
+		}
+		return VK_FILTER_LINEAR; // Default to linear filtering
+	}
+
+	static ImageFiltering vulkanToPxtImageFiltering(const VkFilter filtering) {
+		switch (filtering) {
+		case VK_FILTER_NEAREST:
+			return ImageFiltering::Nearest;
+		case VK_FILTER_LINEAR:
+			return ImageFiltering::Linear;
+		}
+		return ImageFiltering::Linear; // Default to linear filtering
 	}
 
 	/**
