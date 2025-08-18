@@ -75,7 +75,7 @@ namespace PXTEngine {
 		uint32_t width = 0;
 		uint32_t height = 0;
 		uint16_t channels = 0;
-		ImageFormat format = RGBA8_SRGB;
+		ImageFormat format = RGBA8_LINEAR;
 		ImageFiltering filtering = ImageFiltering::Linear;
 		ImageFlags flags = ImageFlags::None;
 

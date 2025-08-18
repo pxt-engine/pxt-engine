@@ -22,7 +22,7 @@ namespace PXTEngine {
             }
         }
         else {
-			imageInfo.format = ImageFormat::RGBA8_SRGB; // Default format
+			imageInfo.format = ImageFormat::RGBA8_LINEAR; // Default format
         }
 
 		int width, height, channels;

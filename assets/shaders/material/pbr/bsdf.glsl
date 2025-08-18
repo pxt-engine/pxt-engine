@@ -78,9 +78,10 @@ vec3 sampleCosineWeightedHemisphere(vec2 u) {
     const float theta = TWO_PI * u.y;
 
     // disk sample
-    const vec2 d = r * vec2(cos(theta), sin(theta));
+    float x = r * cos(theta);
+    float y = r * sin(theta);
 
-    return vec3(d.x, d.y, sqrt(1.0 - d.x * d.x - d.y * d.y));
+    return vec3(x, y, sqrt(max(0, 1 - u.x)));
 }
 
 /**

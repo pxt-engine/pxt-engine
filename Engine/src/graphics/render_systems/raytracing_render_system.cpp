@@ -4,6 +4,11 @@ namespace PXTEngine {
 	struct RayTracingPushConstantData {
 		uint32_t noiseType;
 		uint32_t blueNoiseBaseIndex; // Index of the first blue noise texture in the texture registry
+		uint32_t blueNoiseTextureCount; // Number of blue noise textures available
+		uint32_t blueNoiseTextureSize; // Size of each blue noise texture (assumed square)
+		VkBool32 selectSingleTextures; // Whether to select single textures or use 
+									//different blue noise textures every frame
+		uint32_t blueNoiseIndex; // Index of the blue noise texture to use in case selectSingleTextures is true
 	};
 
 	RayTracingRenderSystem::RayTracingRenderSystem(
@@ -334,6 +339,10 @@ namespace PXTEngine {
 		pushConstants.noiseType = m_noiseType;
 		std::string blueNoiseFile = BLUE_NOISE_FILE + "0" + BLUE_NOISE_FILE_EXT;
 		pushConstants.blueNoiseBaseIndex = m_textureRegistry.getIndex(blueNoiseFile);
+		pushConstants.blueNoiseTextureCount = BLUE_NOISE_TEXTURE_COUNT;
+		pushConstants.blueNoiseTextureSize = BLUE_NOISE_TEXTURE_SIZE;
+		pushConstants.selectSingleTextures = m_selectSingleBlueNoiseTextures;
+		pushConstants.blueNoiseIndex = m_blueNoiseIndex;
 		vkCmdPushConstants(
 			frameInfo.commandBuffer,
 			m_pipelineLayout,
@@ -374,5 +383,12 @@ namespace PXTEngine {
 
 	void RayTracingRenderSystem::updateUi() {
 		ImGui::InputInt("Noise Type (0 -> white, 1 -> blue noise)", reinterpret_cast<int*>(&m_noiseType));
+		if (m_noiseType == 1) {
+			ImGui::Checkbox("Select Single Blue Noise Textures (for Debug)", reinterpret_cast<bool*>(&m_selectSingleBlueNoiseTextures));
+			if (m_selectSingleBlueNoiseTextures) {
+				std::string inputMessage = "Blue Noise Texture Index (0 to " + std::to_string(BLUE_NOISE_TEXTURE_COUNT - 1) + ")";
+				ImGui::InputInt(inputMessage.c_str(), reinterpret_cast<int*>(&m_blueNoiseIndex));
+			}
+		}
 	}
 }

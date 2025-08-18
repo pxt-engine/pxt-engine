@@ -66,6 +66,8 @@ namespace PXTEngine {
 
 		// Ui variables
 		uint32_t m_noiseType = 0; // 0 for white noise, 1 for blue noise
+		uint32_t m_blueNoiseIndex = 0; // Index of the blue noise texture to use
+		VkBool32 m_selectSingleBlueNoiseTextures = VK_FALSE; // Whether to select single textures or use different blue noise textures every frame
 
 		const std::vector<ShaderGroupInfo> SHADER_GROUPS_PT = {
 				// General RayGen Group

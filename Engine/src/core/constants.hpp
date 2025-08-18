@@ -16,9 +16,9 @@ const std::string NORMAL_PIXEL_LINEAR = "pixel_0xFFFF8080_RGBA8_LINEAR";
 const std::string DEFAULT_MATERIAL = "default_material";
 
 const std::string BLUE_NOISE_PATH = TEXTURES_PATH + "blue_noise/";
-const std::string BLUE_NOISE_FILE = BLUE_NOISE_PATH + "stbn_vec2_2Dx1D_128x128x64_";
+const std::string BLUE_NOISE_FILE = BLUE_NOISE_PATH + "LDR_RG01_";
 const std::string BLUE_NOISE_FILE_EXT = ".png";
-const uint32_t BLUE_NOISE_TEXTURE_COUNT = 64;
+const uint32_t BLUE_NOISE_TEXTURE_COUNT = 16;
 const uint32_t BLUE_NOISE_TEXTURE_SIZE = 128;
 
 namespace CubeFace {

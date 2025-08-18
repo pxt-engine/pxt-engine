@@ -42,7 +42,7 @@ Ray getCameraRay(vec2 samplingNoise) {
     const vec2 imageDimensions = vec2(gl_LaunchSizeEXT.xy);
 
      // Normalized device coordinates (NDC), converted to [-1, 1] range (NDC space)
-    const vec2 jitter = samplingNoise - 0.5;
+    const vec2 jitter = samplingNoise * 2 - 1;
     const vec2 pixelPos = pixelCenter + jitter;
         
     // Normalized device coordinates
@@ -70,20 +70,28 @@ Ray getCameraRay(vec2 samplingNoise) {
  * 
  * @param pixel The pixel coordinates (not UV) to sample from the blue noise texture.
  * @param frame The current frame index, used to select the appropriate texture slice.
- * @param blue_noise_texture_index The base index of the blue noise texture in the texture array.
+ * @param blueNoiseBaseIndex The base index of the blue noise texture in the texture array.
  *
  * @return A float2 containing two [0..1] values sampled from the animated blue noise texture.
  *
  * @note Taken from https://github.com/JorenJoestar/DevGames2025/blob/main/source/shaders/devgames_2025/global.h
  */
-vec2 animated_blue_noise(uvec2 pixel, uint frame, uint blue_noise_texture_index) {
-    // Blue noise texture size is 128x128
-    pixel = (pixel % 128);
-    // There are 64 blue noise textures
-    uint slice = (frame % 64);
+vec2 animated_blue_noise(uvec2 pixel, uint frame,
+                        uint blueNoiseBaseIndex,
+                        uint textureCount,
+                        uint blueTextureSize,
+                        bool selectSingleTextures,
+                        uint blueNoiseIndex) {
+    pixel = uvec2(pixel.x % blueTextureSize, pixel.y % blueTextureSize);
+    
+    uint slice = selectSingleTextures ? 0 : (frame % textureCount);
+    blueNoiseIndex = selectSingleTextures ? blueNoiseIndex : 0;
+
+    uint index = blueNoiseBaseIndex + blueNoiseIndex + slice;
+
     // Read blue noise from texture without filtering.
     // Adding non nearest/point filter is wrong.
-    vec2 blue_noise = texture(textures[blue_noise_texture_index + slice], pixel).rg;
+    vec2 blue_noise = texture(textures[index], pixel).rg;
     
     return blue_noise;
 }
@@ -108,7 +116,9 @@ void main()
             samplingNoise = randomVec2(seed);
         } else if (push.noiseType == 1) {
             // Use blue noise for sampling
-            samplingNoise = animated_blue_noise(gl_LaunchIDEXT.xy, ubo.frameCount, push.blueNoiseBaseIndex);
+            samplingNoise = animated_blue_noise(gl_LaunchIDEXT.xy, ubo.frameCount, push.blueNoiseBaseIndex,
+                                                push.blueNoiseTextureCount, push.blueNoiseTextureSize, 
+                                                push.selectSingleTextures, push.blueNoiseIndex);
         }
 
         Ray worldRay = getCameraRay(samplingNoise);
@@ -129,6 +139,14 @@ void main()
         p_pathTrace.mediumIndex = -1; // Assuming no medium at the start
 
         while (!p_pathTrace.done && p_pathTrace.depth < maxBounces) {
+
+            if (push.noiseType == 0) {
+                samplingNoise = randomVec2(seed);
+            } else if (push.noiseType == 1) {
+                samplingNoise = animated_blue_noise(gl_LaunchIDEXT.xy, ubo.frameCount, push.blueNoiseBaseIndex,
+                                                push.blueNoiseTextureCount, push.blueNoiseTextureSize, 
+                                                push.selectSingleTextures, push.blueNoiseIndex);
+            }
 
             // We're currently in vacuum, so we simply trace the ray to find the nearest surface.
             if (p_pathTrace.mediumIndex == -1) {
