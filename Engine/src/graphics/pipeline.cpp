@@ -144,6 +144,19 @@ namespace PXTEngine {
 	}
 
 	void Pipeline::createRayTracingPipeline(const RayTracingPipelineConfigInfo& configInfo) {
+		// --- SPECIALIZATION CONSTANT SETUP (if needed for all shaders) ---
+		SpecializationData specializationData = { MAX_LIGHTS };
+
+		VkSpecializationMapEntry mapEntries[1] = {
+			{ 0, offsetof(SpecializationData, maxLights), sizeof(int32_t) }
+		};
+
+		VkSpecializationInfo specializationInfo{};
+		specializationInfo.mapEntryCount = 1;
+		specializationInfo.pMapEntries = mapEntries;
+		specializationInfo.dataSize = sizeof(SpecializationData);
+		specializationInfo.pData = &specializationData;
+		
 		// --- Prepare shader stages ---
 		// Containers to keep created shader stage infos and shader group infos.
 		std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
@@ -167,6 +180,9 @@ namespace PXTEngine {
 			for (const auto& [stage, filepath] : group.stages) {
 				// create vulkan shader
 				shaders.push_back(createUnique<VulkanShader>(m_context, filepath));
+
+				VkPipelineShaderStageCreateInfo shaderStageCreateInfo = shaders.back()->getShaderStageCreateInfo();
+				shaderStageCreateInfo.pSpecializationInfo = &specializationInfo;
 
 				shaderStages.push_back(shaders.back()->getShaderStageCreateInfo());
 

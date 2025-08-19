@@ -78,10 +78,9 @@ vec3 sampleCosineWeightedHemisphere(vec2 u) {
     const float theta = TWO_PI * u.y;
 
     // disk sample
-    float x = r * cos(theta);
-    float y = r * sin(theta);
+    const vec2 d = r * vec2(cos(theta), sin(theta));
 
-    return vec3(x, y, sqrt(max(0, 1 - u.x)));
+    return vec3(d.x, d.y, sqrt(1.0 - d.x * d.x - d.y * d.y));
 }
 
 /**
@@ -278,12 +277,12 @@ vec3 sampleBSDF(SurfaceData surface, vec3 outLightDir, out vec3 inLightDir, out 
 
     if (rand < surface.specularProbability) {
         // Sample specular reflection
-        halfVector = importanceSampleGGX(samplingNoise, surface.roughness);
+        halfVector = importanceSampleGGX(randomVec2(seed), surface.roughness);
         inLightDir = -reflect(outLightDir, halfVector);
         isSpecular = true;
     } else {
         // Sample diffuse reflection
-        inLightDir = sampleCosineWeightedHemisphere(samplingNoise);
+        inLightDir = sampleCosineWeightedHemisphere(randomVec2(seed));
         halfVector = normalize(outLightDir + inLightDir);
     }
 

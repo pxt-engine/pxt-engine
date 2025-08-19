@@ -29,3 +29,5 @@ namespace CubeFace {
 	constexpr uint32_t BACK = 4;
 	constexpr uint32_t FRONT = 5;
 }
+
+const int MAX_LIGHTS = 10; // Maximum number of point lights in the scene

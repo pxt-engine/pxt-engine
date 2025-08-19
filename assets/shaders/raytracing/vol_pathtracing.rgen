@@ -34,6 +34,10 @@ layout(set = 8, binding = 0, std430) readonly buffer volumesSSBO {
     Volume volumes[]; 
 } volumes;
 
+layout(set = 9, binding = 0, std430) readonly buffer blueNoiseSSBO {
+    uint indeces[]; // Indices of the blue noise textures in the texture array
+} blueNoiseTextures;
+
 Ray getCameraRay(vec2 samplingNoise) {
     // gl_LaunchIDEXT is the pixel coordinate (x, y, z) of the current invocation.
     const vec2 pixelCenter = vec2(gl_LaunchIDEXT.xy) + vec2(0.5);
@@ -41,11 +45,10 @@ Ray getCameraRay(vec2 samplingNoise) {
     // gl_LaunchSizeEXT is the total number of ray generation invocations (width, height, depth).
     const vec2 imageDimensions = vec2(gl_LaunchSizeEXT.xy);
 
-     // Normalized device coordinates (NDC), converted to [-1, 1] range (NDC space)
-    const vec2 jitter = samplingNoise * 2 - 1;
+    const vec2 jitter = samplingNoise - 0.5;
     const vec2 pixelPos = pixelCenter + jitter;
         
-    // Normalized device coordinates
+    // Normalized device coordinates (NDC), converted to [-1, 1] range (NDC space)
     const vec2 ndc = pixelPos / imageDimensions * 2.0 - 1.0;
 
     // Ray origin and direction in camera/view space
@@ -73,11 +76,8 @@ Ray getCameraRay(vec2 samplingNoise) {
  * @param blueNoiseBaseIndex The base index of the blue noise texture in the texture array.
  *
  * @return A float2 containing two [0..1] values sampled from the animated blue noise texture.
- *
- * @note Taken from https://github.com/JorenJoestar/DevGames2025/blob/main/source/shaders/devgames_2025/global.h
  */
 vec2 animated_blue_noise(uvec2 pixel, uint frame,
-                        uint blueNoiseBaseIndex,
                         uint textureCount,
                         uint blueTextureSize,
                         bool selectSingleTextures,
@@ -87,7 +87,8 @@ vec2 animated_blue_noise(uvec2 pixel, uint frame,
     uint slice = selectSingleTextures ? 0 : (frame % textureCount);
     blueNoiseIndex = selectSingleTextures ? blueNoiseIndex : 0;
 
-    uint index = blueNoiseBaseIndex + blueNoiseIndex + slice;
+    // Retrieve the index of the "i-th" blue noise texture (they are not contiguous in the texture array).
+    uint index = blueNoiseTextures.indeces[blueNoiseIndex + slice];
 
     // Read blue noise from texture without filtering.
     // Adding non nearest/point filter is wrong.
@@ -116,9 +117,9 @@ void main()
             samplingNoise = randomVec2(seed);
         } else if (push.noiseType == 1) {
             // Use blue noise for sampling
-            samplingNoise = animated_blue_noise(gl_LaunchIDEXT.xy, ubo.frameCount, push.blueNoiseBaseIndex,
+            samplingNoise = animated_blue_noise(gl_LaunchIDEXT.xy, ubo.frameCount,
                                                 push.blueNoiseTextureCount, push.blueNoiseTextureSize, 
-                                                push.selectSingleTextures, push.blueNoiseIndex);
+                                                push.selectSingleTextures, push.blueNoiseDebugIndex);
         }
 
         Ray worldRay = getCameraRay(samplingNoise);
@@ -139,15 +140,18 @@ void main()
         p_pathTrace.mediumIndex = -1; // Assuming no medium at the start
 
         while (!p_pathTrace.done && p_pathTrace.depth < maxBounces) {
-
+        
+        /* // this was used to change blue noise texture based on the bounce
             if (push.noiseType == 0) {
                 samplingNoise = randomVec2(seed);
             } else if (push.noiseType == 1) {
-                samplingNoise = animated_blue_noise(gl_LaunchIDEXT.xy, ubo.frameCount, push.blueNoiseBaseIndex,
-                                                push.blueNoiseTextureCount, push.blueNoiseTextureSize, 
-                                                push.selectSingleTextures, push.blueNoiseIndex);
+                samplingNoise = animated_blue_noise(gl_LaunchIDEXT.xy, ubo.frameCount + p_pathTrace.depth,
+                                                push.blueNoiseTextureCount, push.blueNoiseTextureSize,
+                                                push.selectSingleTextures, push.blueNoiseDebugIndex);
             }
 
+            p_pathTrace.samplingNoise = samplingNoise;
+        */
             // We're currently in vacuum, so we simply trace the ray to find the nearest surface.
             if (p_pathTrace.mediumIndex == -1) {
                  traceRayEXT(

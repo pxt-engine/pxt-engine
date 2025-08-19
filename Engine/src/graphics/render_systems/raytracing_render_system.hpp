@@ -39,6 +39,8 @@ namespace PXTEngine {
         void createPipeline(bool useCompiledSpirvFiles = true);
 		void createShaderBindingTable();
 
+		void retrieveBlueNoiseTextureIndeces();
+
         Context& m_context;
         TextureRegistry& m_textureRegistry;
 		MaterialRegistry& m_materialRegistry;
@@ -64,9 +66,15 @@ namespace PXTEngine {
 		VkDescriptorSet m_storageImageDescriptorSet = VK_NULL_HANDLE;
 		Unique<DescriptorSetLayout> m_storageImageDescriptorSetLayout = nullptr;
 
+		// Blue noise textures
+		VkDescriptorSet m_blueNoiseDescriptorSet = VK_NULL_HANDLE;
+		Unique<DescriptorSetLayout> m_blueNoiseDescriptorSetLayout = nullptr;
+		Unique<VulkanBuffer> m_blueNoiseIndecesBuffer = nullptr;
+
 		// Ui variables
 		uint32_t m_noiseType = 0; // 0 for white noise, 1 for blue noise
-		uint32_t m_blueNoiseIndex = 0; // Index of the blue noise texture to use
+		uint32_t m_blueNoiseTextureIndeces[BLUE_NOISE_TEXTURE_COUNT]; // Indices of the blue noise textures in the texture registry
+		uint32_t m_blueNoiseDebugIndex = 0; // Index of the blue noise texture to use
 		VkBool32 m_selectSingleBlueNoiseTextures = VK_FALSE; // Whether to select single textures or use different blue noise textures every frame
 
 		const std::vector<ShaderGroupInfo> SHADER_GROUPS_PT = {
