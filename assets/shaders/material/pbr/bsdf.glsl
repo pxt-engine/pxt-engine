@@ -370,6 +370,7 @@ float pdfBTDF(SurfaceData surface, vec3 outLightDir, vec3 inLightDir, vec3 halfV
     const float D = D_GGX(NoH, surface.roughness);
     const float G1 = G_Schlick_GGX(NoO, surface.roughness);
 
+    float eta = NoO > 0.0 ? 1.0 / surface.ior : surface.ior;
     float denom = pow2(HoI + HoO * eta);
     float eta2 = pow2(eta);
     float jacobian = abs(HoI) / denom;
