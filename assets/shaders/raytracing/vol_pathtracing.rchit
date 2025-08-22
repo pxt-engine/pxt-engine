@@ -372,8 +372,12 @@ void main() {
     surface.albedo = getAlbedo(material, uv, instance.textureTintColor);
     surface.metalness = getMetalness(material, uv);
     surface.roughness = getRoughness(material, uv);
-    surface.reflectance = calculateReflectance(surface.albedo, surface.metalness);
-    surface.specularProbability = calculateSpecularProbability(surface.albedo, surface.metalness, surface.reflectance);
+    surface.transmission = 0.0;
+    surface.ior = 1.5;
+    surface.reflectance = calculateReflectance(surface.albedo, surface.metalness, surface.transmission, surface.ior);
+
+    // Calculate the probabilities for the surface properties for the bsdf
+    calculateProbabilities(surface);
     
     const vec3 emission = getEmission(material, uv);
 
