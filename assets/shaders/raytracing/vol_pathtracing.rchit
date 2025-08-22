@@ -359,11 +359,26 @@ void main() {
 
     const vec2 uv = getTextureCoords(triangle, barycentrics) * instance.textureTilingFactor;
 
-    //const vec3 surfaceNormal = calculateSurfaceNormal(textures[nonuniformEXT(material.normalMapIndex)], uv, tbn);
-    //tbn[2] = surfaceNormal;
+    const vec3 surfaceNormal = calculateSurfaceNormal(textures[nonuniformEXT(material.normalMapIndex)], uv, tbn);
+    tbn[2] = surfaceNormal;
 
+    // recalculate the TBN
+    vec3 T, B;
     if (isBackFace) {
-        tbn[2] = -tbn[2]; // Flip the normal if it's a back face hit
+        // we flip the normal
+        vec3 flippedNormal = -tbn[2];
+
+        vec3 up = abs(flippedNormal.z) < 0.9999999 ? vec3(0, 0, 1) : vec3(1, 0, 0);
+        T = normalize(cross(up, flippedNormal));
+        B = cross(flippedNormal, T);
+
+        tbn = mat3(T, B, flippedNormal);
+    } else {
+        vec3 up = abs(surfaceNormal.z) < 0.9999999 ? vec3(0, 0, 1) : vec3(1, 0, 0);
+        T = normalize(cross(up, surfaceNormal));
+        B = cross(surfaceNormal, T);
+
+        tbn = mat3(T, B, surfaceNormal);
     }
 
     SurfaceData surface;
@@ -378,6 +393,18 @@ void main() {
 
     // Calculate the probabilities for the surface properties for the bsdf
     calculateProbabilities(surface);
+
+    if (gl_InstanceCustomIndexEXT == 0) {
+        surface.metalness = 0.0;
+        surface.roughness = 0.0;
+        surface.transmission = 1.0;
+        surface.ior = 1.3;
+
+        surface.reflectance = calculateReflectance(surface.albedo, surface.metalness, surface.transmission, surface.ior);
+
+        // Calculate the probabilities for the surface properties for the bsdf
+        calculateProbabilities(surface);
+    }
     
     const vec3 emission = getEmission(material, uv);
 

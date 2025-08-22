@@ -140,11 +140,11 @@ vec3 worldToTangent(const mat3 tbn, const vec3 worldVector) {
 float cosThetaTangent(const vec3 v) {
 	// In tangent space the normal always points up, so we can use the z component
     // to calculate the cosine of the angle with the normal.
-	return max(v.z, 0.0);
+	return v.z;
 }
 
 float cosTheta(const vec3 v, const vec3 u) {
-    return max(dot(v, u), 0.0);
+    return dot(v, u);
 }
 
 #endif 
