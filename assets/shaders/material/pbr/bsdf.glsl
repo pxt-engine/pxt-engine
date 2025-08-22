@@ -5,6 +5,7 @@
 
 struct SurfaceData {
     mat3 tbn;
+    bool isBackFace;
     vec3 albedo;
     vec3 reflectance;
     float metalness;

@@ -326,16 +326,15 @@ void main() {
      // Tangent, Bi-tangent, Normal (TBN) matrix to transform tangent space to world space
     mat3 tbn = calculateTBN(triangle, mat3(instance.objectToWorld), barycentrics);
 
+    const vec3 geometricNormal = tbn[2];
+
+    // If the ray and normal are in opposite directions, we are entering the volume.
+    const bool isBackFace = dot(gl_WorldRayDirectionEXT, geometricNormal) > 0.0;
+
     // Check if the hit object is a volume boundary
     if (instance.volumeIndex != UINT_MAX) {
         // HIT A VOLUME BOUNDARY
-
-        const vec3 geometricNormal = tbn[2];
-
-        // If the ray and normal are in opposite directions, we are entering the volume.
-        const bool isEntering = dot(gl_WorldRayDirectionEXT, geometricNormal) < 0.0;
-
-        if (isEntering) {
+        if (!isBackFace) {
             p_pathTrace.mediumIndex = int(instance.volumeIndex);
         } else {
             // Exiting the volume. We assume it exits into a vacuum.
@@ -360,10 +359,16 @@ void main() {
 
     const vec2 uv = getTextureCoords(triangle, barycentrics) * instance.textureTilingFactor;
 
-    const vec3 surfaceNormal = calculateSurfaceNormal(textures[nonuniformEXT(material.normalMapIndex)], uv, tbn);
+    //const vec3 surfaceNormal = calculateSurfaceNormal(textures[nonuniformEXT(material.normalMapIndex)], uv, tbn);
+    //tbn[2] = surfaceNormal;
+
+    if (isBackFace) {
+        tbn[2] = -tbn[2]; // Flip the normal if it's a back face hit
+    }
 
     SurfaceData surface;
     surface.tbn = tbn;
+    surface.isBackFace = isBackFace;
     surface.albedo = getAlbedo(material, uv, instance.textureTintColor);
     surface.metalness = getMetalness(material, uv);
     surface.roughness = getRoughness(material, uv);
@@ -396,18 +401,17 @@ void main() {
     directLighting(surface, worldPosition, outgoingLightDirection);
 
     indirectLighting(surface, outgoingLightDirection, incomingLightDirection);
-    
-    // We change the geometric normal with the surface normal in the TBN before converting back to
-    // world space the incoming light direction. By doing this, we apply the normals from the normal map.
-    const vec3 geometricNormal = tbn[2];
-    tbn[2] = surfaceNormal;
 
     // Convert back to world space
     outgoingLightDirection = tangentToWorld(tbn, incomingLightDirection);
 
+    // we offset the origin slightly to avoid self-intersection based on
+    // reflection (positive) or refraction (negative).
+    const float offsetSign = sign(dot(outgoingLightDirection, geometricNormal));
+
     // Update the payload for the next bounce
     p_pathTrace.depth++;
-    p_pathTrace.origin = worldPosition + geometricNormal * FLT_EPSILON;
+    p_pathTrace.origin = worldPosition + geometricNormal * offsetSign * FLT_EPSILON;
     p_pathTrace.direction = outgoingLightDirection;
     p_pathTrace.hitDistance = gl_HitTEXT;
 }
