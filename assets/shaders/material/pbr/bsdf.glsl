@@ -421,7 +421,8 @@ vec3 evaluateBSDF(SurfaceData surface, vec3 outLightDir, vec3 inLightDir, vec3 h
             totalEval += evaluateTransmittance(surface, outLightDir, inLightDir, halfVector, vec3(F), tempPdf)
                 * surface.transmissionWeight;
 
-			pdf += tempPdf * surface.transmissionProbability * (1.0 - F);
+            // The epsilon is needed in case the pdf is 0.0 due to total internal reflection. (see DielectricFresnel)
+			pdf += tempPdf * surface.transmissionProbability * (1.0 - F) + FLT_EPSILON;
             
 #if DEBUG
             if (gl_LaunchIDEXT.x == 1280 && gl_LaunchIDEXT.y == 720 && gl_InstanceCustomIndexEXT == 0) {
