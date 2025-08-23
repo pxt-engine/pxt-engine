@@ -274,9 +274,9 @@ void directLighting(SurfaceData surface, vec3 worldPosition, vec3 outLightDir) {
         const vec3 halfVector = normalize(outLightDir + emitterSample.inLightDir);
         const float receiverCos = cosThetaTangent(emitterSample.inLightDir);
 
-        const vec3 bsdf = evaluateBSDF(surface, outLightDir, emitterSample.inLightDir, halfVector);
-        const float bsdfPdfSolidAngle = pdfBSDF(surface, outLightDir, emitterSample.inLightDir, halfVector);
-
+        float bsdfPdfSolidAngle;
+        const vec3 bsdf = evaluateBSDF(surface, outLightDir, emitterSample.inLightDir, halfVector, bsdfPdfSolidAngle);
+        
         // Jacobian for PDF conversion from solid angle to area
         const float G_term = emitterSample.emitterCosTheta / pow2(emitterSample.lightDistance);
 
@@ -391,19 +391,13 @@ void main() {
     surface.ior = 1.5;
     surface.reflectance = calculateReflectance(surface.albedo, surface.metalness, surface.transmission, surface.ior);
 
-    // Calculate the probabilities for the surface properties for the bsdf
-    calculateProbabilities(surface);
-
     if (gl_InstanceCustomIndexEXT == 0) {
         surface.metalness = 0.0;
-        surface.roughness = 0.0;
-        surface.transmission = 1.0;
-        surface.ior = 1.3;
+        surface.roughness = 0.2;
+        surface.transmission = 0.8;
+        surface.ior = 1.5;
 
         surface.reflectance = calculateReflectance(surface.albedo, surface.metalness, surface.transmission, surface.ior);
-
-        // Calculate the probabilities for the surface properties for the bsdf
-        calculateProbabilities(surface);
     }
     
     const vec3 emission = getEmission(material, uv);
@@ -428,6 +422,9 @@ void main() {
     // We perform calculation in tangent space
     vec3 outgoingLightDirection = worldToTangent(tbn, -gl_WorldRayDirectionEXT);
     vec3 incomingLightDirection;
+
+    // Calculate the probabilities for the surface properties for the bsdf
+    calculateProbabilities(surface, outgoingLightDirection);
 
     directLighting(surface, worldPosition, outgoingLightDirection);
 
