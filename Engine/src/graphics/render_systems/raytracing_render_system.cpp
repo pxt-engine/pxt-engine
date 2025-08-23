@@ -7,6 +7,13 @@ namespace PXTEngine {
 		uint32_t blueNoiseTextureSize = 0;  // Size of each blue noise texture (assumed square)
 		VkBool32 selectSingleTextures = VK_FALSE;  // Whether to select single textures or use
 									    // different blue noise textures every frame
+
+		float metalness;
+		float roughness;
+		float transmission;
+		float ior;
+		glm::vec4 albedo;
+
 		uint32_t blueNoiseDebugIndex = 0; // Index of the blue noise texture to use in case selectSingleTextures is true
 	};
 
@@ -128,7 +135,7 @@ namespace PXTEngine {
 		};
 
 		VkPushConstantRange pushConstantRange{};
-		pushConstantRange.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR;
+		pushConstantRange.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
 		pushConstantRange.offset = 0;
 		pushConstantRange.size = sizeof(RayTracingPushConstantData);
 
@@ -389,10 +396,17 @@ namespace PXTEngine {
 		pushConstants.blueNoiseTextureSize = BLUE_NOISE_TEXTURE_SIZE;
 		pushConstants.selectSingleTextures = m_selectSingleBlueNoiseTextures;
 		pushConstants.blueNoiseDebugIndex = m_blueNoiseDebugIndex;
+
+		pushConstants.metalness = m_metalness;
+		pushConstants.roughness = m_roughness;
+		pushConstants.transmission = m_transmission;
+		pushConstants.ior = m_ior;
+		pushConstants.albedo = m_albedo;
+
 		vkCmdPushConstants(
 			frameInfo.commandBuffer,
 			m_pipelineLayout,
-			VK_SHADER_STAGE_RAYGEN_BIT_KHR,
+			VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR,
 			0,
 			sizeof(RayTracingPushConstantData),
 			&pushConstants
@@ -437,5 +451,12 @@ namespace PXTEngine {
 				ImGui::InputInt(inputMessage.c_str(), reinterpret_cast<int*>(&m_blueNoiseDebugIndex));
 			}
 		}
+
+		ImGui::SeparatorText("Material Properties Debug (applied to id = 0 object)");
+		ImGui::SliderFloat("Metalness", &m_metalness, 0.0f, 1.0f, "%.5f");
+		ImGui::SliderFloat("Roughness", &m_roughness, 0.0001f, 1.0f, "%.5f");
+		ImGui::SliderFloat("Transmission", &m_transmission, 0.0f, 1.0f);
+		ImGui::SliderFloat("Ior", &m_ior, 1.00001f, 3.0f, "%.5f");
+		ImGui::ColorEdit3("Albedo", &m_albedo.x, ImGuiColorEditFlags_Float);
 	}
 }

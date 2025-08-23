@@ -18,6 +18,7 @@
 #include "../ubo/global_ubo.glsl"
 #include "../material/surface_normal.glsl"
 #include "../material/pbr/bsdf.glsl"
+#include "../raytracing/common/push.glsl"
 #include "sky.glsl"
 
 layout(set = 1, binding = 0) uniform accelerationStructureEXT TLAS;
@@ -388,14 +389,15 @@ void main() {
     surface.metalness = getMetalness(material, uv);
     surface.roughness = getRoughness(material, uv);
     surface.transmission = 0.0;
-    surface.ior = 1.5;
+    surface.ior = 1.0;
     surface.reflectance = calculateReflectance(surface.albedo, surface.metalness, surface.transmission, surface.ior);
 
     if (gl_InstanceCustomIndexEXT == 0) {
-        surface.metalness = 0.0;
-        surface.roughness = 0.2;
-        surface.transmission = 0.8;
-        surface.ior = 1.5;
+        surface.metalness = push.metalness;
+        surface.roughness = push.roughness;
+        surface.transmission = push.transmission;
+        surface.ior = push.ior;
+        surface.albedo = push.albedo.xyz;
 
         surface.reflectance = calculateReflectance(surface.albedo, surface.metalness, surface.transmission, surface.ior);
     }

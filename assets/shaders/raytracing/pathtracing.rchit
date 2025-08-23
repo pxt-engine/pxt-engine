@@ -251,8 +251,8 @@ void directLighting(SurfaceData surface, vec3 worldPosition, vec3 outLightDir) {
         const vec3 halfVector = normalize(outLightDir + emitterSample.inLightDir);
         const float receiverCos = cosThetaTangent(emitterSample.inLightDir);
 
-        const vec3 bsdf = evaluateBSDF(surface, outLightDir, emitterSample.inLightDir, halfVector);
-        const float bsdfPdfSolidAngle = pdfBSDF(surface, outLightDir, emitterSample.inLightDir, halfVector);
+        float bsdfPdfSolidAngle;
+        const vec3 bsdf = evaluateBSDF(surface, outLightDir, emitterSample.inLightDir, halfVector, bsdfPdfSolidAngle);
 
         // Jacobian for PDF conversion from solid angle to area
         const float G_term = emitterSample.emitterCosTheta / pow2(emitterSample.lightDistance);
@@ -312,8 +312,7 @@ void main() {
     surface.albedo = getAlbedo(material, uv, instance.textureTintColor);
     surface.metalness = getMetalness(material, uv);
     surface.roughness = getRoughness(material, uv);
-    surface.reflectance = calculateReflectance(surface.albedo, surface.metalness);
-    surface.specularProbability = calculateSpecularProbability(surface.albedo, surface.metalness, surface.reflectance);
+    surface.reflectance = calculateReflectance(surface.albedo, surface.metalness, surface.transmission, surface.ior);
     
     const vec3 emission = getEmission(material, uv);
 
@@ -337,6 +336,8 @@ void main() {
     // We perform calculation in tangent space
     vec3 outgoingLightDirection = worldToTangent(tbn, -gl_WorldRayDirectionEXT);
     vec3 incomingLightDirection;
+
+    calculateProbabilities(surface, outgoingLightDirection);
 
     directLighting(surface, worldPosition, outgoingLightDirection);
 

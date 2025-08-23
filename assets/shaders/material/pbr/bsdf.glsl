@@ -3,6 +3,8 @@
 
 #include "../../common/math.glsl"
 
+#define DEBUG 0
+
 struct SurfaceData {
     mat3 tbn;
     bool isBackFace;
@@ -298,8 +300,8 @@ vec3 evaluateReflectance(SurfaceData surface, vec3 outLightDir, vec3 inLightDir,
 	const float IoH = cosTheta(inLightDir, halfVector);
 
     // G1 and G2 factor for geometry term
-    const float G1 = G_Schlick_GGX(NoO, surface.roughness);
-    const float G2 = G_Schlick_GGX(NoI, surface.roughness);
+    const float G1 = G_Schlick_GGX(abs(NoO), surface.roughness);
+    const float G2 = G_Schlick_GGX(abs(NoI), surface.roughness);
 
     const float D = D_GGX(NoH, surface.roughness);
     const float G = G1 * G2;
@@ -309,6 +311,12 @@ vec3 evaluateReflectance(SurfaceData surface, vec3 outLightDir, vec3 inLightDir,
 
     pdf = D * NoH / max(4.0 * IoH, FLT_EPSILON);
 
+#if DEBUG
+    if (gl_LaunchIDEXT.x == 1280 && gl_LaunchIDEXT.y == 720 && gl_InstanceCustomIndexEXT == 0) {
+            debugPrintfEXT("evaluateReflectance: NoO = %f, NoI = %f, HoO = %f, IoH = %f, G1 = %f, G2 = %f, D = %f, F = %f, specularDenominator = %f, pdf = %f\n",
+                NoO, NoI, HoO, IoH, G1, G2, D, F.x, specularDenominator, pdf);
+    }
+#endif
     return D * F * G / specularDenominator;
 }
 
@@ -330,10 +338,10 @@ vec3 evaluateTransmittance(SurfaceData surface, vec3 outLightDir, vec3 inLightDi
     const float HoI = cosTheta(halfVector, inLightDir);
     
     // G1 and G2 factor for geometry term
-    const float G1 = G_Schlick_GGX(NoO, surface.roughness);
-    const float G2 = G_Schlick_GGX(NoI, surface.roughness);
+    const float G1 = G_Schlick_GGX(abs(NoO), surface.roughness);
+    const float G2 = G_Schlick_GGX(abs(NoI), surface.roughness);
 
-    float eta = NoO > 0.0 ? 1.0 / surface.ior : surface.ior;
+    float eta = surface.isBackFace ? 1.0 / surface.ior : surface.ior;
 
     const float D = D_GGX(NoH, surface.roughness);
     const float G = G1 * G2;
@@ -343,8 +351,13 @@ vec3 evaluateTransmittance(SurfaceData surface, vec3 outLightDir, vec3 inLightDi
     float eta2 = pow2(eta);
     float jacobian = abs(HoI) / denom;
 
-    pdf = G1 * max(0.0, HoO) * D * jacobian / NoO;
-
+    pdf = G1 * max(0.0, abs(HoO)) * D * jacobian / NoO;
+#if DEBUG
+    if (gl_LaunchIDEXT.x == 1280 && gl_LaunchIDEXT.y == 720 && gl_InstanceCustomIndexEXT == 0) {
+            debugPrintfEXT("evaluateTransmittance: NoO = %f, NoI = %f, HoO = %f, HoI = %f, G1 = %f, G2 = %f, D = %f, F = %f, eta = %f, jacobian = %f, pdf = %f\n",
+                NoO, NoI, HoO, HoI, G1, G2, D, F.x, eta, jacobian, pdf);
+    }
+#endif
     return pow(surface.albedo, vec3(0.5)) * (1.0 - F) * D * G * abs(HoO) * jacobian * eta2 / abs(NoI * NoO);
 }
 
@@ -376,7 +389,9 @@ vec3 evaluateBSDF(SurfaceData surface, vec3 outLightDir, vec3 inLightDir, vec3 h
     }
 
     if (surface.metalProbability > 0.0 && isReflection) {
-        vec3 F = F_Schlick(surface.reflectance, HoO);
+        //vec3 F = F_Schlick(surface.reflectance, HoO);
+        
+        vec3 F = mix(surface.albedo, vec3(1.0), schlickWeight(HoO));
 
         totalEval += evaluateReflectance(surface, outLightDir, inLightDir, halfVector, F, tempPdf)
             * surface.metalWeight;
@@ -386,7 +401,7 @@ vec3 evaluateBSDF(SurfaceData surface, vec3 outLightDir, vec3 inLightDir, vec3 h
 
     if (surface.transmissionProbability > 0.0) {
 
-        float eta = NoO > 0.0 ? 1.0 / surface.ior : surface.ior;
+        float eta = surface.isBackFace ? 1.0 / surface.ior : surface.ior;
         float F = DielectricFresnel(HoO, eta);
 
         if (isReflection) {
@@ -395,12 +410,24 @@ vec3 evaluateBSDF(SurfaceData surface, vec3 outLightDir, vec3 inLightDir, vec3 h
                 * surface.transmissionWeight;
 
             pdf += tempPdf * surface.transmissionProbability * F;
+
+#if DEBUG
+            if (gl_LaunchIDEXT.x == 1280 && gl_LaunchIDEXT.y == 720 && gl_InstanceCustomIndexEXT == 0) {
+                debugPrintfEXT("Reflection: F = %f, pdf = %f, totalEval = %v3f, transmissionProbability: %.2f\n", F, pdf, totalEval, surface.transmissionProbability);
+            }
+#endif
         } else {
             // Transmission case
             totalEval += evaluateTransmittance(surface, outLightDir, inLightDir, halfVector, vec3(F), tempPdf)
                 * surface.transmissionWeight;
 
 			pdf += tempPdf * surface.transmissionProbability * (1.0 - F);
+            
+#if DEBUG
+            if (gl_LaunchIDEXT.x == 1280 && gl_LaunchIDEXT.y == 720 && gl_InstanceCustomIndexEXT == 0) {
+                debugPrintfEXT("Refraction: F = %f, pdf = %f, totalEval = %v3f, transmissionProbability: %.2f\n", F, pdf, totalEval, surface.transmissionProbability);
+            }
+#endif
         }
     }
 
@@ -446,7 +473,7 @@ vec3 sampleBSDF(SurfaceData surface, vec3 outLightDir, out vec3 inLightDir, out 
     } else if (rand < cdf[1]) {
         // Sample specular reflection
         halfVector = importanceSampleGGX(randomVec2(seed), surface.roughness);
-        float eta = outLightDir.z > 0.0 ? 1.0 / surface.ior : surface.ior;
+        float eta = surface.isBackFace ? 1.0 / surface.ior : surface.ior;
         float F = DielectricFresnel(abs(dot(outLightDir, halfVector)), eta);
         
         // We don't want to generate a new random number because it breaks the
@@ -473,8 +500,31 @@ vec3 sampleBSDF(SurfaceData surface, vec3 outLightDir, out vec3 inLightDir, out 
     const vec3 bsdf = evaluateBSDF(surface, outLightDir, inLightDir, halfVector, pdf);
 
     if (pdf < FLT_EPSILON) {
+#if DEBUG
+        if (gl_LaunchIDEXT.x == 1280 && gl_LaunchIDEXT.y == 720 && gl_InstanceCustomIndexEXT == 0) {
+            debugPrintfEXT("PDF < FLT_EPSILON: outLightDir = %v3f, inLightDir = %v3f, halfVector = %v3f, pdf = %f, eval = %v3f, cosTheta = %f\n", 
+                outLightDir, inLightDir, halfVector, pdf, bsdf, cosTheta);
+        }
+#endif 
+        return vec3(0.0, 0.0, 0.0);
+    }
+
+    if (bsdf.x < FLT_EPSILON && bsdf.y < FLT_EPSILON && bsdf.z < FLT_EPSILON) {
+#if DEBUG
+        if (gl_LaunchIDEXT.x == 1280 && gl_LaunchIDEXT.y == 720 && gl_InstanceCustomIndexEXT == 0) {
+            debugPrintfEXT("bsdf < FLT_EPSILON: outLightDir = %v3f, inLightDir = %v3f, halfVector = %v3f, pdf = %f, eval = %v3f, cosTheta = %f\n", 
+                outLightDir, inLightDir, halfVector, pdf, bsdf, cosTheta);
+        }
+#endif 
         return vec3(1.0, 0.0, 1.0);
     }
+
+#if DEBUG
+    if (gl_LaunchIDEXT.x == 1280 && gl_LaunchIDEXT.y == 720 && gl_InstanceCustomIndexEXT == 0) {
+        debugPrintfEXT("Sampled BSDF: final value = %v3f, outLightDir = %v3f, inLightDir = %v3f, halfVector = %v3f, pdf = %f, eval = %v3f, cosTheta = %f\n", 
+            bsdf * cosTheta / pdf, outLightDir, inLightDir, halfVector, pdf, bsdf, cosTheta);
+    }
+#endif
 
     return bsdf * cosTheta / pdf;
 }

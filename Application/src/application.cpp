@@ -301,6 +301,14 @@ public:
             .build();
 		rm.add(bunnyMaterial, "bunny_material");
 
+        Entity entity = getScene().createEntity("cube")
+            .add<TransformComponent>(glm::vec3{ 0.0f, 0.79f, 0.0f }, glm::vec3{ 0.2f }, glm::vec3{ 0.0f, glm::pi<float>() / 4, 0.0f })
+            .add<MeshComponent>(cubeModel)
+            .add<MaterialComponent>(MaterialComponent::Builder()
+                .setMaterial(Material::Builder().build())
+                .build());
+
+        /*
         Entity entity = getScene().createEntity("Bunny")
             .add<TransformComponent>(glm::vec3{ 0.0f, 0.95f, 0.0f }, glm::vec3{ 2.5f, 2.5f, 2.5f }, glm::vec3{ glm::pi<float>(), 0.0f, 0.0f })
             .add<MeshComponent>(bunny)
