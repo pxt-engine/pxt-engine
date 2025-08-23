@@ -22,7 +22,7 @@ public:
 
         auto environment = getScene().getEnvironment();
 
-        environment->setAmbientLight({ 1.0, 1.0, 1.0, 0.15f });
+        environment->setAmbientLight({ 1.0, 1.0, 1.0, 0.0f });
         environment->setSkybox(skyboxTextures);
     }
 

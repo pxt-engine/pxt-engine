@@ -341,7 +341,7 @@ vec3 evaluateTransmittance(SurfaceData surface, vec3 outLightDir, vec3 inLightDi
     const float G1 = G_Schlick_GGX(abs(NoO), surface.roughness);
     const float G2 = G_Schlick_GGX(abs(NoI), surface.roughness);
 
-    float eta = surface.isBackFace ? 1.0 / surface.ior : surface.ior;
+    float eta = !surface.isBackFace ? 1.0 / surface.ior : surface.ior;
 
     const float D = D_GGX(NoH, surface.roughness);
     const float G = G1 * G2;
@@ -401,7 +401,7 @@ vec3 evaluateBSDF(SurfaceData surface, vec3 outLightDir, vec3 inLightDir, vec3 h
 
     if (surface.transmissionProbability > 0.0) {
 
-        float eta = surface.isBackFace ? 1.0 / surface.ior : surface.ior;
+        float eta = !surface.isBackFace ? 1.0 / surface.ior : surface.ior;
         float F = DielectricFresnel(HoO, eta);
 
         if (isReflection) {
@@ -422,7 +422,7 @@ vec3 evaluateBSDF(SurfaceData surface, vec3 outLightDir, vec3 inLightDir, vec3 h
                 * surface.transmissionWeight;
 
             // The epsilon is needed in case the pdf is 0.0 due to total internal reflection. (see DielectricFresnel)
-			pdf += tempPdf * surface.transmissionProbability * (1.0 - F) + FLT_EPSILON;
+			pdf += tempPdf * surface.transmissionProbability * (1.0 - F);
             
 #if DEBUG
             if (gl_LaunchIDEXT.x == 1280 && gl_LaunchIDEXT.y == 720 && gl_InstanceCustomIndexEXT == 0) {
@@ -474,7 +474,7 @@ vec3 sampleBSDF(SurfaceData surface, vec3 outLightDir, out vec3 inLightDir, out 
     } else if (rand < cdf[1]) {
         // Sample specular reflection
         halfVector = importanceSampleGGX(randomVec2(seed), surface.roughness);
-        float eta = surface.isBackFace ? 1.0 / surface.ior : surface.ior;
+        float eta = !surface.isBackFace ? 1.0 / surface.ior : surface.ior;
         float F = DielectricFresnel(abs(dot(outLightDir, halfVector)), eta);
         
         // We don't want to generate a new random number because it breaks the
@@ -510,15 +510,15 @@ vec3 sampleBSDF(SurfaceData surface, vec3 outLightDir, out vec3 inLightDir, out 
         return vec3(0.0, 0.0, 0.0);
     }
 
-    if (bsdf.x < FLT_EPSILON && bsdf.y < FLT_EPSILON && bsdf.z < FLT_EPSILON) {
 #if DEBUG
+    if (bsdf.x < FLT_EPSILON && bsdf.y < FLT_EPSILON && bsdf.z < FLT_EPSILON) {
         if (gl_LaunchIDEXT.x == 1280 && gl_LaunchIDEXT.y == 720 && gl_InstanceCustomIndexEXT == 0) {
             debugPrintfEXT("bsdf < FLT_EPSILON: outLightDir = %v3f, inLightDir = %v3f, halfVector = %v3f, pdf = %f, eval = %v3f, cosTheta = %f\n", 
                 outLightDir, inLightDir, halfVector, pdf, bsdf, cosTheta);
         }
-#endif 
-        return vec3(1.0, 0.0, 1.0);
+        return vec3(0.0, 0.0, 0.0);
     }
+#endif 
 
 #if DEBUG
     if (gl_LaunchIDEXT.x == 1280 && gl_LaunchIDEXT.y == 720 && gl_InstanceCustomIndexEXT == 0) {

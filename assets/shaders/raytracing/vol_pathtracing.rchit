@@ -329,7 +329,6 @@ void main() {
 
     const vec3 geometricNormal = tbn[2];
 
-    // If the ray and normal are in opposite directions, we are entering the volume.
     const bool isBackFace = dot(gl_WorldRayDirectionEXT, geometricNormal) > 0.0;
 
     // Check if the hit object is a volume boundary

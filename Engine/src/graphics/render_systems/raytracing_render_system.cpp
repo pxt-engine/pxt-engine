@@ -456,7 +456,7 @@ namespace PXTEngine {
 		ImGui::SliderFloat("Metalness", &m_metalness, 0.0f, 1.0f, "%.5f");
 		ImGui::SliderFloat("Roughness", &m_roughness, 0.0001f, 1.0f, "%.5f");
 		ImGui::SliderFloat("Transmission", &m_transmission, 0.0f, 1.0f);
-		ImGui::SliderFloat("Ior", &m_ior, 1.00001f, 3.0f, "%.5f");
+		ImGui::SliderFloat("Ior", &m_ior, 1.0f, 3.0f, "%.5f");
 		ImGui::ColorEdit3("Albedo", &m_albedo.x, ImGuiColorEditFlags_Float);
 	}
 }
