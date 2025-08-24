@@ -22,7 +22,7 @@ public:
 
         auto environment = getScene().getEnvironment();
 
-        environment->setAmbientLight({ 1.0, 1.0, 1.0, 0.0f });
+        environment->setAmbientLight({ 1.0, 1.0, 1.0, 0.2f });
         environment->setSkybox(skyboxTextures);
     }
 
@@ -62,12 +62,12 @@ public:
 		rm.add(stylizedStoneMaterial, "floor_material");
 
         Entity entity = getScene().createEntity("Floor")
-            .add<TransformComponent>(glm::vec3{0.f, 1.0f, 0.f}, glm::vec3{1.f, 1.f, 1.f}, glm::vec3{0.0f, 0.0f, 0.0f})
+            .add<TransformComponent>(glm::vec3{ 0.f, 1.0f, 0.f }, glm::vec3{ 1.f, 1.f, 1.f }, glm::vec3{ 0.0f, 0.0f, 0.0f })
             .add<MeshComponent>(quad)
-			.add<MaterialComponent>(MaterialComponent::Builder()
+            .add<MaterialComponent>();/*MaterialComponent::Builder()
 				.setMaterial(stylizedStoneMaterial)
                 .setTilingFactor(2.0f)
-				.build());
+				.build());*/
 
         entity = getScene().createEntity("Left Wall")
             .add<TransformComponent>(glm::vec3{ -1.f, 0.f, 0.f }, glm::vec3{ 1.f, 1.f, 1.f }, glm::vec3{ 0.0f, 0.0f, glm::pi<float>() / 2 })
@@ -81,8 +81,8 @@ public:
 
         entity = getScene().createEntity("Front Wall")
             .add<TransformComponent>(glm::vec3{ 0.f, 0.f, 1.f }, glm::vec3{ 1.f, 1.f, 1.f }, glm::vec3{ glm::pi<float>() / 2, 0.0f, 0.0f })
-            .add<MeshComponent>(quad)
-            .add<MaterialComponent>();
+            .add<MeshComponent>(quad);
+        entity.addAndGet<MaterialComponent>();// .tint = glm::vec3{ 0.f, 0.0f, 1.f };
 
         entity = getScene().createEntity("Roof")
             .add<TransformComponent>(glm::vec3{ 0.f, -1.f, 0.f }, glm::vec3{ 1.f, 1.f, 1.f }, glm::vec3{ glm::pi<float>(), 0.0f, 0.0f })
@@ -121,7 +121,7 @@ public:
         rm.add(graniteMaterial, "brown_granite");
 
         Entity entity = getScene().createEntity("vase")
-            .add<TransformComponent>(glm::vec3{ -0.75f, 1.0f, 0.1f }, glm::vec3{ 1.0f, 1.0f, 1.0f }, glm::vec3{0.0f, glm::pi<float>()/4, 0.0f})
+            .add<TransformComponent>(glm::vec3{ -0.75f, 0.95f, 0.1f }, glm::vec3{ 1.0f, 1.0f, 1.0f }, glm::vec3{0.0f, glm::pi<float>()/4, 0.0f})
             .add<MeshComponent>(vaseMesh);
         entity.addAndGet<MaterialComponent>(MaterialComponent::Builder()
             .setMaterial(graniteMaterial).build());
@@ -133,7 +133,7 @@ public:
             .setMaterial(metallicMaterial).build()).tint = glm::vec3(0.737, 0.776, 0.8);
 
         entity = getScene().createEntity("vase")
-            .add<TransformComponent>(glm::vec3{ -0.65f, 1.0f, 0.4f }, glm::vec3{ 1.8f, 1.4f, 1.8f }, glm::vec3{ 0.0f, 0.0f, 0.0f })
+            .add<TransformComponent>(glm::vec3{ -0.65f, 0.95f, 0.4f }, glm::vec3{ 1.8f, 1.4f, 1.8f }, glm::vec3{ 0.0f, 0.0f, 0.0f })
             .add<MeshComponent>(vaseMesh);
         entity.addAndGet<MaterialComponent>(MaterialComponent::Builder()
             .setMaterial(graniteMaterial).build()).tint = glm::vec3(0.13f, 0.24f, 0.35f);
@@ -302,14 +302,14 @@ public:
 		rm.add(bunnyMaterial, "bunny_material");
 
         Entity entity = getScene().createEntity("cube")
-            .add<TransformComponent>(glm::vec3{ 0.0f, 0.79f, 0.0f }, glm::vec3{ 0.2f }, glm::vec3{ 0.0f, glm::pi<float>() / 4, 0.0f })
+            .add<TransformComponent>(glm::vec3{ 0.0f, 0.7f, 0.0f }, glm::vec3{ 0.25f }, glm::vec3{ 0.0f, glm::pi<float>() / 4, 0.0f })
             .add<MeshComponent>(cubeModel)
             .add<MaterialComponent>(MaterialComponent::Builder()
                 .setMaterial(Material::Builder().build())
                 .build());
 
-        /*
-        Entity entity = getScene().createEntity("Bunny")
+        
+        /*Entity entity = getScene().createEntity("Bunny")
             .add<TransformComponent>(glm::vec3{ 0.0f, 0.95f, 0.0f }, glm::vec3{ 2.5f, 2.5f, 2.5f }, glm::vec3{ glm::pi<float>(), 0.0f, 0.0f })
             .add<MeshComponent>(bunny)
             .add<MaterialComponent>(MaterialComponent::Builder()
