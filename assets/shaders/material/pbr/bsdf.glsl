@@ -5,6 +5,8 @@
 
 #define DEBUG 0
 
+#define IOR_AIR 1.0003
+
 struct SurfaceData {
     mat3 tbn;
     bool isBackFace;
@@ -291,11 +293,6 @@ vec3 evaluateReflectance(SurfaceData surface, vec3 outLightDir, vec3 inLightDir,
     const float NoI = cosThetaTangent(inLightDir);
     const float NoO = cosThetaTangent(outLightDir);
 
-    // if we are inside an object and reflect we disable this
-    //if (NoO < 0.0) { 
-    //    return vec3(0.0);
-    //}
-
     const float HoO = cosTheta(halfVector, outLightDir);
 	const float IoH = cosTheta(inLightDir, halfVector);
 
@@ -334,14 +331,29 @@ vec3 evaluateTransmittance(SurfaceData surface, vec3 outLightDir, vec3 inLightDi
     const float NoI = cosThetaTangent(inLightDir);
     const float NoO = cosThetaTangent(outLightDir);
 
-    const float HoO = cosTheta(halfVector, outLightDir);
-    const float HoI = cosTheta(halfVector, inLightDir);
+    if (surface.transmission == 1.0 && surface.ior == 1.0) {
+        // If the material is fully transmissive and has an IOR of 1.0 (like air),
+        // we treat it as a perfect transmission with no reflection.
+        pdf = 1.0;
+        return pow(surface.albedo, vec3(0.5));
+    }
+
+    float HoO = cosTheta(halfVector, outLightDir);
+    float HoI = cosTheta(halfVector, inLightDir);
+
+    // if eta is 1.0, the ray is not refracted, but passes through
+    // the object based on transmittance. in this case HoI and HoO
+    // are equal in opposite directions.
+    if (HoI + HoO < FLT_EPSILON) {
+        HoI = abs(HoI);
+        HoO = abs(HoO);
+    }
     
     // G1 and G2 factor for geometry term
     const float G1 = G_Schlick_GGX(abs(NoO), surface.roughness);
     const float G2 = G_Schlick_GGX(abs(NoI), surface.roughness);
 
-    float eta = !surface.isBackFace ? 1.0 / surface.ior : surface.ior;
+    float eta = surface.isBackFace ? surface.ior / IOR_AIR : IOR_AIR / surface.ior;
 
     const float D = D_GGX(NoH, surface.roughness);
     const float G = G1 * G2;
@@ -401,7 +413,7 @@ vec3 evaluateBSDF(SurfaceData surface, vec3 outLightDir, vec3 inLightDir, vec3 h
 
     if (surface.transmissionProbability > 0.0) {
 
-        float eta = !surface.isBackFace ? 1.0 / surface.ior : surface.ior;
+        float eta = surface.isBackFace ? surface.ior / IOR_AIR : IOR_AIR / surface.ior;
         float F = DielectricFresnel(HoO, eta);
 
         if (isReflection) {
@@ -421,7 +433,6 @@ vec3 evaluateBSDF(SurfaceData surface, vec3 outLightDir, vec3 inLightDir, vec3 h
             totalEval += evaluateTransmittance(surface, outLightDir, inLightDir, halfVector, vec3(F), tempPdf)
                 * surface.transmissionWeight;
 
-            // The epsilon is needed in case the pdf is 0.0 due to total internal reflection. (see DielectricFresnel)
 			pdf += tempPdf * surface.transmissionProbability * (1.0 - F);
             
 #if DEBUG
@@ -474,14 +485,14 @@ vec3 sampleBSDF(SurfaceData surface, vec3 outLightDir, out vec3 inLightDir, out 
     } else if (rand < cdf[1]) {
         // Sample specular reflection
         halfVector = importanceSampleGGX(randomVec2(seed), surface.roughness);
-        float eta = !surface.isBackFace ? 1.0 / surface.ior : surface.ior;
+        float eta = surface.isBackFace ? surface.ior / IOR_AIR : IOR_AIR / surface.ior;
         float F = DielectricFresnel(abs(dot(outLightDir, halfVector)), eta);
         
         // We don't want to generate a new random number because it breaks the
         // stratification property. We can remap the random number to reuse it.
         float newRand = (rand - cdf[0]) / (cdf[1] - cdf[0]);
 
-        if (newRand < F) {
+        if (newRand <= F) {
             // Reflect
             inLightDir = reflect(-outLightDir, halfVector);
         } else {

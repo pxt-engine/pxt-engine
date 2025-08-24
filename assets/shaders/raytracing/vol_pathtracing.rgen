@@ -102,7 +102,7 @@ void main()
     vec3 finalColor = vec3(0.0);
 
     const uint samplesPerPixel = 1;
-    const int maxBounces = 5;
+    const int maxBounces = 10;
 
     for (uint currentSample = 0; currentSample < samplesPerPixel; ++currentSample) {
         // for random operations

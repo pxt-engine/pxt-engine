@@ -362,7 +362,7 @@ void main() {
     const vec3 surfaceNormal = calculateSurfaceNormal(textures[nonuniformEXT(material.normalMapIndex)], uv, tbn);
     
     //if (surfaceNormal != geometricNormal) {
-    //    tbn = createOrthonormalBasis(surfaceNormal);
+     //   tbn = createOrthonormalBasis(surfaceNormal);
     //}
 
     if (isBackFace) {
@@ -424,12 +424,12 @@ void main() {
     outgoingLightDirection = tangentToWorld(tbn, incomingLightDirection);
 
     // we offset the origin slightly to avoid self-intersection based on
-    // reflection (positive) or refraction (negative).
+    // reflection (negative) or refraction (positive).
     const float offsetSign = sign(dot(outgoingLightDirection, geometricNormal));
 
     // Update the payload for the next bounce
     p_pathTrace.depth++;
-    p_pathTrace.origin = worldPosition + geometricNormal * offsetSign * (RAY_T_MIN + FLT_EPSILON);
+    p_pathTrace.origin = worldPosition + geometricNormal * offsetSign * (FLT_EPSILON);
     p_pathTrace.direction = outgoingLightDirection;
     p_pathTrace.hitDistance = gl_HitTEXT;
 }

@@ -2,7 +2,7 @@
 #define _RAY_
 
 // Minimum intersection distance
-#define RAY_T_MIN 0.001
+#define RAY_T_MIN 0.00001
 
 // Maximum intersection distance
 #define RAY_T_MAX 100.0
