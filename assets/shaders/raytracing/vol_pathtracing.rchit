@@ -360,25 +360,14 @@ void main() {
     const vec2 uv = getTextureCoords(triangle, barycentrics) * instance.textureTilingFactor;
 
     const vec3 surfaceNormal = calculateSurfaceNormal(textures[nonuniformEXT(material.normalMapIndex)], uv, tbn);
-    tbn[2] = surfaceNormal;
+    
+    //if (surfaceNormal != geometricNormal) {
+    //    tbn = createOrthonormalBasis(surfaceNormal);
+    //}
 
-    // recalculate the TBN
-    vec3 T, B;
     if (isBackFace) {
-        // we flip the normal
-        vec3 flippedNormal = -tbn[2];
-
-        vec3 up = abs(flippedNormal.z) < 0.9999999 ? vec3(0, 0, 1) : vec3(1, 0, 0);
-        T = normalize(cross(up, flippedNormal));
-        B = cross(flippedNormal, T);
-
-        tbn = mat3(T, B, flippedNormal);
-    } else {
-        vec3 up = abs(surfaceNormal.z) < 0.9999999 ? vec3(0, 0, 1) : vec3(1, 0, 0);
-        T = normalize(cross(up, surfaceNormal));
-        B = cross(surfaceNormal, T);
-
-        tbn = mat3(T, B, surfaceNormal);
+        tbn[2] *= -1;
+        tbn[1] *= -1;
     }
 
     SurfaceData surface;
@@ -440,7 +429,7 @@ void main() {
 
     // Update the payload for the next bounce
     p_pathTrace.depth++;
-    p_pathTrace.origin = worldPosition + geometricNormal * offsetSign * FLT_EPSILON;
+    p_pathTrace.origin = worldPosition + geometricNormal * offsetSign * (RAY_T_MIN + FLT_EPSILON);
     p_pathTrace.direction = outgoingLightDirection;
     p_pathTrace.hitDistance = gl_HitTEXT;
 }

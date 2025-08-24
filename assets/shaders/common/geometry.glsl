@@ -147,4 +147,13 @@ float cosTheta(const vec3 v, const vec3 u) {
     return dot(v, u);
 }
 
+mat3 createOrthonormalBasis(vec3 N) {
+    N = normalize(N);
+    vec3 up = abs(N.z) < 0.9999999 ? vec3(0, 0, 1) : vec3(1, 0, 0);
+    vec3 T = normalize(cross(up, N));
+    vec3 B = cross(N, T);
+
+    return mat3(T, B, N);
+}
+
 #endif 
