@@ -28,6 +28,8 @@ namespace PXTEngine {
 		int metallicMapIndex;
 		int roughnessMapIndex;
 		int emissiveMapIndex;
+		float transmission;
+		float ior;
 	};
 
 	/**

@@ -10,6 +10,8 @@ struct Material {
 	int metallicMapIndex;
 	int roughnessMapIndex;
     int emissiveMapIndex;
+    float transmission;
+    float ior;
 };
 
 struct MeshInstanceDescription {

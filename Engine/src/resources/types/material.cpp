@@ -11,7 +11,9 @@ namespace PXTEngine {
         const Shared<Image>& roughnessMap,
         const Shared<Image>& ambientOcclusionMap,
         const glm::vec4& emissiveColor,
-        const Shared<Image>& emissiveMap)
+        const Shared<Image>& emissiveMap,
+		const float transmission,
+        const float ior)
         : m_albedoColor(albedoColor),
         m_albedoMap(albedoMap),
         m_normalMap(normalMap),
@@ -19,7 +21,9 @@ namespace PXTEngine {
         m_roughnessMap(roughnessMap),
         m_ambientOcclusionMap(ambientOcclusionMap),
         m_emissiveColor(emissiveColor),
-        m_emissiveMap(emissiveMap) {}
+        m_emissiveMap(emissiveMap),
+		m_transmission(transmission),
+		m_ior(ior) {}
 
     Material::Type Material::getStaticType() {
         return Type::Material;
@@ -37,6 +41,8 @@ namespace PXTEngine {
     Shared<Image> Material::getAmbientOcclusionMap() const { return m_ambientOcclusionMap; }
     const glm::vec4& Material::getEmissiveColor() const { return m_emissiveColor; }
     Shared<Image> Material::getEmissiveMap() const { return m_emissiveMap; }
+	float Material::getTransmission() const { return m_transmission; }
+	float Material::getIndexOfRefraction() const { return m_ior; }
 
     bool Material::isEmissive() {
         return m_emissiveColor.a > 0.0f;
@@ -84,6 +90,16 @@ namespace PXTEngine {
         return *this;
     }
 
+	Material::Builder& Material::Builder::setTransmission(const float transmission) {
+		m_transmission = transmission;
+		return *this;
+	}
+
+	Material::Builder& Material::Builder::setIndexOfRefraction(const float ior) {
+		m_ior = ior;
+		return *this;
+	}
+
     Shared<Material> Material::Builder::build() {
         if (!m_albedoMap) m_albedoMap = ResourceManager::defaultMaterial->getAlbedoMap();
         if (!m_normalMap) m_normalMap = ResourceManager::defaultMaterial->getNormalMap();
@@ -100,7 +116,9 @@ namespace PXTEngine {
             m_roughnessMap,
             m_ambientOcclusionMap,
             m_emissiveColor,
-            m_emissiveMap
+            m_emissiveMap,
+            m_transmission,
+			m_ior
         );
     }
 }

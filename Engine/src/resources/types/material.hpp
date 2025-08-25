@@ -25,6 +25,8 @@ namespace PXTEngine {
             Builder& setAmbientOcclusionMap(Shared<Image> map);
             Builder& setEmissiveColor(const glm::vec4& color);
             Builder& setEmissiveMap(Shared<Image> map);
+			Builder& setTransmission(float value);
+			Builder& setIndexOfRefraction(float value);
             Shared<Material> build();
 
         protected:
@@ -36,6 +38,8 @@ namespace PXTEngine {
             Shared<Image> m_ambientOcclusionMap{ nullptr };
             glm::vec4 m_emissiveColor{ 0.0f };
             Shared<Image> m_emissiveMap{ nullptr };
+            float m_transmission = 0.0;
+            float m_ior = 1.3;
         };
 
         Material(
@@ -46,7 +50,9 @@ namespace PXTEngine {
             const Shared<Image>& roughnessMap,
             const Shared<Image>& ambientOcclusionMap,
             const glm::vec4& emissiveColor,
-            const Shared<Image>& emissiveMap
+            const Shared<Image>& emissiveMap,
+			const float transmission,
+			const float ior
         );
 
         static Type getStaticType();
@@ -60,6 +66,8 @@ namespace PXTEngine {
         Shared<Image> getAmbientOcclusionMap() const;
         const glm::vec4& getEmissiveColor() const;
         Shared<Image> getEmissiveMap() const;
+		float getTransmission() const;
+		float getIndexOfRefraction() const;
 
         bool isEmissive();
 
@@ -72,5 +80,7 @@ namespace PXTEngine {
         Shared<Image> m_ambientOcclusionMap{ nullptr };
         glm::vec4 m_emissiveColor{ 0.0f };
         Shared<Image> m_emissiveMap{ nullptr };
+		float m_transmission{ 0.0f };
+		float m_ior{ 1.3f };
     };
 }

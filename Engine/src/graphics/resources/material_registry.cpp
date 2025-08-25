@@ -88,6 +88,8 @@ namespace PXTEngine {
 		data.metallicMapIndex = m_textureRegistry.getIndex(material->getMetallicMap()->id);
 		data.roughnessMapIndex = m_textureRegistry.getIndex(material->getRoughnessMap()->id);
 		data.emissiveMapIndex = m_textureRegistry.getIndex(material->getEmissiveMap()->id);
+		data.transmission = material->getTransmission();
+		data.ior = material->getIndexOfRefraction();
 		return data;
 	}
 }
