@@ -113,7 +113,7 @@ SurfaceData getSurfaceData(const MeshInstanceDescription instance, const Materia
 }
 
 /**
- * Samples an emitter (either a mesh emitter or the sky) and returns the sample.
+ * Samples a random emitter (either a mesh emitter or the sky) and returns the sample.
  * The function samples a mesh emitter or the sky based on the provided seed.
  * It calculates the radiance, light distance, PDF, and visibility of the sampled emitter.
  *
@@ -121,11 +121,82 @@ SurfaceData getSurfaceData(const MeshInstanceDescription instance, const Materia
  * @param worldPosition The world position of the surface being sampled.
  * @param smpl Output parameter to store the sampled emitter data.
  */
-void sampleEmitter(SurfaceData surface, vec3 worldPosition, out EmitterSample smpl) {
+void sampleEmitter(uint emitterIndex, mat3 tbn, vec3 worldPosition, out EmitterSample smpl) {
     smpl.radiance = vec3(0.0);
     smpl.lightDistance = RAY_T_MAX;
     smpl.pdf = 0.0;
-    smpl.isVisible = false;
+
+    vec3 worldInLightDir = vec3(0.0);
+
+    const uint numEmitters = uint(emitters.numEmitters);
+    const uint totalSamplableEmitters = numEmitters + USE_SKY_AS_NEE_EMITTER;
+
+    // Sample a mesh emitter
+    const Emitter emitter = emitters.e[emitterIndex];
+    const MeshInstanceDescription emitterInstance = meshInstances.i[emitter.instanceIndex];
+    const Material material = materials.m[emitterInstance.materialIndex];
+        
+    const uint faceIndex = nextUint(p_pathTrace.seed, emitter.numberOfFaces);
+
+    // Generate barycentric coordinates for the triangle
+    vec2 emitterBarycentrics = sampleTrianglePoint(p_pathTrace.seed);
+    
+    const Triangle emitterTriangle = getTriangle(emitterInstance.indexAddress, emitterInstance.vertexAddress, faceIndex);
+    const vec2 uv = getTextureCoords(emitterTriangle, emitterBarycentrics) * emitterInstance.textureTilingFactor;
+        
+    smpl.radiance = getEmission(material, uv);
+
+    if (smpl.radiance == vec3(0.0)) {
+        return; 
+    }
+
+    const vec3 emitterObjPosition = getPosition(emitterTriangle, emitterBarycentrics);
+    const vec3 emitterObjNormal = getNormal(emitterTriangle, emitterBarycentrics);
+
+    const mat4 emitterObjectToWorld = mat4(emitterInstance.objectToWorld);
+    // The upper 3x3 of the world-to-object matrix is the normal matrix
+    const mat3 emitterNormalMatrix = mat3(emitterInstance.worldToObject);
+
+    const vec3 emitterPosition = vec3(emitterObjectToWorld * vec4(emitterObjPosition, 1.0));
+    const vec3 emitterNormal = normalize(emitterNormalMatrix * emitterObjNormal);
+
+    // vector from emitter the surface to the emitter
+    vec3 outLightVec = worldPosition - emitterPosition;
+
+    smpl.lightDistance = length(outLightVec);
+
+    const float areaWorld = calculateWorldSpaceTriangleArea(emitterTriangle, mat3(emitterInstance.objectToWorld));
+
+    if (areaWorld <= 0.0 || smpl.lightDistance <= 0) {
+        return;
+    }
+
+    vec3 outLightDir = outLightVec / smpl.lightDistance;
+
+    smpl.emitterCosTheta = cosTheta(emitterNormal, outLightDir);
+    if (smpl.emitterCosTheta <= 0.0) {
+        return;
+    }
+
+    worldInLightDir = -outLightDir; 
+    smpl.inLightDirWorld = worldInLightDir;
+    smpl.inLightDir = worldToTangent(tbn, worldInLightDir);
+    smpl.pdf = pow2(smpl.lightDistance) / (smpl.emitterCosTheta * areaWorld * totalSamplableEmitters * emitter.numberOfFaces);
+}
+
+/**
+ * Samples a random emitter (either a mesh emitter or the sky) and returns the sample.
+ * The function samples a mesh emitter or the sky based on the provided seed.
+ * It calculates the radiance, light distance, PDF, and visibility of the sampled emitter.
+ *
+ * @param surface The SurfaceData containing geometric and material properties of the hit point.
+ * @param worldPosition The world position of the surface being sampled.
+ * @param smpl Output parameter to store the sampled emitter data.
+ */
+void sampleRandomEmitter(mat3 tbn, vec3 worldPosition, out EmitterSample smpl) {
+    smpl.radiance = vec3(0.0);
+    smpl.lightDistance = RAY_T_MAX;
+    smpl.pdf = 0.0;
 
     const uint numEmitters = uint(emitters.numEmitters);
 
@@ -144,66 +215,16 @@ void sampleEmitter(SurfaceData surface, vec3 worldPosition, out EmitterSample sm
         // Sample the sky as an emitter
         smpl.inLightDir = sampleCosineWeightedHemisphere(p_pathTrace.samplingNoise);
 
-        worldInLightDir = tangentToWorld(surface.tbn, smpl.inLightDir);
+        worldInLightDir = tangentToWorld(tbn, smpl.inLightDir);
 
         smpl.pdf = pdfCosineWeightedHemisphere(max(smpl.inLightDir.z, 0)) / totalSamplableEmitters;
         smpl.radiance = getSkyRadiance(worldInLightDir);
 
         if (smpl.radiance == vec3(0.0)) return;
 
-    } else {
-        // Sample a mesh emitter
-        const Emitter emitter = emitters.e[emitterIndex];
-        const MeshInstanceDescription emitterInstance = meshInstances.i[emitter.instanceIndex];
-        const Material material = materials.m[emitterInstance.materialIndex];
-        
-        const uint faceIndex = nextUint(p_pathTrace.seed, emitter.numberOfFaces);
-
-        // Generate barycentric coordinates for the triangle
-        vec2 emitterBarycentrics = sampleTrianglePoint(p_pathTrace.seed);
-    
-        const Triangle emitterTriangle = getTriangle(emitterInstance.indexAddress, emitterInstance.vertexAddress, faceIndex);
-        const vec2 uv = getTextureCoords(emitterTriangle, emitterBarycentrics) * emitterInstance.textureTilingFactor;
-        
-        smpl.radiance = getEmission(material, uv);
-
-        if (smpl.radiance == vec3(0.0)) {
-            return; 
-        }
-
-        const vec3 emitterObjPosition = getPosition(emitterTriangle, emitterBarycentrics);
-        const vec3 emitterObjNormal = getNormal(emitterTriangle, emitterBarycentrics);
-
-        const mat4 emitterObjectToWorld = mat4(emitterInstance.objectToWorld);
-        // The upper 3x3 of the world-to-object matrix is the normal matrix
-        const mat3 emitterNormalMatrix = mat3(emitterInstance.worldToObject);
-
-        const vec3 emitterPosition = vec3(emitterObjectToWorld * vec4(emitterObjPosition, 1.0));
-        const vec3 emitterNormal = normalize(emitterNormalMatrix * emitterObjNormal);
-
-        // vector from emitter the surface to the emitter
-        vec3 outLightVec = worldPosition - emitterPosition;
-
-        smpl.lightDistance = length(outLightVec);
-
-        const float areaWorld = calculateWorldSpaceTriangleArea(emitterTriangle, mat3(emitterInstance.objectToWorld));
-
-        if (areaWorld <= 0.0 || smpl.lightDistance <= 0) {
-            return;
-        }
-
-        vec3 outLightDir = outLightVec / smpl.lightDistance;
-
-        smpl.emitterCosTheta = cosTheta(emitterNormal, outLightDir);
-        if (smpl.emitterCosTheta <= 0.0) {
-            return;
-        }
-
-        worldInLightDir = -outLightDir; 
-        smpl.inLightDirWorld = worldInLightDir;
-        smpl.inLightDir = worldToTangent(surface.tbn, worldInLightDir);
-        smpl.pdf = pow2(smpl.lightDistance) / (smpl.emitterCosTheta * areaWorld * totalSamplableEmitters * emitter.numberOfFaces);
     }
+
+    sampleEmitter(emitterIndex, tbn, worldPosition, smpl);
 }
 
 /**
@@ -336,7 +357,7 @@ void directLighting(SurfaceData surface, vec3 worldPosition, vec3 outLightDir) {
     
     EmitterSample emitterSample;
     
-    sampleEmitter(surface, worldPosition, emitterSample);
+    sampleRandomEmitter(surface.tbn, worldPosition, emitterSample);
 
     if (emitterSample.pdf == 0 || emitterSample.radiance == vec3(0.0)) return;
 

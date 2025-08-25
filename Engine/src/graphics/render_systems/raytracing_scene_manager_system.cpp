@@ -69,6 +69,7 @@ namespace PXTEngine {
 			meshInstanceData.vertexBufferAddress = vkMesh->getVertexBufferDeviceAddress();
 			meshInstanceData.indexBufferAddress = vkMesh->getIndexBufferDeviceAddress();
 			meshInstanceData.materialIndex = invalidIndex;
+			meshInstanceData.emitterIndex = invalidIndex;
 			meshInstanceData.volumeIndex = invalidIndex;
 		
 			// Add material properties to the instance data
@@ -82,6 +83,8 @@ namespace PXTEngine {
 
 				// register entities with emissive materials
 				if (materialComponent.material->isEmissive()) {
+					meshInstanceData.emitterIndex = static_cast<uint32_t>(m_emitters.size());
+
 					EmitterData emitterData{};
 					emitterData.instanceIndex = instanceIndex;
 					emitterData.numberOfFaces = vkMesh->getIndexCount() / 3;

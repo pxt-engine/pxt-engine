@@ -18,6 +18,7 @@ struct MeshInstanceDescription {
     uint64_t vertexAddress;  
     uint64_t indexAddress;   
     uint materialIndex;
+    uint emitterIndex;
     uint volumeIndex;
     float textureTilingFactor;
     vec4 textureTintColor;
