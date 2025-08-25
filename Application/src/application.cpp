@@ -303,6 +303,8 @@ public:
 
         auto glassMaterial = Material::Builder()
 			.setAlbedoColor(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f))
+			.setRoughnessMap(rm.get<Image>(BLACK_PIXEL_LINEAR))
+			.setMetallicMap(rm.get<Image>(BLACK_PIXEL_LINEAR))
 			.setTransmission(1.0f)
             .setIndexOfRefraction(1.5f)
 			.build();

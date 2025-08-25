@@ -37,8 +37,8 @@ struct PathTracePayload {
     // A Noise value used for sampling. Can be white/blue etc...
     vec2 samplingNoise;
 
-    // The PDF value of the last BSDF sampling
-    float bsdfPdf;
+    // The PDF value of the last BSDF or phase function sampling
+    float pdf;
 
     bool isSpecularBounce;
 };

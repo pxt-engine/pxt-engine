@@ -66,7 +66,7 @@ vec3 getEmission(const Material material, const vec2 uv) {
 }
 
 float getRoughness(const Material material, const vec2 uv) {
-    return pow2(texture(textures[nonuniformEXT(material.roughnessMapIndex)], uv).r);
+    return max(pow2(texture(textures[nonuniformEXT(material.roughnessMapIndex)], uv).r), 0.0001);
 }
 
 float getMetalness(const Material material, const vec2 uv) {
@@ -79,23 +79,8 @@ struct EmitterSample {
     float lightDistance;
     float emitterCosTheta;
     float pdf;
-    bool isVisible; 
+    vec3 normalWorld;
 };
-
-/**
- * Samples a point on a triangle uniformly.
- * This function generates barycentric coordinates for a triangle and returns the corresponding point.
- * The sampling is done using a uniform distribution over the triangle's area.
- *
- * @param seed A seed value for random number generation.
- * @return A vec2 representing the barycentric coordinates of the sampled point.
- */
-vec2 sampleTrianglePoint(uint seed) {
-    const vec2 rand = randomVec2(seed);
-    const float xsqrt = sqrt(rand.x);
-    
-    return vec2(1.0 - xsqrt, rand.y * xsqrt);
-}
 
 SurfaceData getSurfaceData(const MeshInstanceDescription instance, const Material material, const vec2 uv, const mat3 tbn, bool isBackFace) {
     SurfaceData surface;
@@ -254,11 +239,20 @@ vec3 evaluateTransmittance(EmitterSample emitterSample, vec3 worldPosition) {
     Ray ray;
     ray.origin = worldPosition;
     ray.direction = emitterSample.inLightDirWorld;
+
+    int currentMediumIndex = p_pathTrace.mediumIndex;
+
+    // we need to keep track of the last surface we hit to know
+    // if we are exiting an object inside a volume.
+    // think of a donut inside a volume, we need to account
+    // for transmittance of the volume in the hole of the donut.
+    int currentSurfaceIndex = -1;
+    // we also need to know how many times we hit the same surface
+    int currentSurfaceHitCount = 0;
     
     float tMax = max(0.0, emitterSample.lightDistance - FLT_EPSILON); 
 
     for (int depth = 0; depth < 4; depth++) {
-        //p_visibility.instance = -1;
         traceRayEXT(
             TLAS,               
             gl_RayFlagsTerminateOnFirstHitEXT, // Ray Flags           
@@ -273,57 +267,72 @@ vec3 evaluateTransmittance(EmitterSample emitterSample, vec3 worldPosition) {
             VisibilityPayloadLocation
         );
 
-        if (p_visibility.instance == -1) {
-            // There are no objects in between the point and the light source
+        int instanceIndex = p_visibility.instance;
+        if (instanceIndex == -1) {
+            // There are no more objects in between the point and the light source
             break;
         }
-
-        //TODO: handle volumes
         
-        const MeshInstanceDescription instance = meshInstances.i[p_visibility.instance];
-        const Material material = materials.m[instance.materialIndex];
+        const MeshInstanceDescription instance = meshInstances.i[instanceIndex];
 
-        float transmission = material.transmission;
+        bool isInsideSurface = currentSurfaceHitCount % 2 == 1; // I dont know if (bool)intValue conversion is the same
+        bool isInMedium = currentMediumIndex != -1 && !isInsideSurface;
 
-        if (p_visibility.instance == 0) {
-            transmission = push.transmission;
+        if (isInMedium) {
+            const Volume volume = volumes.volumes[currentMediumIndex];
+
+            // We have travelled the medium from start to finish
+            // we need to account for the absorption
+            vec3 sigma_t = volume.absorption.rgb + volume.scattering.rgb;
+            if (maxComponent(sigma_t) > 0.0) {
+                // Beer-Lambert law for transmittance
+                transmittance *= exp(-sigma_t * p_visibility.hitDistance);
+            }
         }
 
-        if (transmission == 0.0) {
-            // Opaque object in between the point and the light source
-            transmittance = vec3(0.0);
-            break;
+        // if we hit a volume
+        if (instance.volumeIndex != UINT_MAX) {
+            // Update the current medium index
+            currentMediumIndex = int(instance.volumeIndex);
         }
+        // else we hit a surface
+            // if we hit the same surface again, we are inside a transparent object
+            // we just need to go through (no refraction is accounted for now).
+        else if (currentSurfaceIndex != instanceIndex) {
+            currentSurfaceIndex = instanceIndex;
+            currentSurfaceHitCount = 1;
 
-        const Triangle triangle = getTriangle(instance.indexAddress, instance.vertexAddress, p_visibility.primitiveId);
+            const Material material = materials.m[instance.materialIndex];
+            float transmission = material.transmission;
 
-        const vec2 uv = getTextureCoords(triangle, p_visibility.barycentrics) * instance.textureTilingFactor;
+            
 
-        mat3 tbn = calculateTBN(triangle, mat3(instance.objectToWorld), p_visibility.barycentrics);
+            // if the surface is opaque we stop
+            if (transmission == 0.0) {
+                transmittance = vec3(0.0);
+                break;
+            }
 
-        const bool isBackFace = dot(-ray.direction, tbn[2]) > 0.0;
+            // else we 
 
-        if (isBackFace) {
-            tbn[2] *= -1;
-            tbn[1] *= -1;
+            const Triangle triangle = getTriangle(instance.indexAddress, instance.vertexAddress, p_visibility.primitiveId);
+
+            const vec2 uv = getTextureCoords(triangle, p_visibility.barycentrics) * instance.textureTilingFactor;
+
+            float metalness = getMetalness(material, uv);
+            float roughness = getRoughness(material, uv);
+
+            
+
+            // Even if it's not physically correct we use this as an approximation of how much
+            // light reaches the point. Metallic and rough surfaces reflects the light.
+            transmittance *= (1.0 - metalness) * (1.0 - roughness) * transmission;
+            
         }
-
-        SurfaceData surface = getSurfaceData(instance, material, uv, tbn, isBackFace);
-
-        if (p_visibility.instance == 0) {
-            surface.metalness = push.metalness;
-            surface.roughness = push.roughness;
-            surface.transmission = push.transmission;
-            surface.ior = push.ior;
-            surface.albedo = push.albedo.xyz;
-
-            surface.reflectance = calculateReflectance(surface.albedo, surface.metalness, surface.transmission, surface.ior);
+        else {
+            currentSurfaceHitCount++;
         }
-
-        // Even if it's not physically correct we use this as an approximation of how much
-        // light reaches the point. Metallic and rough surfaces reflects the light.
-        transmittance *= (1.0 - surface.metalness) * (1.0 - surface.roughness) * surface.transmission;
-
+        
         // Prepare for the next segment of the ray
         float offset = p_visibility.hitDistance + RAY_T_MIN;
         ray.origin += ray.direction * offset;
@@ -369,6 +378,7 @@ void directLighting(SurfaceData surface, vec3 worldPosition, vec3 outLightDir) {
     const float receiverCos = cosThetaTangent(inLightDirTangent);
 
     float bsdfPdfSolidAngle;
+
     const vec3 bsdf = evaluateBSDF(surface, outLightDir, inLightDirTangent, halfVector, bsdfPdfSolidAngle);
         
     // Jacobian for PDF conversion from solid angle to area
@@ -382,25 +392,7 @@ void directLighting(SurfaceData surface, vec3 worldPosition, vec3 outLightDir) {
 
     const float weight = powerHeuristic(emitterSample.pdf, bsdfPdfarea);
 
-    p_pathTrace.radiance += contribution * p_pathTrace.throughput * weight;
-    
-
-    // Volumetric Attenuation for the ray:
-    // if the shadow ray starts inside a medium, calculate attenuation
-    /*if (p_pathTrace.mediumIndex != -1) {
-        Volume currentVolume = volumes.volumes[p_pathTrace.mediumIndex];
-        vec3 sigma_t = currentVolume.absorption.rgb + currentVolume.scattering.rgb;
-        if (maxComponent(sigma_t) > 0.0) {
-            // Note: This assumes the entire path to the light is within this medium.
-            // A fully general solution would need to trace the shadow ray through
-            // multiple volume boundaries, which is significantly more complex.
-
-            // Beer-Lambert law for transmittance
-            vec3 transmittance = exp(-sigma_t * emitterSample.lightDistance);
-
-            emitterSample.radiance *= transmittance;
-        }
-    }*/    
+    p_pathTrace.radiance += contribution * p_pathTrace.throughput * weight;  
 }
 
 /**
@@ -428,7 +420,7 @@ void indirectLighting(SurfaceData surface, vec3 outLightDir, out vec3 inLightDir
     
     p_pathTrace.isSpecularBounce = isSpecular;
     p_pathTrace.throughput *= bsdfMultiplier;
-    p_pathTrace.bsdfPdf = pdf;
+    p_pathTrace.pdf = pdf;
 }
 
 void main() {
@@ -483,16 +475,6 @@ void main() {
 
     SurfaceData surface = getSurfaceData(instance, material, uv, tbn, isBackFace);
 
-    if (gl_InstanceCustomIndexEXT == 0) {
-        surface.metalness = push.metalness;
-        surface.roughness = push.roughness;
-        surface.transmission = push.transmission;
-        surface.ior = push.ior;
-        surface.albedo = push.albedo.xyz;
-
-        surface.reflectance = calculateReflectance(surface.albedo, surface.metalness, surface.transmission, surface.ior);
-    }
-    
     const vec3 emission = getEmission(material, uv);
 
     if (maxComponent(emission) > 0.0) {
@@ -514,11 +496,11 @@ void main() {
             const float G_term = emitterSample.emitterCosTheta / pow2(emitterSample.lightDistance);
 
             // Convert the BSDF PDF from solid angle to area so it can be used in MIS
-            const float bsdfPdfarea = p_pathTrace.bsdfPdf * G_term;
+            const float bsdfPdfarea = p_pathTrace.pdf * G_term;
 
             float misWeight = 1.0;
 
-            if (p_pathTrace.bsdfPdf > FLT_EPSILON) {
+            if (p_pathTrace.pdf > FLT_EPSILON) {
                 misWeight = powerHeuristic(bsdfPdfarea, emitterSample.pdf);
             }
 
@@ -541,10 +523,7 @@ void main() {
     // Calculate the probabilities for the surface properties for the bsdf
     calculateProbabilities(surface, outgoingLightDirection);
 
-    //if (!p_pathTrace.isSpecularBounce) {
-        directLighting(surface, worldPosition, outgoingLightDirection);
-    //}
-
+    directLighting(surface, worldPosition, outgoingLightDirection);
     indirectLighting(surface, outgoingLightDirection, incomingLightDirection);    
 
     // Convert back to world space

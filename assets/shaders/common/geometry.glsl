@@ -2,6 +2,7 @@
 #define _GEOMETRY_
 
 #include "math.glsl"
+#include "random.glsl"
 
 struct Vertex {
     vec4 position;  // Position of the vertex.
@@ -57,6 +58,21 @@ Triangle getTriangle(uint64_t indexAddress, uint64_t vertexAddress, uint faceInd
     triangle.v2 = vertices.v[i2];
 
     return triangle;
+}
+
+/**
+ * Samples a point on a triangle uniformly.
+ * This function generates barycentric coordinates for a triangle and returns the corresponding point.
+ * The sampling is done using a uniform distribution over the triangle's area.
+ *
+ * @param seed A seed value for random number generation.
+ * @return A vec2 representing the barycentric coordinates of the sampled point.
+ */
+vec2 sampleTrianglePoint(uint seed) {
+    const vec2 rand = randomVec2(seed);
+    const float xsqrt = sqrt(rand.x);
+    
+    return vec2(1.0 - xsqrt, rand.y * xsqrt);
 }
 
 float calculateObjectSpaceTriangleArea(Triangle triangle) {

@@ -149,7 +149,9 @@ namespace PXTEngine {
             .setAmbientOcclusionMap(m_resourceManager.get<Image>(WHITE_PIXEL_LINEAR))
             .setMetallicMap(m_resourceManager.get<Image>(BLACK_PIXEL_LINEAR))
             .setRoughnessMap(m_resourceManager.get<Image>(GRAY_PIXEL_LINEAR))
-			.setEmissiveMap(m_resourceManager.get<Image>(BLACK_PIXEL_LINEAR))
+            .setEmissiveMap(m_resourceManager.get<Image>(BLACK_PIXEL_LINEAR))
+            .setTransmission(0.0f)
+            .setIndexOfRefraction(1.3f)
             .build();
 
         ResourceManager::defaultMaterial = defaultMaterial;

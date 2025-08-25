@@ -4,10 +4,15 @@
 #extension GL_EXT_debug_printf : enable
 #extension GL_GOOGLE_include_directive : require
 #extension GL_EXT_nonuniform_qualifier : enable
+#extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
+#extension GL_EXT_buffer_reference : require
 
 #include "../ubo/global_ubo.glsl"
 #include "../common/ray.glsl"
 #include "../common/payload.glsl"
+#include "../common/material.glsl"
+#include "../common/geometry.glsl"
+#include "../common/math.glsl"
 #include "../common/random.glsl"
 #include "../common/tone_mapping.glsl"
 #include "../common/volume.glsl"
@@ -18,6 +23,7 @@
 #define RR_MIN_DEPTH 3
 
 layout(location = PathTracePayloadLocation) rayPayloadEXT PathTracePayload p_pathTrace;
+layout(location = VisibilityPayloadLocation) rayPayloadEXT VisibilityPayload p_visibility;
 layout(location = DistancePayloadLocation) rayPayloadEXT float p_distance;
 
 // Declare the top-level acceleration structure (TLAS)
@@ -29,6 +35,19 @@ layout(set = 2, binding = 0) uniform sampler2D textures[];
 // The format qualifier (e.g., rgba8, rgba32f) should match how the image was created in Vulkan.
 // rgba8 is common for 8-bit per channel normalized output. Use rgba32f for HDR float output.
 layout(set = 3, binding = 0, rgba16f) uniform image2D outputImage;
+
+layout(set = 4, binding = 0) readonly buffer materialsSSBO {
+    Material m[];
+} materials;
+
+layout(set = 6, binding = 0, std430) readonly buffer meshInstancesSSBO {
+    MeshInstanceDescription i[]; 
+} meshInstances;
+
+layout(set = 7, binding = 0, std430) readonly buffer emittersSSBO {
+    uint numEmitters;
+    Emitter e[]; 
+} emitters;
 
 layout(set = 8, binding = 0, std430) readonly buffer volumesSSBO {
     Volume volumes[]; 
@@ -112,12 +131,341 @@ vec2 getSamplingNoise(uint seed) {
     return vec2(0.0);
 }
 
+// TODO: move these away in another common file
+vec3 getAlbedo(const Material material, const vec2 uv, const vec4 tintColor) {
+    const vec3 albedo = texture(textures[nonuniformEXT(material.albedoMapIndex)], uv).rgb;
+    return albedo * tintColor.rgb;
+}
+
+vec3 getNormal(const Material material, const vec2 uv) {
+    return texture(textures[nonuniformEXT(material.normalMapIndex)], uv).rgb;
+}
+
+vec3 getEmission(const Material material, const vec2 uv) {
+    const vec3 emissive = texture(textures[nonuniformEXT(material.emissiveMapIndex)], uv).rgb;
+
+    // The alpha channels is used as intensity
+    return emissive * material.emissiveColor.rgb * material.emissiveColor.a;
+}
+
+float getRoughness(const Material material, const vec2 uv) {
+    return max(pow2(texture(textures[nonuniformEXT(material.roughnessMapIndex)], uv).r), 0.0001);
+}
+
+float getMetalness(const Material material, const vec2 uv) {
+    return texture(textures[nonuniformEXT(material.metallicMapIndex)], uv).r;
+}
+
+struct EmitterSample {
+    vec3 radiance;
+    vec3 inLightDirWorld;
+    float lightDistance;
+    float emitterCosTheta;
+    float pdf;
+    vec3 normalWorld;
+};
+
+
+/**
+ * Samples a random emitter (either a mesh emitter or the sky) and returns the sample.
+ * The function samples a mesh emitter or the sky based on the provided seed.
+ * It calculates the radiance, light distance, PDF, and visibility of the sampled emitter.
+ *
+ * @param surface The SurfaceData containing geometric and material properties of the hit point.
+ * @param worldPosition The world position of the surface being sampled.
+ * @param smpl Output parameter to store the sampled emitter data.
+ */
+void sampleEmitter(uint emitterIndex, vec3 worldPosition, out EmitterSample smpl) {
+    smpl.radiance = vec3(0.0);
+    smpl.lightDistance = RAY_T_MAX;
+    smpl.pdf = 0.0;
+
+    vec3 worldInLightDir = vec3(0.0);
+
+    const uint numEmitters = uint(emitters.numEmitters);
+    const uint totalSamplableEmitters = numEmitters + USE_SKY_AS_NEE_EMITTER;
+
+    // Sample a mesh emitter
+    const Emitter emitter = emitters.e[emitterIndex];
+    const MeshInstanceDescription emitterInstance = meshInstances.i[emitter.instanceIndex];
+    const Material material = materials.m[emitterInstance.materialIndex];
+        
+    const uint faceIndex = nextUint(p_pathTrace.seed, emitter.numberOfFaces);
+
+    // Generate barycentric coordinates for the triangle
+    vec2 emitterBarycentrics = sampleTrianglePoint(p_pathTrace.seed);
+    
+    const Triangle emitterTriangle = getTriangle(emitterInstance.indexAddress, emitterInstance.vertexAddress, faceIndex);
+    const vec2 uv = getTextureCoords(emitterTriangle, emitterBarycentrics) * emitterInstance.textureTilingFactor;
+        
+    smpl.radiance = getEmission(material, uv);
+
+    if (smpl.radiance == vec3(0.0)) {
+        return; 
+    }
+
+    const vec3 emitterObjPosition = getPosition(emitterTriangle, emitterBarycentrics);
+    const vec3 emitterObjNormal = getNormal(emitterTriangle, emitterBarycentrics);
+
+    const mat4 emitterObjectToWorld = mat4(emitterInstance.objectToWorld);
+    // The upper 3x3 of the world-to-object matrix is the normal matrix
+    const mat3 emitterNormalMatrix = mat3(emitterInstance.worldToObject);
+
+    const vec3 emitterPosition = vec3(emitterObjectToWorld * vec4(emitterObjPosition, 1.0));
+    const vec3 emitterNormal = normalize(emitterNormalMatrix * emitterObjNormal);
+
+    // vector from emitter the surface to the emitter
+    vec3 outLightVec = worldPosition - emitterPosition;
+
+    smpl.lightDistance = length(outLightVec);
+
+    const float areaWorld = calculateWorldSpaceTriangleArea(emitterTriangle, mat3(emitterInstance.objectToWorld));
+
+    if (areaWorld <= 0.0 || smpl.lightDistance <= 0) {
+        return;
+    }
+
+    vec3 outLightDir = outLightVec / smpl.lightDistance;
+
+    smpl.emitterCosTheta = cosTheta(emitterNormal, outLightDir);
+    if (smpl.emitterCosTheta <= 0.0) {
+        return;
+    }
+
+    worldInLightDir = -outLightDir; 
+    smpl.inLightDirWorld = worldInLightDir;
+    smpl.pdf = pow2(smpl.lightDistance) / (smpl.emitterCosTheta * areaWorld * totalSamplableEmitters * emitter.numberOfFaces);
+}
+
+/**
+ * Samples a random emitter (either a mesh emitter or the sky) and returns the sample.
+ * The function samples a mesh emitter or the sky based on the provided seed.
+ * It calculates the radiance, light distance, PDF, and visibility of the sampled emitter.
+ *
+ * @param surface The SurfaceData containing geometric and material properties of the hit point.
+ * @param worldPosition The world position of the surface being sampled.
+ * @param smpl Output parameter to store the sampled emitter data.
+ */
+void sampleRandomEmitter(vec3 worldPosition, out EmitterSample smpl) {
+    smpl.radiance = vec3(0.0);
+    smpl.lightDistance = RAY_T_MAX;
+    smpl.pdf = 0.0;
+
+    const uint numEmitters = uint(emitters.numEmitters);
+
+    if (numEmitters == 0) {
+        return;
+    }
+    
+    // We add one extra emitters for the sky
+    const uint totalSamplableEmitters = numEmitters + USE_SKY_AS_NEE_EMITTER;
+
+    const uint emitterIndex = nextUint(p_pathTrace.seed, totalSamplableEmitters);
+
+    // TODO: implement cosineWeightedHemisphere sampling in World space to enable this
+    //       (because we dont have a TBN for volumes - it doesnt make sense)
+    //       or maybe change sky sampling technique.
+    /*
+    if (emitterIndex == numEmitters) {
+        // Sample the sky as an emitter
+        vec3 inLightDirTangent = sampleCosineWeightedHemisphere(p_pathTrace.samplingNoise);
+
+        smpl.inLightDirWorld = tangentToWorld(tbn, inLightDirTangent);
+
+        smpl.pdf = pdfCosineWeightedHemisphere(max(inLightDirTangent.z, 0)) / totalSamplableEmitters;
+        smpl.radiance = getSkyRadiance(smpl.inLightDirWorld);
+
+        if (smpl.radiance == vec3(0.0)) return;
+
+    }*/
+
+    sampleEmitter(emitterIndex, worldPosition, smpl);
+}
+
+vec3 evaluateTransmittance(EmitterSample emitterSample, vec3 worldPosition) {
+    vec3 transmittance = vec3(1.0);
+
+    Ray ray;
+    ray.origin = worldPosition;
+    ray.direction = emitterSample.inLightDirWorld;
+
+    int currentMediumIndex = p_pathTrace.mediumIndex;
+
+    // we need to keep track of the last surface we hit to know
+    // if we are exiting an object inside a volume.
+    // think of a donut inside a volume, we need to account
+    // for transmittance of the volume in the hole of the donut.
+    int currentSurfaceIndex = -1;
+    // we also need to know how many times we hit the same surface
+    int currentSurfaceHitCount = 0;
+    
+    float tMax = max(0.0, emitterSample.lightDistance - FLT_EPSILON); 
+
+    for (int depth = 0; depth < 4; depth++) {
+        traceRayEXT(
+            TLAS,               
+            gl_RayFlagsTerminateOnFirstHitEXT, // Ray Flags           
+            0xFF,  // Cull Mask         
+            1,                  
+            0,                  
+            1,                  
+            ray.origin,      
+            RAY_T_MIN,               
+            ray.direction,    
+            tMax,               
+            VisibilityPayloadLocation
+        );
+
+        int instanceIndex = p_visibility.instance;
+        if (instanceIndex == -1) {
+            // There are no more objects in between the point and the light source
+            break;
+        }
+        
+        const MeshInstanceDescription instance = meshInstances.i[instanceIndex];
+
+        bool isInsideSurface = currentSurfaceHitCount % 2 == 1; // I dont know if (bool)intValue conversion is the same
+        bool isInMedium = currentMediumIndex != -1 && !isInsideSurface;
+
+        if (isInMedium) {
+            const Volume volume = volumes.volumes[currentMediumIndex];
+
+            // We have travelled the medium from start to finish
+            // we need to account for the absorption
+            vec3 sigma_t = volume.absorption.rgb + volume.scattering.rgb;
+            if (maxComponent(sigma_t) > 0.0) {
+                // Beer-Lambert law for transmittance
+                transmittance *= exp(-sigma_t * p_visibility.hitDistance);
+            }
+        }
+
+        // if we hit a volume
+        if (instance.volumeIndex != UINT_MAX) {
+            // Update the current medium index
+            currentMediumIndex = int(instance.volumeIndex);
+        }
+        // else we hit a surface
+            // if we hit the same surface again, we are inside a transparent object
+            // we just need to go through (no refraction is accounted for now).
+        else if (currentSurfaceIndex != instanceIndex) {
+            currentSurfaceIndex = instanceIndex;
+            currentSurfaceHitCount = 1;
+
+            const Material material = materials.m[instance.materialIndex];
+            float transmission = material.transmission;
+
+            // if the surface is opaque we stop
+            if (transmission == 0.0) {
+                transmittance = vec3(0.0);
+                break;
+            }
+
+            // else we 
+
+            const Triangle triangle = getTriangle(instance.indexAddress, instance.vertexAddress, p_visibility.primitiveId);
+
+            const vec2 uv = getTextureCoords(triangle, p_visibility.barycentrics) * instance.textureTilingFactor;
+
+            float metalness = getMetalness(material, uv);
+            float roughness = getRoughness(material, uv);
+
+            // TODO: ERASE FROM EXISTANCE
+            if (p_visibility.instance == 0) {
+                metalness = push.metalness;
+                roughness = push.roughness;
+                transmission = push.transmission;
+            }
+
+            // Even if it's not physically correct we use this as an approximation of how much
+            // light reaches the point. Metallic and rough surfaces reflects the light.
+            transmittance *= (1.0 - metalness) * (1.0 - roughness) * transmission;
+            
+        }
+        else {
+            currentSurfaceHitCount++;
+        }
+        
+        // Prepare for the next segment of the ray
+        float offset = p_visibility.hitDistance + RAY_T_MIN;
+        ray.origin += ray.direction * offset;
+        tMax -= offset;
+
+        if (tMax <= 0.0) {
+            break; // Ray has reached its maximum distance
+        }
+    }
+    
+    return transmittance;
+}
+
+float powerHeuristic(float pdfA, float pdfB) {
+    const float pdfASq = pow2(pdfA);
+    const float pdfBSq = pow2(pdfB);
+
+    return pdfASq / (pdfASq + pdfBSq);
+}
+
+/**
+ * @brief Calculates the direct illumination at a given surface point using Next Event Estimation (NEE)
+ * and Multiple Importance Sampling (MIS).
+ *
+ * This function is responsible for computing the radiance received directly from light sources (emitters)
+ * at a specified surface point. It employs two complementary sampling strategies for direct lighting
+ * and combines their contributions using the Power Heuristic to minimize variance.
+ *
+ * @param surface The SurfaceData containing geometric and material properties of the hit point.
+ * @param worldPosition The world-space coordinates of the surface point where direct lighting is being calculated.
+ * @param outLightDir The outgoing light direction from the surface point.
+ */
+void directLighting(vec3 worldPosition) {
+    
+    EmitterSample emitterSample;
+    
+    sampleRandomEmitter(worldPosition, emitterSample);
+
+    if (emitterSample.pdf == 0 || emitterSample.radiance == vec3(0.0)) return;
+
+    vec3 transmittance = evaluateTransmittance(emitterSample, worldPosition);
+
+    emitterSample.radiance *= transmittance;
+
+    if (emitterSample.radiance == vec3(0.0)) return;
+
+    float HGPdfSolidAngle;
+
+    Volume currentVolume = volumes.volumes[p_pathTrace.mediumIndex];
+    float phaseFunctionG = currentVolume.phaseFunctionG;
+
+    // calculate the angle between the old and new direction
+    float cosTheta = dot(p_pathTrace.direction, emitterSample.inLightDirWorld);
+
+    // Then evaluate the phase function PDF value (prob of choosing that direction)
+    HGPdfSolidAngle = evalHenyeyGreenstein(cosTheta, phaseFunctionG);
+
+    // Jacobian for PDF conversion from solid angle to area
+    const float G_term = emitterSample.emitterCosTheta / pow2(emitterSample.lightDistance);
+
+    // Convert the BSDF PDF from solid angle to area so it can be used in MIS with the NEE pdf
+    // that is already in area units.
+    const float HGPdfarea = HGPdfSolidAngle * G_term;
+            
+    // here contribution already takes into account the transmittance of THIS volume and
+    // any other volumes between the point and the emitter. There is no BSDF to calculate
+    // since we are not on a surface.
+    const vec3 contribution = (emitterSample.radiance) / emitterSample.pdf;        
+
+    const float weight = powerHeuristic(emitterSample.pdf, HGPdfarea);
+
+    p_pathTrace.radiance += contribution * p_pathTrace.throughput * weight;
+}
+
+
 void main()
 {
     vec3 finalColor = vec3(0.0);
 
     const uint samplesPerPixel = 1;
-    const int maxBounces = 10;
+    const int maxBounces = 5;
 
     for (uint currentSample = 0; currentSample < samplesPerPixel; ++currentSample) {
         // for random operations
@@ -138,7 +486,7 @@ void main()
         p_pathTrace.done = false;
         p_pathTrace.seed = seed;
         p_pathTrace.samplingNoise = samplingNoise;
-        p_pathTrace.bsdfPdf = 1.0;
+        p_pathTrace.pdf = 1.0;
         p_pathTrace.isSpecularBounce = false;
 
         // TODO: set the medium index based on the volume the ray starts in
@@ -239,20 +587,25 @@ void main()
                         float cosTheta = dot(p_pathTrace.direction, newDirection);
 
                         // Then evaluate the phase function PDF value (prob of choosing that direction)
-                        float phaseFunctionPDF = evalHenyeyGreenstein(cosTheta, phaseFunctionG);
+                        p_pathTrace.pdf = evalHenyeyGreenstein(cosTheta, phaseFunctionG);
 
                         // TODO: implement multiple importance sampling for multiple scattering volumes
                         // https://graphics.pixar.com/library/ProductionVolumeRendering/paper.pdf (section 4.2)   
 
+                        // NEE for volumes
+                        directLighting(p_pathTrace.origin);
+
                         // Update throughput
-                        if (phaseFunctionPDF > 0.0) {
-                            p_pathTrace.throughput *= scatteringAlbedo / phaseFunctionPDF;
+                        if (p_pathTrace.pdf > 0.0) {
+                            // TODO: verify if we need to divide by pdf here
+                            p_pathTrace.throughput *= scatteringAlbedo / p_pathTrace.pdf;
                         }
 
                         p_pathTrace.direction = newDirection;
                         p_pathTrace.depth++;
 
-                        // Treat volume scatter as "specular" to disable NEE on the next bounce
+                        // Treat volume scatter as "specular" to disable NEE
+                        // on the next bounce if we hit an emitter
                         p_pathTrace.isSpecularBounce = true;
                     }
                     // (Else) If it's a null collision, we do nothing. The ray continues from the 

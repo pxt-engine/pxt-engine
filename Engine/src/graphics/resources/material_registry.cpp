@@ -35,7 +35,11 @@ namespace PXTEngine {
 
 	void MaterialRegistry::createDescriptorSet() {
 		m_materialDescriptorSetLayout = DescriptorSetLayout::Builder(m_context)
-			.addBinding(0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, 1)
+			.addBinding(0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 
+				VK_SHADER_STAGE_FRAGMENT_BIT |
+				VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR |
+				VK_SHADER_STAGE_RAYGEN_BIT_KHR,
+				1)
 			.build();
 
 		std::vector<MaterialData> materialsData;
