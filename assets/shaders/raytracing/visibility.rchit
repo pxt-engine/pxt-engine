@@ -4,8 +4,13 @@
 
 #include "../common/payload.glsl"
 
-layout(location = VisibilityPayloadLocation) rayPayloadInEXT bool p_isVisible;
+layout(location = VisibilityPayloadLocation) rayPayloadInEXT VisibilityPayload p_visibility;
+
+hitAttributeEXT vec2 barycentrics;
 
 void main() {
-	p_isVisible = false;
+    p_visibility.instance = gl_InstanceCustomIndexEXT;
+    p_visibility.primitiveId = gl_PrimitiveID;
+    p_visibility.barycentrics = barycentrics;
+    p_visibility.hitDistance = gl_HitTEXT;
 }

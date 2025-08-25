@@ -4,8 +4,8 @@
 
 #include "../common/payload.glsl"
 
-layout(location = VisibilityPayloadLocation) rayPayloadInEXT bool p_isVisible;
+layout(location = VisibilityPayloadLocation) rayPayloadInEXT VisibilityPayload p_visibility;
 
 void main() {
-	p_isVisible = true; 
+	p_visibility.instance = -1;
 }

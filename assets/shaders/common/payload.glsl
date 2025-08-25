@@ -40,4 +40,11 @@ struct PathTracePayload {
     bool isSpecularBounce;
 };
 
+struct VisibilityPayload {
+    int instance;
+    float hitDistance;
+    int primitiveId;
+    vec2 barycentrics;
+};
+
 #endif
