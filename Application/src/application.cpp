@@ -302,12 +302,13 @@ public:
 		rm.add(bunnyMaterial, "bunny_material");
 
         auto glassMaterial = Material::Builder()
-			.setAlbedoColor(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f))
+			.setAlbedoColor(glm::vec4(0.0f, 1.0f, 1.0f, 1.0f))
 			.setRoughnessMap(rm.get<Image>(BLACK_PIXEL_LINEAR))
 			.setMetallicMap(rm.get<Image>(BLACK_PIXEL_LINEAR))
 			.setTransmission(1.0f)
             .setIndexOfRefraction(1.5f)
 			.build();
+        rm.add(glassMaterial, "glass_material");
 
         Entity entity = getScene().createEntity("cube")
             .add<TransformComponent>(glm::vec3{ 0.0f, 0.7f, 0.0f }, glm::vec3{ 0.25f }, glm::vec3{ 0.0f, glm::pi<float>() / 4, 0.0f })
