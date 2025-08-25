@@ -303,20 +303,9 @@ vec3 evaluateTransmittance(EmitterSample emitterSample, vec3 worldPosition) {
             surface.reflectance = calculateReflectance(surface.albedo, surface.metalness, surface.transmission, surface.ior);
         }
 
-        vec3 outLightDir = worldToTangent(tbn, -ray.direction);
-        vec3 inLightDir = -outLightDir;
-
-        calculateProbabilities(surface, outLightDir);
-
-        const vec3 halfVector = normalize(outLightDir);
-
-        float pdf;
-        const vec3 bsdf = evaluateBSDF(surface, outLightDir, inLightDir, halfVector, pdf);
-       
-        const float cosTheta = cosThetaTangent(inLightDir);
-
-        // Get the transmission contribution of the intersected object
-        transmittance *= bsdf * cosTheta / pdf;
+        // Even if it's not physically correct we use this as an approximation of how much
+        // light reaches the point. Metallic and rough surfaces reflects the light.
+        transmittance *= (1.0 - surface.metalness) * (1.0 - surface.roughness) * surface.transmission;
 
         // Prepare for the next segment of the ray
         float offset = p_visibility.hitDistance + RAY_T_MIN;
