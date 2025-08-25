@@ -277,7 +277,7 @@ public:
 		auto cubeModel = rm.get<Mesh>(MODELS_PATH + "cube.obj");
 
         auto volumeCubeEntity = getScene().createEntity("Volume Cube")
-            .add<TransformComponent>(glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3{ 0.0 }, glm::vec3{ 0.0f, 0.0f, 0.0f })
+            .add<TransformComponent>(glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3{ 0.5f }, glm::vec3{ 0.0f, 0.0f, 0.0f })
             .add<MeshComponent>(cubeModel)
             .add<VolumeComponent>(VolumeComponent::Builder()
                 .setAbsorption(glm::vec4{ 0.9f })
