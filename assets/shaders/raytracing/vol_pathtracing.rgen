@@ -21,6 +21,7 @@
 
 // Min depth for Russian Roulette termination
 #define RR_MIN_DEPTH 3
+#define NEE_MAX_BOUNCES 4
 
 layout(location = PathTracePayloadLocation) rayPayloadEXT PathTracePayload p_pathTrace;
 layout(location = VisibilityPayloadLocation) rayPayloadEXT VisibilityPayload p_visibility;
@@ -300,8 +301,8 @@ vec3 evaluateTransmittance(EmitterSample emitterSample, vec3 worldPosition) {
     int currentSurfaceHitCount = 0;
     
     float tMax = max(0.0, emitterSample.lightDistance - FLT_EPSILON); 
-
-    for (int depth = 0; depth < 4; depth++) {
+    int depth = 0;
+    for (; depth < NEE_MAX_BOUNCES; depth++) {
         traceRayEXT(
             TLAS,               
             gl_RayFlagsTerminateOnFirstHitEXT, // Ray Flags           
@@ -394,6 +395,7 @@ vec3 evaluateTransmittance(EmitterSample emitterSample, vec3 worldPosition) {
             break; // Ray has reached its maximum distance
         }
     }
+    if (depth == NEE_MAX_BOUNCES) return vec3(0.0);
     
     return transmittance;
 }

@@ -21,6 +21,8 @@
 #include "../raytracing/common/push.glsl"
 #include "sky.glsl"
 
+#define NEE_MAX_BOUNCES 4
+
 layout(set = 1, binding = 0) uniform accelerationStructureEXT TLAS;
 
 layout(set = 2, binding = 0) uniform sampler2D textures[];
@@ -251,8 +253,8 @@ vec3 evaluateTransmittance(EmitterSample emitterSample, vec3 worldPosition) {
     int currentSurfaceHitCount = 0;
     
     float tMax = max(0.0, emitterSample.lightDistance - FLT_EPSILON); 
-
-    for (int depth = 0; depth < 4; depth++) {
+    int depth = 0;
+    for (; depth < NEE_MAX_BOUNCES; depth++) {
         traceRayEXT(
             TLAS,               
             gl_RayFlagsTerminateOnFirstHitEXT, // Ray Flags           
@@ -342,6 +344,8 @@ vec3 evaluateTransmittance(EmitterSample emitterSample, vec3 worldPosition) {
             break; // Ray has reached its maximum distance
         }
     }
+
+    if (depth == NEE_MAX_BOUNCES) return vec3(0.0);
     
     return transmittance;
 }
