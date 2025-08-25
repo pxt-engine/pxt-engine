@@ -138,6 +138,7 @@ void main()
         p_pathTrace.done = false;
         p_pathTrace.seed = seed;
         p_pathTrace.samplingNoise = samplingNoise;
+        p_pathTrace.bsdfPdf = 1.0;
         p_pathTrace.isSpecularBounce = false;
 
         // TODO: set the medium index based on the volume the ray starts in

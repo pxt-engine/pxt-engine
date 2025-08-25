@@ -75,7 +75,6 @@ float getMetalness(const Material material, const vec2 uv) {
 
 struct EmitterSample {
     vec3 radiance;
-    vec3 inLightDir;
     vec3 inLightDirWorld;
     float lightDistance;
     float emitterCosTheta;
@@ -121,7 +120,7 @@ SurfaceData getSurfaceData(const MeshInstanceDescription instance, const Materia
  * @param worldPosition The world position of the surface being sampled.
  * @param smpl Output parameter to store the sampled emitter data.
  */
-void sampleEmitter(uint emitterIndex, mat3 tbn, vec3 worldPosition, out EmitterSample smpl) {
+void sampleEmitter(uint emitterIndex, vec3 worldPosition, out EmitterSample smpl) {
     smpl.radiance = vec3(0.0);
     smpl.lightDistance = RAY_T_MAX;
     smpl.pdf = 0.0;
@@ -180,7 +179,6 @@ void sampleEmitter(uint emitterIndex, mat3 tbn, vec3 worldPosition, out EmitterS
 
     worldInLightDir = -outLightDir; 
     smpl.inLightDirWorld = worldInLightDir;
-    smpl.inLightDir = worldToTangent(tbn, worldInLightDir);
     smpl.pdf = pow2(smpl.lightDistance) / (smpl.emitterCosTheta * areaWorld * totalSamplableEmitters * emitter.numberOfFaces);
 }
 
@@ -209,22 +207,20 @@ void sampleRandomEmitter(mat3 tbn, vec3 worldPosition, out EmitterSample smpl) {
 
     const uint emitterIndex = nextUint(p_pathTrace.seed, totalSamplableEmitters);
 
-    vec3 worldInLightDir = vec3(0.0);
-
     if (emitterIndex == numEmitters) {
         // Sample the sky as an emitter
-        smpl.inLightDir = sampleCosineWeightedHemisphere(p_pathTrace.samplingNoise);
+        vec3 inLightDirTangent = sampleCosineWeightedHemisphere(p_pathTrace.samplingNoise);
 
-        worldInLightDir = tangentToWorld(tbn, smpl.inLightDir);
+        smpl.inLightDirWorld = tangentToWorld(tbn, inLightDirTangent);
 
-        smpl.pdf = pdfCosineWeightedHemisphere(max(smpl.inLightDir.z, 0)) / totalSamplableEmitters;
-        smpl.radiance = getSkyRadiance(worldInLightDir);
+        smpl.pdf = pdfCosineWeightedHemisphere(max(inLightDirTangent.z, 0)) / totalSamplableEmitters;
+        smpl.radiance = getSkyRadiance(smpl.inLightDirWorld);
 
         if (smpl.radiance == vec3(0.0)) return;
 
     }
 
-    sampleEmitter(emitterIndex, tbn, worldPosition, smpl);
+    sampleEmitter(emitterIndex, worldPosition, smpl);
 }
 
 /**
@@ -367,11 +363,13 @@ void directLighting(SurfaceData surface, vec3 worldPosition, vec3 outLightDir) {
 
     if (emitterSample.radiance == vec3(0.0)) return;
 
-    const vec3 halfVector = normalize(outLightDir + emitterSample.inLightDir);
-    const float receiverCos = cosThetaTangent(emitterSample.inLightDir);
+    vec3 inLightDirTangent = worldToTangent(surface.tbn, emitterSample.inLightDirWorld);
+
+    const vec3 halfVector = normalize(outLightDir + inLightDirTangent);
+    const float receiverCos = cosThetaTangent(inLightDirTangent);
 
     float bsdfPdfSolidAngle;
-    const vec3 bsdf = evaluateBSDF(surface, outLightDir, emitterSample.inLightDir, halfVector, bsdfPdfSolidAngle);
+    const vec3 bsdf = evaluateBSDF(surface, outLightDir, inLightDirTangent, halfVector, bsdfPdfSolidAngle);
         
     // Jacobian for PDF conversion from solid angle to area
     const float G_term = emitterSample.emitterCosTheta / pow2(emitterSample.lightDistance);
@@ -420,16 +418,17 @@ void directLighting(SurfaceData surface, vec3 worldPosition, vec3 outLightDir) {
 void indirectLighting(SurfaceData surface, vec3 outLightDir, out vec3 inLightDir) {
     float pdf;
     bool isSpecular;
-    vec3 brdf_multiplier = sampleBSDF(surface, outLightDir, inLightDir, pdf, isSpecular, p_pathTrace.seed, p_pathTrace.samplingNoise);
+    vec3 bsdfMultiplier = sampleBSDF(surface, outLightDir, inLightDir, pdf, isSpecular, p_pathTrace.seed, p_pathTrace.samplingNoise);
 
-    if (brdf_multiplier == vec3(0.0)) {
+    if (bsdfMultiplier == vec3(0.0)) {
         // No contribution from this surface
         p_pathTrace.done = true;
         return;
     }
     
     p_pathTrace.isSpecularBounce = isSpecular;
-    p_pathTrace.throughput *= brdf_multiplier;
+    p_pathTrace.throughput *= bsdfMultiplier;
+    p_pathTrace.bsdfPdf = pdf;
 }
 
 void main() {
@@ -499,9 +498,31 @@ void main() {
     if (maxComponent(emission) > 0.0) {
         // Add the light's emission to the total radiance if:
         // 1. It's the first hit (the camera sees the light directly).
-        // 2. The ray that hit the light came from a perfect mirror bounce.
-        if (p_pathTrace.depth == 0 || p_pathTrace.isSpecularBounce) {
+        // 2. The ray that hit the light came from a reflection / refarction bounce.
+        if (p_pathTrace.depth == 0) {
             p_pathTrace.radiance += emission * p_pathTrace.throughput;
+        } 
+        // we use the previous bounce BSDF pdf to do MIS
+        else if (p_pathTrace.isSpecularBounce) {
+            vec3 prevBouncePos = p_pathTrace.origin - p_pathTrace.direction * p_pathTrace.hitDistance;
+
+            uint emitterIndex = instance.emitterIndex;
+            EmitterSample emitterSample;
+            sampleEmitter(emitterIndex, prevBouncePos, emitterSample);
+
+            // Jacobian for PDF conversion from solid angle to area
+            const float G_term = emitterSample.emitterCosTheta / pow2(emitterSample.lightDistance);
+
+            // Convert the BSDF PDF from solid angle to area so it can be used in MIS
+            const float bsdfPdfarea = p_pathTrace.bsdfPdf * G_term;
+
+            float misWeight = 1.0;
+
+            if (p_pathTrace.bsdfPdf > FLT_EPSILON) {
+                misWeight = powerHeuristic(bsdfPdfarea, emitterSample.pdf);
+            }
+
+            p_pathTrace.radiance += emission * p_pathTrace.throughput * misWeight;
         }
         
         // The path ends at the light source.
