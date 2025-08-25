@@ -22,7 +22,7 @@ public:
 
         auto environment = getScene().getEnvironment();
 
-        environment->setAmbientLight({ 1.0, 1.0, 1.0, 0.2f });
+        environment->setAmbientLight({ 1.0, 1.0, 1.0, 0.0f });
         environment->setSkybox(skyboxTextures);
     }
 
@@ -301,12 +301,26 @@ public:
             .build();
 		rm.add(bunnyMaterial, "bunny_material");
 
+        auto glassMaterial = Material::Builder()
+			.setAlbedoColor(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f))
+			.setTransmission(1.0f)
+            .setIndexOfRefraction(1.5f)
+			.build();
+
         Entity entity = getScene().createEntity("cube")
             .add<TransformComponent>(glm::vec3{ 0.0f, 0.7f, 0.0f }, glm::vec3{ 0.25f }, glm::vec3{ 0.0f, glm::pi<float>() / 4, 0.0f })
             .add<MeshComponent>(cubeModel)
             .add<MaterialComponent>(MaterialComponent::Builder()
-                .setMaterial(Material::Builder().build())
+                .setMaterial(glassMaterial)
                 .build());
+
+        /*entity = getScene().createEntity("cube2")
+            .add<TransformComponent>(glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3{ 0.15f }, glm::vec3{ 0.0f, 0.0f, 0.0f })
+            .add<MeshComponent>(cubeModel)
+            .add<MaterialComponent>(MaterialComponent::Builder()
+                .setMaterial(bunnyMaterial)
+                .setTint(glm::vec3(1.0, 0.812, 0.408))
+                .build());*/
 
         
         /*Entity entity = getScene().createEntity("Bunny")

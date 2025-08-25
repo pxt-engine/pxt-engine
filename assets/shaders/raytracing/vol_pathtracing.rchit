@@ -44,7 +44,7 @@ layout(set = 8, binding = 0, std430) readonly buffer volumesSSBO {
 
 // --- Payloads ---
 layout(location = PathTracePayloadLocation) rayPayloadInEXT PathTracePayload p_pathTrace;
-layout(location = VisibilityPayloadLocation) rayPayloadEXT bool p_isVisible;
+layout(location = VisibilityPayloadLocation) rayPayloadEXT VisibilityPayload p_visibility;
 
 // For triangles, this implicitly receives barycentric coordinates.
 hitAttributeEXT vec2 barycentrics;
@@ -76,6 +76,7 @@ float getMetalness(const Material material, const vec2 uv) {
 struct EmitterSample {
     vec3 radiance;
     vec3 inLightDir;
+    vec3 inLightDirWorld;
     float lightDistance;
     float emitterCosTheta;
     float pdf;
@@ -95,6 +96,20 @@ vec2 sampleTrianglePoint(uint seed) {
     const float xsqrt = sqrt(rand.x);
     
     return vec2(1.0 - xsqrt, rand.y * xsqrt);
+}
+
+SurfaceData getSurfaceData(const MeshInstanceDescription instance, const Material material, const vec2 uv, const mat3 tbn, bool isBackFace) {
+    SurfaceData surface;
+    surface.tbn = tbn;
+    surface.isBackFace = isBackFace;
+    surface.albedo = getAlbedo(material, uv, instance.textureTintColor);
+    surface.metalness = getMetalness(material, uv);
+    surface.roughness = getRoughness(material, uv);
+    surface.transmission = material.transmission;
+    surface.ior = material.ior;
+    surface.reflectance = calculateReflectance(surface.albedo, surface.metalness, surface.transmission, surface.ior);
+
+    return surface;
 }
 
 /**
@@ -185,29 +200,10 @@ void sampleEmitter(SurfaceData surface, vec3 worldPosition, out EmitterSample sm
         }
 
         worldInLightDir = -outLightDir; 
+        smpl.inLightDirWorld = worldInLightDir;
         smpl.inLightDir = worldToTangent(surface.tbn, worldInLightDir);
         smpl.pdf = pow2(smpl.lightDistance) / (smpl.emitterCosTheta * areaWorld * totalSamplableEmitters * emitter.numberOfFaces);
     }
-
-    p_isVisible = true;
-
-    const float tMax = max(0.0, smpl.lightDistance - FLT_EPSILON); 
-    // Check if we can see the emitter
-    traceRayEXT(
-        TLAS,               
-        gl_RayFlagsTerminateOnFirstHitEXT, // Ray Flags           
-        0xFF,  // Cull Mask         
-        1,                  
-        0,                  
-        1,                  
-        worldPosition,      
-        RAY_T_MIN,               
-        worldInLightDir,    
-        tMax,               
-        VisibilityPayloadLocation
-    );
-    
-    smpl.isVisible = p_isVisible;
 }
 
 /**
@@ -235,6 +231,106 @@ float powerHeuristic(float pdfA, float pdfB) {
     return pdfASq / (pdfASq + pdfBSq);
 }
 
+vec3 evaluateTransmittance(EmitterSample emitterSample, vec3 worldPosition) {
+    vec3 transmittance = vec3(1.0);
+
+    Ray ray;
+    ray.origin = worldPosition;
+    ray.direction = emitterSample.inLightDirWorld;
+    
+    float tMax = max(0.0, emitterSample.lightDistance - FLT_EPSILON); 
+
+    for (int depth = 0; depth < 4; depth++) {
+        //p_visibility.instance = -1;
+        traceRayEXT(
+            TLAS,               
+            gl_RayFlagsTerminateOnFirstHitEXT, // Ray Flags           
+            0xFF,  // Cull Mask         
+            1,                  
+            0,                  
+            1,                  
+            ray.origin,      
+            RAY_T_MIN,               
+            ray.direction,    
+            tMax,               
+            VisibilityPayloadLocation
+        );
+
+        if (p_visibility.instance == -1) {
+            // There are no objects in between the point and the light source
+            break;
+        }
+
+        //TODO: handle volumes
+        
+        const MeshInstanceDescription instance = meshInstances.i[p_visibility.instance];
+        const Material material = materials.m[instance.materialIndex];
+
+        float transmission = material.transmission;
+
+        if (p_visibility.instance == 0) {
+            transmission = push.transmission;
+        }
+
+        if (transmission == 0.0) {
+            // Opaque object in between the point and the light source
+            transmittance = vec3(0.0);
+            break;
+        }
+
+        const Triangle triangle = getTriangle(instance.indexAddress, instance.vertexAddress, p_visibility.primitiveId);
+
+        const vec2 uv = getTextureCoords(triangle, p_visibility.barycentrics) * instance.textureTilingFactor;
+
+        mat3 tbn = calculateTBN(triangle, mat3(instance.objectToWorld), p_visibility.barycentrics);
+
+        const bool isBackFace = dot(-ray.direction, tbn[2]) > 0.0;
+
+        if (isBackFace) {
+            tbn[2] *= -1;
+            tbn[1] *= -1;
+        }
+
+        SurfaceData surface = getSurfaceData(instance, material, uv, tbn, isBackFace);
+
+        if (p_visibility.instance == 0) {
+            surface.metalness = push.metalness;
+            surface.roughness = push.roughness;
+            surface.transmission = push.transmission;
+            surface.ior = push.ior;
+            surface.albedo = push.albedo.xyz;
+
+            surface.reflectance = calculateReflectance(surface.albedo, surface.metalness, surface.transmission, surface.ior);
+        }
+
+        vec3 outLightDir = worldToTangent(tbn, -ray.direction);
+        vec3 inLightDir = -outLightDir;
+
+        calculateProbabilities(surface, outLightDir);
+
+        const vec3 halfVector = normalize(outLightDir);
+
+        float pdf;
+        const vec3 bsdf = evaluateBSDF(surface, outLightDir, inLightDir, halfVector, pdf);
+       
+        const float cosTheta = cosThetaTangent(inLightDir);
+
+        // Get the transmission contribution of the intersected object
+        transmittance *= bsdf * cosTheta / pdf;
+
+        // Prepare for the next segment of the ray
+        float offset = p_visibility.hitDistance + RAY_T_MIN;
+        ray.origin += ray.direction * offset;
+        tMax -= offset;
+
+        if (tMax <= 0.0) {
+            break; // Ray has reached its maximum distance
+        }
+    }
+    
+    return transmittance;
+}
+
 /**
  * @brief Calculates the direct illumination at a given surface point using Next Event Estimation (NEE)
  * and Multiple Importance Sampling (MIS).
@@ -253,44 +349,50 @@ void directLighting(SurfaceData surface, vec3 worldPosition, vec3 outLightDir) {
     
     sampleEmitter(surface, worldPosition, emitterSample);
 
-    if (emitterSample.isVisible && emitterSample.radiance != vec3(0.0)) {
+    if (emitterSample.pdf == 0 || emitterSample.radiance == vec3(0.0)) return;
 
-        // Volumetric Attenuation for the ray:
-        // if the shadow ray starts inside a medium, calculate attenuation
-        if (p_pathTrace.mediumIndex != -1) {
-            Volume currentVolume = volumes.volumes[p_pathTrace.mediumIndex];
-            vec3 sigma_t = currentVolume.absorption.rgb + currentVolume.scattering.rgb;
-            if (maxComponent(sigma_t) > 0.0) {
-                // Note: This assumes the entire path to the light is within this medium.
-                // A fully general solution would need to trace the shadow ray through
-                // multiple volume boundaries, which is significantly more complex.
+    vec3 transmittance = evaluateTransmittance(emitterSample, worldPosition);
 
-                // Beer-Lambert law for transmittance
-                vec3 transmittance = exp(-sigma_t * emitterSample.lightDistance);
+    emitterSample.radiance *= transmittance;
 
-                emitterSample.radiance *= transmittance;
-            }
-        }
-    
-        const vec3 halfVector = normalize(outLightDir + emitterSample.inLightDir);
-        const float receiverCos = cosThetaTangent(emitterSample.inLightDir);
+    if (emitterSample.radiance == vec3(0.0)) return;
 
-        float bsdfPdfSolidAngle;
-        const vec3 bsdf = evaluateBSDF(surface, outLightDir, emitterSample.inLightDir, halfVector, bsdfPdfSolidAngle);
+    const vec3 halfVector = normalize(outLightDir + emitterSample.inLightDir);
+    const float receiverCos = cosThetaTangent(emitterSample.inLightDir);
+
+    float bsdfPdfSolidAngle;
+    const vec3 bsdf = evaluateBSDF(surface, outLightDir, emitterSample.inLightDir, halfVector, bsdfPdfSolidAngle);
         
-        // Jacobian for PDF conversion from solid angle to area
-        const float G_term = emitterSample.emitterCosTheta / pow2(emitterSample.lightDistance);
+    // Jacobian for PDF conversion from solid angle to area
+    const float G_term = emitterSample.emitterCosTheta / pow2(emitterSample.lightDistance);
 
-        // Convert the BSDF PDF from solid angle to area so it can be used in MIS with the NEE pdf
-        // that is already in area units.
-        const float bsdfPdfarea = bsdfPdfSolidAngle * G_term;
+    // Convert the BSDF PDF from solid angle to area so it can be used in MIS with the NEE pdf
+    // that is already in area units.
+    const float bsdfPdfarea = bsdfPdfSolidAngle * G_term;
             
-        const vec3 contribution = (emitterSample.radiance * bsdf * receiverCos) / emitterSample.pdf;        
+    const vec3 contribution = (emitterSample.radiance * bsdf * receiverCos) / emitterSample.pdf;        
 
-        const float weight = powerHeuristic(emitterSample.pdf, bsdfPdfarea);
+    const float weight = powerHeuristic(emitterSample.pdf, bsdfPdfarea);
 
-        p_pathTrace.radiance += contribution * p_pathTrace.throughput * weight;
-    }
+    p_pathTrace.radiance += contribution * p_pathTrace.throughput * weight;
+    
+
+    // Volumetric Attenuation for the ray:
+    // if the shadow ray starts inside a medium, calculate attenuation
+    /*if (p_pathTrace.mediumIndex != -1) {
+        Volume currentVolume = volumes.volumes[p_pathTrace.mediumIndex];
+        vec3 sigma_t = currentVolume.absorption.rgb + currentVolume.scattering.rgb;
+        if (maxComponent(sigma_t) > 0.0) {
+            // Note: This assumes the entire path to the light is within this medium.
+            // A fully general solution would need to trace the shadow ray through
+            // multiple volume boundaries, which is significantly more complex.
+
+            // Beer-Lambert law for transmittance
+            vec3 transmittance = exp(-sigma_t * emitterSample.lightDistance);
+
+            emitterSample.radiance *= transmittance;
+        }
+    }*/    
 }
 
 /**
@@ -370,15 +472,7 @@ void main() {
         tbn[1] *= -1;
     }
 
-    SurfaceData surface;
-    surface.tbn = tbn;
-    surface.isBackFace = isBackFace;
-    surface.albedo = getAlbedo(material, uv, instance.textureTintColor);
-    surface.metalness = getMetalness(material, uv);
-    surface.roughness = getRoughness(material, uv);
-    surface.transmission = 0.0;
-    surface.ior = 1.0;
-    surface.reflectance = calculateReflectance(surface.albedo, surface.metalness, surface.transmission, surface.ior);
+    SurfaceData surface = getSurfaceData(instance, material, uv, tbn, isBackFace);
 
     if (gl_InstanceCustomIndexEXT == 0) {
         surface.metalness = push.metalness;
@@ -416,9 +510,11 @@ void main() {
     // Calculate the probabilities for the surface properties for the bsdf
     calculateProbabilities(surface, outgoingLightDirection);
 
-    directLighting(surface, worldPosition, outgoingLightDirection);
+    //if (!p_pathTrace.isSpecularBounce) {
+        directLighting(surface, worldPosition, outgoingLightDirection);
+    //}
 
-    indirectLighting(surface, outgoingLightDirection, incomingLightDirection);
+    indirectLighting(surface, outgoingLightDirection, incomingLightDirection);    
 
     // Convert back to world space
     outgoingLightDirection = tangentToWorld(tbn, incomingLightDirection);
