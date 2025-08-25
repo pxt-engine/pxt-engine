@@ -307,15 +307,11 @@ vec3 evaluateTransmittance(EmitterSample emitterSample, vec3 worldPosition) {
             const Material material = materials.m[instance.materialIndex];
             float transmission = material.transmission;
 
-            
-
             // if the surface is opaque we stop
             if (transmission == 0.0) {
                 transmittance = vec3(0.0);
                 break;
             }
-
-            // else we 
 
             const Triangle triangle = getTriangle(instance.indexAddress, instance.vertexAddress, p_visibility.primitiveId);
 
@@ -323,8 +319,6 @@ vec3 evaluateTransmittance(EmitterSample emitterSample, vec3 worldPosition) {
 
             float metalness = getMetalness(material, uv);
             float roughness = getRoughness(material, uv);
-
-            
 
             // Even if it's not physically correct we use this as an approximation of how much
             // light reaches the point. Metallic and rough surfaces reflects the light.

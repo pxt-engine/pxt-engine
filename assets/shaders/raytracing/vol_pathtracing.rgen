@@ -361,21 +361,12 @@ vec3 evaluateTransmittance(EmitterSample emitterSample, vec3 worldPosition) {
                 break;
             }
 
-            // else we 
-
             const Triangle triangle = getTriangle(instance.indexAddress, instance.vertexAddress, p_visibility.primitiveId);
 
             const vec2 uv = getTextureCoords(triangle, p_visibility.barycentrics) * instance.textureTilingFactor;
 
             float metalness = getMetalness(material, uv);
             float roughness = getRoughness(material, uv);
-
-            // TODO: ERASE FROM EXISTANCE
-            if (p_visibility.instance == 0) {
-                metalness = push.metalness;
-                roughness = push.roughness;
-                transmission = push.transmission;
-            }
 
             // Even if it's not physically correct we use this as an approximation of how much
             // light reaches the point. Metallic and rough surfaces reflects the light.
@@ -395,6 +386,7 @@ vec3 evaluateTransmittance(EmitterSample emitterSample, vec3 worldPosition) {
             break; // Ray has reached its maximum distance
         }
     }
+
     if (depth == NEE_MAX_BOUNCES) return vec3(0.0);
     
     return transmittance;
