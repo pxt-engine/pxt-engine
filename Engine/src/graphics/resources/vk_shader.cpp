@@ -205,7 +205,8 @@ namespace PXTEngine
 		auto result = m_compiler.PreprocessGlsl(source, shaderKind, fileName.data(), m_compileOptions);
 		if (result.GetCompilationStatus() != shaderc_compilation_status_success)
 		{
-			PXT_FATAL("%s", result.GetErrorMessage().data());
+			shaderc_compilation_status status = result.GetCompilationStatus();
+			PXT_FATAL("{}", result.GetErrorMessage().data());
 			return "";
 		}
 		return { result.cbegin(), result.cend() };
@@ -216,7 +217,7 @@ namespace PXTEngine
 
 		if (result.GetCompilationStatus() != shaderc_compilation_status_success)
 		{
-			PXT_FATAL("%s", result.GetErrorMessage().data());
+			PXT_FATAL("{}", result.GetErrorMessage().data());
 			return "";
 		}
 		return { result.cbegin(), result.cend() };
@@ -227,7 +228,7 @@ namespace PXTEngine
 
 		if (module.GetCompilationStatus() != shaderc_compilation_status_success)
 		{
-			PXT_FATAL("%s", module.GetErrorMessage().data());
+			PXT_FATAL("{}", module.GetErrorMessage().data());
 			return std::vector<uint32_t>();
 		}
 
