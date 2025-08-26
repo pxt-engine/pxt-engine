@@ -1,7 +1,7 @@
 #ifndef _SKY_
 #define _SKY_
 
-#include "../ubo/global_ubo.glsl"
+#include "../../ubo/global_ubo.glsl"
 
 // Enable the usage of the sky as a Next Event Estimation emitter
 #define USE_SKY_AS_NEE_EMITTER 0
