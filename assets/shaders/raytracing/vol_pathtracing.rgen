@@ -209,7 +209,7 @@ void main()
     vec3 finalColor = vec3(0.0);
 
     const uint samplesPerPixel = 1;
-    const int maxBounces = 5;
+    const int maxBounces = 7;
 
     for (uint currentSample = 0; currentSample < samplesPerPixel; ++currentSample) {
         // for random operations
@@ -298,7 +298,7 @@ void main()
                 // If the medium is not empty, we sample the distance to the next interaction point
                 if (sigma_t_maj > 0.0f) {
                     // This is the distance to the next interaction point in the medium
-                    t_medium = -log(randomFloat(p_pathTrace.seed)) / sigma_t_maj;
+                    t_medium = -log(1.0 - randomFloat(p_pathTrace.seed)) / sigma_t_maj;
                 }
 
                 // Compare the distances to decide the next volume event
@@ -338,12 +338,9 @@ void main()
 
                         // NEE for volumes
                         directLighting(p_pathTrace.origin);
-
-                        // Update throughput
-                        if (p_pathTrace.pdf > 0.0) {
-                            // TODO: verify if we need to divide by pdf here
-                            p_pathTrace.throughput *= scatteringAlbedo / p_pathTrace.pdf;
-                        }
+                        
+                        // TODO: separate scattering and absorption -> easier emissive volumes integration
+                        p_pathTrace.throughput *= scatteringAlbedo;
 
                         p_pathTrace.direction = newDirection;
                         p_pathTrace.depth++;

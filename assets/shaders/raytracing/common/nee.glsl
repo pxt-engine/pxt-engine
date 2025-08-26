@@ -81,10 +81,11 @@ vec3 evaluateTransmittance(EmitterSample emitterSample, vec3 worldPosition, int 
             // Update the current medium index
             currentMediumIndex = int(instance.volumeIndex);
         }
-        // else we hit a surface
+
+        // if we hit a surface that has a material (maybe volume inside)
             // if we hit the same surface again, we are inside a transparent object
             // we just need to go through (no refraction is accounted for now).
-        else if (currentSurfaceIndex != instanceIndex) {
+        if (currentSurfaceIndex != instanceIndex && instance.materialIndex != UINT_MAX) {
             currentSurfaceIndex = instanceIndex;
             currentSurfaceHitCount = 1;
 

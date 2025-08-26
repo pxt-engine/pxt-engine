@@ -96,8 +96,18 @@ public:
         std::uniform_real_distribution<float> posDist(-0.7f, 0.7f);
         std::uniform_real_distribution<float> scaleDist(0.35f, 1.0f);
         std::uniform_real_distribution<float> rotDist(0.0f, glm::two_pi<float>());
-
         auto& rm = getResourceManager();
+        
+        auto glassMaterial = Material::Builder()
+            .setAlbedoColor(glm::vec4(0.0f, 1.0f, 1.0f, 1.0f))
+            .setRoughnessMap(rm.get<Image>(BLACK_PIXEL_LINEAR))
+            .setMetallicMap(rm.get<Image>(BLACK_PIXEL_LINEAR))
+            .setTransmission(1.0f)
+            .setIndexOfRefraction(1.5f)
+            .build();
+        rm.add(glassMaterial, "glass_material");
+
+        
         auto vaseMesh = rm.get<Mesh>(MODELS_PATH + "smooth_vase.obj");
         auto teapotMesh = rm.get<Mesh>(MODELS_PATH + "utah_teapot.obj");
 
@@ -124,7 +134,7 @@ public:
             .add<TransformComponent>(glm::vec3{ -0.75f, 0.95f, 0.1f }, glm::vec3{ 1.0f, 1.0f, 1.0f }, glm::vec3{0.0f, glm::pi<float>()/4, 0.0f})
             .add<MeshComponent>(vaseMesh);
         entity.addAndGet<MaterialComponent>(MaterialComponent::Builder()
-            .setMaterial(graniteMaterial).build());
+            .setMaterial(glassMaterial).build());
 
         entity = getScene().createEntity("teapot")
             .add<TransformComponent>(glm::vec3{ 0.5f, 1.0f, 0.7f }, glm::vec3{ 0.15f, 0.15f, 0.15f }, glm::vec3{ glm::pi<float>(), -glm::pi<float>()/1.6, 0.0f })
@@ -280,9 +290,9 @@ public:
             .add<TransformComponent>(glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3{ 0.5f }, glm::vec3{ 0.0f, 0.0f, 0.0f })
             .add<MeshComponent>(cubeModel)
             .add<VolumeComponent>(VolumeComponent::Builder()
-                .setAbsorption(glm::vec4{ 0.9f })
-                .setScattering(glm::vec4{ 0.3f })
-                .setPhaseFunctionG(-0.8f)
+                .setAbsorption(glm::vec4{ 0.0f })
+                .setScattering(glm::vec4{ 5.0f })
+                .setPhaseFunctionG(-0.9f)
                 .build());
 
         auto bunny = rm.get<Mesh>(MODELS_PATH + "bunny/bunny.obj");
@@ -310,12 +320,14 @@ public:
 			.build();
         rm.add(glassMaterial, "glass_material");
 
+        /*
         Entity entity = getScene().createEntity("cube")
             .add<TransformComponent>(glm::vec3{ 0.0f, 0.7f, 0.0f }, glm::vec3{ 0.25f }, glm::vec3{ 0.0f, glm::pi<float>() / 4, 0.0f })
             .add<MeshComponent>(cubeModel)
             .add<MaterialComponent>(MaterialComponent::Builder()
                 .setMaterial(glassMaterial)
                 .build());
+		*/
 
         /*entity = getScene().createEntity("cube2")
             .add<TransformComponent>(glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3{ 0.15f }, glm::vec3{ 0.0f, 0.0f, 0.0f })
@@ -326,19 +338,19 @@ public:
                 .build());*/
 
         
-        /*Entity entity = getScene().createEntity("Bunny")
-            .add<TransformComponent>(glm::vec3{ 0.0f, 0.95f, 0.0f }, glm::vec3{ 2.5f, 2.5f, 2.5f }, glm::vec3{ glm::pi<float>(), 0.0f, 0.0f })
+        Entity entity = getScene().createEntity("Bunny")
+            .add<TransformComponent>(glm::vec3{ 0.0f, 1.0f, 0.0f }, glm::vec3{ 2.5f, 2.5f, 2.5f }, glm::vec3{ glm::pi<float>(), 0.0f, 0.0f })
             .add<MeshComponent>(bunny)
-            .add<MaterialComponent>(MaterialComponent::Builder()
+            /*.add<MaterialComponent>(MaterialComponent::Builder()
                 .setMaterial(bunnyMaterial)
                 .setTint(glm::vec3(1.0, 0.812, 0.408))
                 .setTilingFactor(5.0f)
-                .build());
-            /*.add<VolumeComponent>(VolumeComponent::Builder()
-                .setAbsorption(glm::vec4{ 0.0f, 0.5f, 0.2f, 0.0f })
-                .setScattering(glm::vec4{ 0.3f })
-                .setPhaseFunctionG(0.8f)
                 .build());*/
+            .add<VolumeComponent>(VolumeComponent::Builder()
+                .setAbsorption(glm::vec4{ 0.0f, 10.0f, 5.0f, 0.0f })
+                .setScattering(glm::vec4{ 4.0f })
+                .setPhaseFunctionG(0.8f)
+                .build());
     }
 
     

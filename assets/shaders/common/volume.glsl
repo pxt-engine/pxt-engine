@@ -35,8 +35,8 @@ vec2 intersectAABB(vec3 rayOrigin, vec3 rayDir, vec3 boxMin, vec3 boxMax) {
 }
 
 float evalHenyeyGreenstein(float cos_theta, float g) {
-    float g2 = g * g;
-    return (1.0 - g2) / (4.0 * PI * pow(1.0 + g2 - 2.0 * g * cos_theta, 1.5));
+    float denom = 1 + g * g + 2 * g * cos_theta;
+    return (1 - g * g) / 4.0 * PI * pow(denom, 1.5);
 }
 
 // Henyey-Greenstein phase function sampling.
@@ -45,11 +45,11 @@ vec3 sampleHenyeyGreenstein(vec3 wo, float g, inout uint seed) {
     float cos_theta;
     if (abs(g) < 1e-4) {
         // Isotropic scattering
-        cos_theta = 2.0 * randomFloat(seed) - 1.0;
+        cos_theta = 1.0 - 2.0 * randomFloat(seed);
     } else {
         float g2 = g * g;
-        float term = (1.0 - g2) / (1.0 - g + 2.0 * g * randomFloat(seed));
-        cos_theta = (1.0 + g2 - term * term) / (2.0 * g);
+        float term = (1.0 - g2) / (1.0 + g - 2.0 * g * randomFloat(seed));
+        cos_theta = -(1.0 + g2 - term * term) / (2.0 * g);
     }
 
     float sin_theta = sqrt(max(0.0, 1.0 - cos_theta * cos_theta));
