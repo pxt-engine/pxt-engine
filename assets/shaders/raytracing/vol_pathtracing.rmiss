@@ -6,7 +6,7 @@
 
 #include "../ubo/global_ubo.glsl"
 #include "../common/payload.glsl"
-#include "sky.glsl"
+#include "./common/sky.glsl"
 
 layout(location = PathTracePayloadLocation) rayPayloadInEXT PathTracePayload p_pathTrace;
 
