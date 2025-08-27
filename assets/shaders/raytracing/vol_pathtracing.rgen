@@ -227,18 +227,17 @@ void main()
         p_pathTrace.origin = worldRay.origin;
         p_pathTrace.direction = worldRay.direction;
         p_pathTrace.depth = 0;
-        p_pathTrace.done = false;
+        p_pathTrace.flags = 0;
         p_pathTrace.seed = seed;
         p_pathTrace.samplingNoise = samplingNoise;
         p_pathTrace.pdf = 1.0;
-        p_pathTrace.isSpecularBounce = false;
 
         // TODO: set the medium index based on the volume the ray starts in
         // Assume camera starts in a vacuum. A more complex scene might require
         // a point-in-mesh test to determine if the camera is inside a volume.
         p_pathTrace.mediumIndex = -1; // Assuming no medium at the start
 
-        while (!p_pathTrace.done && p_pathTrace.depth < maxBounces) {
+        while (!hasFlag(p_pathTrace, FLAG_DONE) && p_pathTrace.depth < maxBounces) {
         
         /* // this was used to change blue noise texture based on the bounce
             if (push.noiseType == 0) {
@@ -347,7 +346,7 @@ void main()
 
                         // Treat volume scatter as "specular" to disable NEE
                         // on the next bounce if we hit an emitter
-                        p_pathTrace.isSpecularBounce = true;
+                        setFlag(p_pathTrace, FLAG_SPECULAR);
                     }
                     // (Else) If it's a null collision, we do nothing. The ray continues from the 
                     // new origin in the same direction, which is handled by the next loop iteration.
@@ -376,7 +375,7 @@ void main()
 
                 if (randomFloat(p_pathTrace.seed) > russianRouletteProbability) {
                     // if we need to terminate we go to the next sample
-                    p_pathTrace.done = true;
+                    setFlag(p_pathTrace, FLAG_DONE);
                     break;
                 }
 

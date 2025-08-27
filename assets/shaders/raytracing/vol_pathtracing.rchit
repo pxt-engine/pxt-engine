@@ -98,11 +98,14 @@ void indirectLighting(SurfaceData surface, vec3 outLightDir, out vec3 inLightDir
 
     if (bsdfMultiplier == vec3(0.0)) {
         // No contribution from this surface
-        p_pathTrace.done = true;
+        setFlag(p_pathTrace, FLAG_DONE);
         return;
     }
     
-    p_pathTrace.isSpecularBounce = isSpecular;
+    if (isSpecular) {
+        setFlag(p_pathTrace, FLAG_SPECULAR);
+    }
+
     p_pathTrace.throughput *= bsdfMultiplier;
     p_pathTrace.pdf = pdf;
 }
@@ -170,7 +173,7 @@ void main() {
             p_pathTrace.radiance += emission * p_pathTrace.throughput;
         } 
         // we use the previous bounce BSDF pdf to do MIS
-        else if (p_pathTrace.isSpecularBounce) {
+        else if (hasFlag(p_pathTrace, FLAG_DONE)) {
             vec3 prevBouncePos = p_pathTrace.origin - p_pathTrace.direction * p_pathTrace.hitDistance;
 
             uint emitterIndex = instance.emitterIndex;
@@ -193,7 +196,7 @@ void main() {
         }
         
         // The path ends at the light source.
-        p_pathTrace.done = true;
+        setFlag(p_pathTrace, FLAG_DONE);
         return;
     }
     

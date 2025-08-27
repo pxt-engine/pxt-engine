@@ -21,5 +21,5 @@ void main()
 #endif
 
     // Mark the path as finished.
-    p_pathTrace.done = true;
+    setFlag(p_pathTrace, FLAG_DONE);
 }
