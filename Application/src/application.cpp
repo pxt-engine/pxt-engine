@@ -286,14 +286,26 @@ public:
         // create first volume
 		auto cubeModel = rm.get<Mesh>(MODELS_PATH + "cube.obj");
 
-        auto volumeCubeEntity = getScene().createEntity("Volume Cube")
+        auto glassMaterial = Material::Builder()
+            .setAlbedoColor(glm::vec4(1.0f, 0.0f, 0.5f, 1.0f))
+            .setRoughnessMap(rm.get<Image>(BLACK_PIXEL_LINEAR))
+            .setMetallicMap(rm.get<Image>(BLACK_PIXEL_LINEAR))
+            .setTransmission(1.0f)
+            .setIndexOfRefraction(1.45f)
+            .build();
+        rm.add(glassMaterial, "glass_material");
+
+       /* auto volumeCubeEntity = getScene().createEntity("Volume Cube")
             .add<TransformComponent>(glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3{ 0.5f }, glm::vec3{ 0.0f, 0.0f, 0.0f })
             .add<MeshComponent>(cubeModel)
             .add<VolumeComponent>(VolumeComponent::Builder()
                 .setAbsorption(glm::vec4{ 0.0f })
                 .setScattering(glm::vec4{ 5.0f })
                 .setPhaseFunctionG(-0.9f)
-                .build());
+                .build())
+            .add<MaterialComponent>(MaterialComponent::Builder()
+                .setMaterial(glassMaterial)
+                .build());*/
 
         auto bunny = rm.get<Mesh>(MODELS_PATH + "bunny/bunny.obj");
         /*auto bunnyMaterial = Material::Builder()
@@ -311,14 +323,7 @@ public:
             .build();
 		rm.add(bunnyMaterial, "bunny_material");
 
-        auto glassMaterial = Material::Builder()
-			.setAlbedoColor(glm::vec4(0.0f, 1.0f, 1.0f, 1.0f))
-			.setRoughnessMap(rm.get<Image>(BLACK_PIXEL_LINEAR))
-			.setMetallicMap(rm.get<Image>(BLACK_PIXEL_LINEAR))
-			.setTransmission(1.0f)
-            .setIndexOfRefraction(1.5f)
-			.build();
-        rm.add(glassMaterial, "glass_material");
+        
 
         /*
         Entity entity = getScene().createEntity("cube")
@@ -341,15 +346,13 @@ public:
         Entity entity = getScene().createEntity("Bunny")
             .add<TransformComponent>(glm::vec3{ 0.0f, 1.0f, 0.0f }, glm::vec3{ 2.5f, 2.5f, 2.5f }, glm::vec3{ glm::pi<float>(), 0.0f, 0.0f })
             .add<MeshComponent>(bunny)
-            /*.add<MaterialComponent>(MaterialComponent::Builder()
-                .setMaterial(bunnyMaterial)
-                .setTint(glm::vec3(1.0, 0.812, 0.408))
-                .setTilingFactor(5.0f)
-                .build());*/
             .add<VolumeComponent>(VolumeComponent::Builder()
-                .setAbsorption(glm::vec4{ 0.0f, 10.0f, 5.0f, 0.0f })
-                .setScattering(glm::vec4{ 4.0f })
-                .setPhaseFunctionG(0.8f)
+                .setAbsorption(glm::vec4{ 8.0f, 40.0f, 16.0f, 1.0f })
+                .setScattering(glm::vec4{ 15.0f })
+                .setPhaseFunctionG(0.0f)
+                .build())
+            .add<MaterialComponent>(MaterialComponent::Builder()
+                .setMaterial(glassMaterial)
                 .build());
     }
 
