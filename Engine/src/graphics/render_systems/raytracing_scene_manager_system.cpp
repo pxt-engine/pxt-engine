@@ -63,7 +63,7 @@ namespace PXTEngine {
 
 			auto vkMesh = static_pointer_cast<VulkanMesh>(mesh);
 
-			const uint32_t invalidIndex = std::numeric_limits<uint32_t>::max();
+			constexpr uint32_t invalidIndex = std::numeric_limits<uint32_t>::max();
 
 			MeshInstanceData meshInstanceData{};
 			meshInstanceData.vertexBufferAddress = vkMesh->getVertexBufferDeviceAddress();
@@ -72,9 +72,10 @@ namespace PXTEngine {
 			meshInstanceData.emitterIndex = invalidIndex;
 			meshInstanceData.volumeIndex = invalidIndex;
 		
+			instance.mask = 0xFF;
+
 			// Add material properties to the instance data
 			if (entity.has<MaterialComponent>()) {
-				instance.mask = 0xFF;
 				auto& materialComponent = entity.get<MaterialComponent>();
 
 				meshInstanceData.materialIndex = m_materialRegistry.getIndex(materialComponent.material->id);
@@ -91,11 +92,12 @@ namespace PXTEngine {
 					m_emitters.push_back(emitterData);
 				}
 		
-			} else if (entity.has<VolumeComponent>()) {
+			}
+			
+			// Add volume properties to the instance data
+			if (entity.has<VolumeComponent>()) {
 				VolumeComponent::Volume volume = entity.get<VolumeComponent>().volume;
-				//maybe use a different mask
-				instance.mask = 0xFF;
-
+				
 				meshInstanceData.volumeIndex = volumeIndex++;
 				
 				// TODO: handle defaults differently

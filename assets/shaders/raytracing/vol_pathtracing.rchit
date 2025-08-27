@@ -137,9 +137,10 @@ void main() {
         // In general we dont want smaller RAY_T_MIN values, for performance.
         // Offset slightly to avoid immediate self-intersection.
         p_pathTrace.origin += p_pathTrace.direction * (gl_HitTEXT - RAY_T_MIN + FLT_EPSILON);
+    }
 
-        p_pathTrace.done = false;
-        return; 
+    if (instance.materialIndex == UINT_MAX) {
+        return;
     }
 
     const Material material = materials.m[instance.materialIndex];

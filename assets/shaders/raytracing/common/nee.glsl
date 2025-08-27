@@ -62,7 +62,7 @@ vec3 evaluateTransmittance(EmitterSample emitterSample, vec3 worldPosition, int 
         const MeshInstanceDescription instance = meshInstances.i[instanceIndex];
 
         bool isInsideSurface = currentSurfaceHitCount % 2 == 1; // I dont know if (bool)intValue conversion is the same
-        bool isInMedium = currentMediumIndex != -1 && !isInsideSurface;
+        bool isInMedium = currentMediumIndex != -1;
 
         if (isInMedium) {
             const Volume volume = volumes.volumes[currentMediumIndex];
