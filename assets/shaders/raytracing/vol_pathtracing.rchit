@@ -43,7 +43,6 @@ hitAttributeEXT vec2 barycentrics;
  * @param outLightDir The outgoing light direction from the surface point.
  */
 void directLighting(SurfaceData surface, vec3 worldPosition, vec3 outLightDir) {
-    
     EmitterSample emitterSample;
     
     sampleRandomEmitter(surface.tbn, worldPosition, emitterSample, p_pathTrace);
@@ -173,7 +172,7 @@ void main() {
             p_pathTrace.radiance += emission * p_pathTrace.throughput;
         } 
         // we use the previous bounce BSDF pdf to do MIS
-        else if (hasFlag(p_pathTrace, FLAG_DONE)) {
+        else if (hasFlag(p_pathTrace, FLAG_SPECULAR)) {
             vec3 prevBouncePos = p_pathTrace.origin - p_pathTrace.direction * p_pathTrace.hitDistance;
 
             uint emitterIndex = instance.emitterIndex;
