@@ -90,22 +90,17 @@ public:
             .add<MaterialComponent>();
     }
 
-    void createTeapotAndVases(int count) {
-        std::random_device rd;
-        std::mt19937 gen(rd());
-        std::uniform_real_distribution<float> posDist(-0.7f, 0.7f);
-        std::uniform_real_distribution<float> scaleDist(0.35f, 1.0f);
-        std::uniform_real_distribution<float> rotDist(0.0f, glm::two_pi<float>());
+    void createTeapotAndVases() {
         auto& rm = getResourceManager();
         
         auto glassMaterial = Material::Builder()
-            .setAlbedoColor(glm::vec4(0.0f, 1.0f, 1.0f, 1.0f))
-            .setRoughnessMap(rm.get<Image>(BLACK_PIXEL_LINEAR))
-            .setMetallicMap(rm.get<Image>(BLACK_PIXEL_LINEAR))
+            .setAlbedoColor(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f))
+            .setRoughness(0.0f)
+            .setMetallic(0.0f)
             .setTransmission(1.0f)
-            .setIndexOfRefraction(1.5f)
+            .setIndexOfRefraction(1.67f)
             .build();
-        rm.add(glassMaterial, "glass_material");
+        rm.add(glassMaterial, "glass_material0");
 
         
         auto vaseMesh = rm.get<Mesh>(MODELS_PATH + "smooth_vase.obj");
@@ -146,7 +141,7 @@ public:
             .add<TransformComponent>(glm::vec3{ -0.65f, 0.99f, 0.4f }, glm::vec3{ 1.8f, 1.4f, 1.8f }, glm::vec3{ 0.0f, 0.0f, 0.0f })
             .add<MeshComponent>(vaseMesh);
         entity.addAndGet<MaterialComponent>(MaterialComponent::Builder()
-            .setMaterial(glassMaterial).build()).tint = glm::vec3(0.63f, 0.84f, 0.99f);
+            .setMaterial(glassMaterial).build());// .tint = glm::vec3(0.63f, 0.84f, 0.99f);
 	}
 
     void createRubikCube() {
@@ -158,6 +153,7 @@ public:
 
         auto rubikMaterial = Material::Builder()
             .setAlbedoMap(rm.get<Image>(TEXTURES_PATH + "/rubik/albedo.jpg", &albedoInfo))
+            .setMetallic(0.45f)
             .setRoughnessMap(rm.get<Image>(TEXTURES_PATH + "/rubik/roughness.jpg"))
             //.setNormalMap(rm.get<Image>(TEXTURES_PATH + "/rubik/normal.jpg"))
             .setAmbientOcclusionMap(rm.get<Image>(TEXTURES_PATH + "/rubik/ao.jpg"))
@@ -271,7 +267,7 @@ public:
 		prepareEnvironment();
         createCameraEntity();
         createFloor();
-        createTeapotAndVases(5);
+        createTeapotAndVases();
         createRubikCube();
         //createLamp();
 		createRoofLight();
@@ -285,18 +281,20 @@ public:
 
         // create first volume
 		auto cubeModel = rm.get<Mesh>(MODELS_PATH + "cube.obj");
-
+        
         auto glassMaterial = Material::Builder()
-            .setAlbedoColor(glm::vec4(0.8f, 0.1f, 1.0f, 1.0f))
-            .setRoughnessMap(rm.get<Image>(BLACK_PIXEL_LINEAR))
-            .setMetallicMap(rm.get<Image>(BLACK_PIXEL_LINEAR))
-            .setTransmission(0.98f)
+            .setAlbedoColor(glm::vec4(0.0f, 0.66f, 0.42f, 1.0f))
+			.setAlbedoMap(rm.get<Image>(TEXTURES_PATH + "jade/albedo.jpg", &albedoInfo))
+			.setRoughnessMap(rm.get<Image>(TEXTURES_PATH + "jade/roughness.jpg"))
+            .setRoughness(0.1)
+			.setMetallic(0.001f)
+            .setTransmission(0.85f)
             .setIndexOfRefraction(1.67f)
             .build();
-        rm.add(glassMaterial, "glass_material");
+        rm.add(glassMaterial, "glass_material1");
 
-       /* auto volumeCubeEntity = getScene().createEntity("Volume Cube")
-            .add<TransformComponent>(glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3{ 0.5f }, glm::vec3{ 0.0f, 0.0f, 0.0f })
+        auto volumeCubeEntity = getScene().createEntity("Volume Cube")
+            .add<TransformComponent>(glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3{ 0.0f }, glm::vec3{ 0.0f, 0.0f, 0.0f })
             .add<MeshComponent>(cubeModel)
             .add<VolumeComponent>(VolumeComponent::Builder()
                 .setAbsorption(glm::vec4{ 0.0f })
@@ -305,7 +303,21 @@ public:
                 .build())
             .add<MaterialComponent>(MaterialComponent::Builder()
                 .setMaterial(glassMaterial)
-                .build());*/
+                .build());
+
+        
+        auto emissiveMat = Material::Builder()
+            .setEmissiveMap(rm.get<Image>(TEXTURES_PATH + "white_pixel.png"))
+            .setEmissiveColor(glm::vec4{ 1.0f, 1.0f, 1.0f, 28.0f })
+            .build();
+        rm.add(emissiveMat, "emissive_mat");
+
+        auto emissiveCube = getScene().createEntity("Emissive Cube")
+            .add<TransformComponent>(glm::vec3{ 0.0f, 0.9f, 0.15f }, glm::vec3{ 0.02f }, glm::vec3{ 0.0f, 0.0f, 0.0f })
+            .add<MeshComponent>(cubeModel)
+            .add<MaterialComponent>(MaterialComponent::Builder()
+                .setMaterial(emissiveMat)
+                .build());
 
         auto bunny = rm.get<Mesh>(MODELS_PATH + "bunny/bunny.obj");
         /*auto bunnyMaterial = Material::Builder()
@@ -325,14 +337,14 @@ public:
 
         
 
-        /*
+        
         Entity entity = getScene().createEntity("cube")
-            .add<TransformComponent>(glm::vec3{ 0.0f, 0.7f, 0.0f }, glm::vec3{ 0.25f }, glm::vec3{ 0.0f, glm::pi<float>() / 4, 0.0f })
+            .add<TransformComponent>(glm::vec3{ 0.0f, 0.7f, 0.0f }, glm::vec3{ 0.0f }, glm::vec3{ 0.0f, glm::pi<float>() / 4, 0.0f })
             .add<MeshComponent>(cubeModel)
             .add<MaterialComponent>(MaterialComponent::Builder()
                 .setMaterial(glassMaterial)
                 .build());
-		*/
+		
 
         /*entity = getScene().createEntity("cube2")
             .add<TransformComponent>(glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3{ 0.15f }, glm::vec3{ 0.0f, 0.0f, 0.0f })
@@ -343,16 +355,17 @@ public:
                 .build());*/
 
         
-        Entity entity = getScene().createEntity("Bunny")
+        entity = getScene().createEntity("Bunny")
             .add<TransformComponent>(glm::vec3{ 0.0f, 1.0f, 0.0f }, glm::vec3{ 2.5f, 2.5f, 2.5f }, glm::vec3{ glm::pi<float>(), 0.0f, 0.0f })
             .add<MeshComponent>(bunny)
             .add<VolumeComponent>(VolumeComponent::Builder()
-                .setAbsorption(glm::vec4{ 3.0f, 25.0f, 8.0f, 1.0f })
-                .setScattering(glm::vec4{ 30.0f })
-                .setPhaseFunctionG(-0.9f)
+                .setAbsorption(glm::vec4{ 12.25f, 4.0f, 6.25f, 1.0f })
+                .setScattering(glm::vec4{ 12.25f, 4.0f, 6.25f, 1.0f })
+                .setPhaseFunctionG(0.85f)
                 .build())
             .add<MaterialComponent>(MaterialComponent::Builder()
                 .setMaterial(glassMaterial)
+                .setTint(glm::vec4(0.0f, 0.66f, 0.42f, 1.0f))
                 .build());
     }
 
