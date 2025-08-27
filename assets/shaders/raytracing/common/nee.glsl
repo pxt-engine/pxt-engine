@@ -71,6 +71,7 @@ vec3 evaluateTransmittance(EmitterSample emitterSample, vec3 worldPosition, int 
             // we need to account for the absorption
             vec3 sigma_t = volume.absorption.rgb + volume.scattering.rgb;
             if (maxComponent(sigma_t) > 0.0) {
+                // TODO: support for heterogeneous media
                 // Beer-Lambert law for transmittance
                 transmittance *= exp(-sigma_t * p_visibility.hitDistance);
             }
@@ -107,8 +108,10 @@ vec3 evaluateTransmittance(EmitterSample emitterSample, vec3 worldPosition, int 
             float roughness = getRoughness(material, uv);
 
             // Even if it's not physically correct we use this as an approximation of how much
-            // light reaches the point. Metallic and rough surfaces reflects the light.
-            transmittance *= (1.0 - metalness) * (1.0 - roughness) * transmission * pow(albedo, vec3(0.5));
+            // light reaches the point. Metallic and rough surfaces reflect the light.
+            // Note: we multiply by albedo and not sqrt(albedo) because the second time
+            //       we touch the same transmissive object (on exit - in the else branch) we do no operations.
+            transmittance *= (1.0 - metalness) * (1.0 - roughness) * transmission * albedo;
 
         } else {
             currentSurfaceHitCount++;
