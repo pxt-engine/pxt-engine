@@ -25,7 +25,9 @@ namespace PXTEngine {
 		int albedoMapIndex;
 		int normalMapIndex;
 		int ambientOcclusionMapIndex;
+		float metallic;
 		int metallicMapIndex;
+		float roughness;
 		int roughnessMapIndex;
 		int emissiveMapIndex;
 		float transmission;
@@ -57,7 +59,7 @@ namespace PXTEngine {
 		 *
 		 * @return Index of the added material in the registry.
 		 */
-		uint32_t add(const Shared<Material>& material);
+		uint32_t add(const Shared<Material> material);
 
 		/**
 		 * @brief Retrieves the index of a material by its resource ID.

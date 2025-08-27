@@ -2,6 +2,7 @@
 #define _SURFACE_RT_
 
 #include "bindings.glsl"
+#include "../../common/math.glsl"
 #include "../../common/material.glsl"
 #include "../../material/pbr/bsdf.glsl"
 
@@ -22,11 +23,25 @@ vec3 getEmission(const Material material, const vec2 uv) {
 }
 
 float getRoughness(const Material material, const vec2 uv) {
-    return max(pow2(texture(textures[nonuniformEXT(material.roughnessMapIndex)], uv).r), 0.0001);
+	float roughness = material.roughness;
+
+    if (material.roughnessMapIndex != UINT_MAX) {
+        roughness = texture(textures[nonuniformEXT(material.roughnessMapIndex)], uv).r
+            * material.roughness;
+	}
+
+	return clamp(pow2(roughness), 0.0001, 1.0);
 }
 
 float getMetalness(const Material material, const vec2 uv) {
-    return texture(textures[nonuniformEXT(material.metallicMapIndex)], uv).r;
+	float metallic = material.metallic;
+	
+    if (material.metallicMapIndex != UINT_MAX) {
+        metallic = texture(textures[nonuniformEXT(material.metallicMapIndex)], uv).r
+            * material.metallic;
+    }
+
+	return clamp(metallic, 0.0, 1.0);
 }
 
 SurfaceData getSurfaceData(const MeshInstanceDescription instance, const Material material, const vec2 uv, const mat3 tbn, bool isBackFace) {

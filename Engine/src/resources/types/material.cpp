@@ -7,7 +7,9 @@ namespace PXTEngine {
         const glm::vec4& albedoColor,
         const Shared<Image>& albedoMap,
         const Shared<Image>& normalMap,
+		const float metallic,
         const Shared<Image>& metallicMap,
+		const float roughness,
         const Shared<Image>& roughnessMap,
         const Shared<Image>& ambientOcclusionMap,
         const glm::vec4& emissiveColor,
@@ -17,7 +19,9 @@ namespace PXTEngine {
         : m_albedoColor(albedoColor),
         m_albedoMap(albedoMap),
         m_normalMap(normalMap),
+		m_metallic(metallic),
         m_metallicMap(metallicMap),
+		m_roughness(roughness),
         m_roughnessMap(roughnessMap),
         m_ambientOcclusionMap(ambientOcclusionMap),
         m_emissiveColor(emissiveColor),
@@ -35,7 +39,9 @@ namespace PXTEngine {
 
     const glm::vec4& Material::getAlbedoColor() const { return m_albedoColor; }
     Shared<Image> Material::getAlbedoMap() const { return m_albedoMap; }
+	float Material::getMetallic() const { return m_metallic; }
     Shared<Image> Material::getMetallicMap() const { return m_metallicMap; }
+	float Material::getRoughness() const { return m_roughness; }
     Shared<Image> Material::getRoughnessMap() const { return m_roughnessMap; }
     Shared<Image> Material::getNormalMap() const { return m_normalMap; }
     Shared<Image> Material::getAmbientOcclusionMap() const { return m_ambientOcclusionMap; }
@@ -60,10 +66,22 @@ namespace PXTEngine {
         return *this;
     }
 
+	Material::Builder& Material::Builder::setMetallic(const float metallic) {
+		m_metallic = metallic;
+		m_useMetallicWeight = true;
+		return *this;
+	}
+
     Material::Builder& Material::Builder::setMetallicMap(Shared<Image> map) {
         m_metallicMap = map;
         return *this;
     }
+
+	Material::Builder& Material::Builder::setRoughness(const float roughness) {
+		m_roughness = roughness;
+		m_useRoughnessWeight = true;
+		return *this;
+	}
 
     Material::Builder& Material::Builder::setRoughnessMap(Shared<Image> map) {
         m_roughnessMap = map;
@@ -103,8 +121,13 @@ namespace PXTEngine {
     Shared<Material> Material::Builder::build() {
         if (!m_albedoMap) m_albedoMap = ResourceManager::defaultMaterial->getAlbedoMap();
         if (!m_normalMap) m_normalMap = ResourceManager::defaultMaterial->getNormalMap();
-        if (!m_metallicMap) m_metallicMap = ResourceManager::defaultMaterial->getMetallicMap();
-        if (!m_roughnessMap) m_roughnessMap = ResourceManager::defaultMaterial->getRoughnessMap();
+
+		m_metallic = m_useMetallicWeight ? m_metallic : 1.0;
+		m_roughness = m_useRoughnessWeight ? m_roughness : 1.0;
+
+        //if (!m_metallicMap) m_metallicMap = ResourceManager::defaultMaterial->getMetallicMap();
+        //if (!m_roughnessMap) m_roughnessMap = ResourceManager::defaultMaterial->getRoughnessMap();
+
         if (!m_ambientOcclusionMap) m_ambientOcclusionMap = ResourceManager::defaultMaterial->getAmbientOcclusionMap();
         if (!m_emissiveMap) m_emissiveMap = ResourceManager::defaultMaterial->getEmissiveMap();
 
@@ -112,7 +135,9 @@ namespace PXTEngine {
             m_albedoColor,
             m_albedoMap,
             m_normalMap,
+			m_metallic,
             m_metallicMap,
+			m_roughness,
             m_roughnessMap,
             m_ambientOcclusionMap,
             m_emissiveColor,

@@ -13,7 +13,7 @@ namespace PXTEngine {
 		m_descriptorAllocator = descriptorAllocator;
 	}
 
-	uint32_t MaterialRegistry::add(const Shared<Material>& material) {
+	uint32_t MaterialRegistry::add(const Shared<Material> material) {
 		const auto index = static_cast<uint32_t>(m_materials.size());
 		m_materials.push_back(material);
 		m_idToIndex[material->id] = index;
@@ -83,14 +83,29 @@ namespace PXTEngine {
 	}
 
 	MaterialData MaterialRegistry::getMaterialData(Shared<Material> material) {
+
+		constexpr uint32_t invalidIndex = std::numeric_limits<uint32_t>::max();
+
 		MaterialData data;
 		data.albedoColor = material->getAlbedoColor();
 		data.emissiveColor = material->getEmissiveColor();
 		data.albedoMapIndex = m_textureRegistry.getIndex(material->getAlbedoMap()->id);
 		data.normalMapIndex = m_textureRegistry.getIndex(material->getNormalMap()->id);
 		data.ambientOcclusionMapIndex = m_textureRegistry.getIndex(material->getAmbientOcclusionMap()->id);
-		data.metallicMapIndex = m_textureRegistry.getIndex(material->getMetallicMap()->id);
-		data.roughnessMapIndex = m_textureRegistry.getIndex(material->getRoughnessMap()->id);
+		data.metallic = material->getMetallic();
+
+		data.metallicMapIndex = invalidIndex;
+		if (material->getMetallicMap()) {
+			data.metallicMapIndex = m_textureRegistry.getIndex(material->getMetallicMap()->id);
+		}
+		
+		data.roughness = material->getRoughness();
+
+		data.roughnessMapIndex = invalidIndex;
+		if (material->getRoughnessMap()) {
+			data.roughnessMapIndex = m_textureRegistry.getIndex(material->getRoughnessMap()->id);
+		}
+		
 		data.emissiveMapIndex = m_textureRegistry.getIndex(material->getEmissiveMap()->id);
 		data.transmission = material->getTransmission();
 		data.ior = material->getIndexOfRefraction();

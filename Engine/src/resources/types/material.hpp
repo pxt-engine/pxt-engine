@@ -19,7 +19,9 @@ namespace PXTEngine {
         public:
             Builder& setAlbedoColor(const glm::vec4& color);
             Builder& setAlbedoMap(Shared<Image> map);
+			Builder& setMetallic(float value);
             Builder& setMetallicMap(Shared<Image> map);
+			Builder& setRoughness(float value);
             Builder& setRoughnessMap(Shared<Image> map);
             Builder& setNormalMap(Shared<Image> map);
             Builder& setAmbientOcclusionMap(Shared<Image> map);
@@ -33,20 +35,27 @@ namespace PXTEngine {
             glm::vec4 m_albedoColor{ 1.0f };
             Shared<Image> m_albedoMap{ nullptr };
             Shared<Image> m_normalMap{ nullptr };
+			float m_metallic = 0.0f;
             Shared<Image> m_metallicMap{ nullptr };
+			float m_roughness = 0.0f;
             Shared<Image> m_roughnessMap{ nullptr };
             Shared<Image> m_ambientOcclusionMap{ nullptr };
             glm::vec4 m_emissiveColor{ 0.0f };
             Shared<Image> m_emissiveMap{ nullptr };
             float m_transmission = 0.0;
             float m_ior = 1.3;
+        private:
+			bool m_useMetallicWeight = false;
+			bool m_useRoughnessWeight = false;
         };
 
         Material(
             const glm::vec4& albedoColor,
             const Shared<Image>& albedoMap,
             const Shared<Image>& normalMap,
+			const float metallic,
             const Shared<Image>& metallicMap,
+			const float roughness,
             const Shared<Image>& roughnessMap,
             const Shared<Image>& ambientOcclusionMap,
             const glm::vec4& emissiveColor,
@@ -60,7 +69,9 @@ namespace PXTEngine {
 
         const glm::vec4& getAlbedoColor() const;
         Shared<Image> getAlbedoMap() const;
+		float getMetallic() const;
         Shared<Image> getMetallicMap() const;
+		float getRoughness() const;
         Shared<Image> getRoughnessMap() const;
         Shared<Image> getNormalMap() const;
         Shared<Image> getAmbientOcclusionMap() const;
@@ -75,7 +86,9 @@ namespace PXTEngine {
         glm::vec4 m_albedoColor{ 1.0f };
         Shared<Image> m_albedoMap{ nullptr };
         Shared<Image> m_normalMap{ nullptr };
+		float m_metallic{ 0.0f };
         Shared<Image> m_metallicMap{ nullptr };
+		float m_roughness{ 0.0f };
         Shared<Image> m_roughnessMap{ nullptr };
         Shared<Image> m_ambientOcclusionMap{ nullptr };
         glm::vec4 m_emissiveColor{ 0.0f };
