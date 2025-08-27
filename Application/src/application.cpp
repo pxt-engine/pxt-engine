@@ -286,10 +286,10 @@ public:
             .setAlbedoColor(glm::vec4(0.0f, 0.66f, 0.42f, 1.0f))
 			.setAlbedoMap(rm.get<Image>(TEXTURES_PATH + "jade/albedo.jpg", &albedoInfo))
 			.setRoughnessMap(rm.get<Image>(TEXTURES_PATH + "jade/roughness.jpg"))
-            .setRoughness(0.1)
-			.setMetallic(0.001f)
-            .setTransmission(0.85f)
-            .setIndexOfRefraction(1.67f)
+            //.setRoughness(0.1)
+			.setMetallic(0.2f)
+            .setTransmission(0.9f)
+            .setIndexOfRefraction(1.01f)
             .build();
         rm.add(glassMaterial, "glass_material1");
 
@@ -308,7 +308,7 @@ public:
         
         auto emissiveMat = Material::Builder()
             .setEmissiveMap(rm.get<Image>(TEXTURES_PATH + "white_pixel.png"))
-            .setEmissiveColor(glm::vec4{ 1.0f, 1.0f, 1.0f, 28.0f })
+            .setEmissiveColor(glm::vec4{ 1.0f, 1.0f, 1.0f, 40.0f })
             .build();
         rm.add(emissiveMat, "emissive_mat");
 
@@ -338,13 +338,13 @@ public:
         
 
         
-        Entity entity = getScene().createEntity("cube")
+        /*Entity entity = getScene().createEntity("cube")
             .add<TransformComponent>(glm::vec3{ 0.0f, 0.7f, 0.0f }, glm::vec3{ 0.0f }, glm::vec3{ 0.0f, glm::pi<float>() / 4, 0.0f })
             .add<MeshComponent>(cubeModel)
             .add<MaterialComponent>(MaterialComponent::Builder()
                 .setMaterial(glassMaterial)
                 .build());
-		
+		*/
 
         /*entity = getScene().createEntity("cube2")
             .add<TransformComponent>(glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3{ 0.15f }, glm::vec3{ 0.0f, 0.0f, 0.0f })
@@ -355,11 +355,11 @@ public:
                 .build());*/
 
         
-        entity = getScene().createEntity("Bunny")
+        auto entity = getScene().createEntity("Bunny")
             .add<TransformComponent>(glm::vec3{ 0.0f, 1.0f, 0.0f }, glm::vec3{ 2.5f, 2.5f, 2.5f }, glm::vec3{ glm::pi<float>(), 0.0f, 0.0f })
             .add<MeshComponent>(bunny)
             .add<VolumeComponent>(VolumeComponent::Builder()
-                .setAbsorption(glm::vec4{ 12.25f, 4.0f, 6.25f, 1.0f })
+                .setAbsorption(glm::vec4{ 6.125f, 2.0f, 3.125f, 1.0f })
                 .setScattering(glm::vec4{ 12.25f, 4.0f, 6.25f, 1.0f })
                 .setPhaseFunctionG(0.85f)
                 .build())
