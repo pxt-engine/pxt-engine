@@ -9,7 +9,7 @@
 
 layout(location = VisibilityPayloadLocation) rayPayloadEXT VisibilityPayload p_visibility;
 
-#define NEE_MAX_BOUNCES 4
+#define NEE_MAX_BOUNCES 8
 
 struct EmitterSample {
     vec3 radiance;
@@ -102,12 +102,13 @@ vec3 evaluateTransmittance(EmitterSample emitterSample, vec3 worldPosition, int 
 
             const vec2 uv = getTextureCoords(triangle, p_visibility.barycentrics) * instance.textureTilingFactor;
 
+            vec3 albedo = getAlbedo(material, uv, instance.textureTintColor);
             float metalness = getMetalness(material, uv);
             float roughness = getRoughness(material, uv);
 
             // Even if it's not physically correct we use this as an approximation of how much
             // light reaches the point. Metallic and rough surfaces reflects the light.
-            transmittance *= (1.0 - metalness) * (1.0 - roughness) * transmission;
+            transmittance *= (1.0 - metalness) * (1.0 - roughness) * transmission * pow(albedo, vec3(0.5));
 
         } else {
             currentSurfaceHitCount++;

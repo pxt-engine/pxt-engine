@@ -7,7 +7,9 @@ struct Material {
 	int albedoMapIndex;
 	int normalMapIndex;
 	int ambientOcclusionMapIndex;
+	float metallic;
 	int metallicMapIndex;
+	float roughness;
 	int roughnessMapIndex;
     int emissiveMapIndex;
     float transmission;
