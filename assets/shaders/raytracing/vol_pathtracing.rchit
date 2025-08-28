@@ -49,11 +49,11 @@ void directLighting(SurfaceData surface, vec3 worldPosition, vec3 outLightDir) {
 
     if (emitterSample.pdf == 0 || emitterSample.radiance == vec3(0.0)) return;
 
-    vec3 transmittance = evaluateTransmittance(emitterSample, worldPosition, p_pathTrace.mediumIndex);
+    vec3 transmittance = vec3(1.0); //evaluateTransmittance(emitterSample, worldPosition, p_pathTrace.mediumIndex);
 
     emitterSample.radiance *= transmittance;
 
-    if (emitterSample.radiance == vec3(0.0)) return;
+    if (emitterSample.pdf == 0 || emitterSample.radiance == vec3(0.0)) return;
 
     vec3 inLightDirTangent = worldToTangent(surface.tbn, emitterSample.inLightDirWorld);
 
@@ -63,7 +63,7 @@ void directLighting(SurfaceData surface, vec3 worldPosition, vec3 outLightDir) {
     float bsdfPdfSolidAngle;
 
     const vec3 bsdf = evaluateBSDF(surface, outLightDir, inLightDirTangent, halfVector, bsdfPdfSolidAngle);
-        
+    
     // Jacobian for PDF conversion from solid angle to area
     const float G_term = emitterSample.emitterCosTheta / pow2(emitterSample.lightDistance);
 
@@ -210,7 +210,9 @@ void main() {
     // Calculate the probabilities for the surface properties for the bsdf
     calculateProbabilities(surface, outgoingLightDirection);
 
+
     directLighting(surface, worldPosition, outgoingLightDirection);
+
     indirectLighting(surface, outgoingLightDirection, incomingLightDirection);    
 
     // Convert back to world space

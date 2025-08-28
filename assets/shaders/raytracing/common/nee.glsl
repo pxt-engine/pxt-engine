@@ -20,7 +20,63 @@ struct EmitterSample {
     vec3 normalWorld;
 };
 
-vec3 evaluateTransmittance(EmitterSample emitterSample, vec3 worldPosition, int currentMediumIndex) {
+EmitterSample sampleEmitterAt(uint emitterIndex, uint faceIndex, vec2 barycentrics, vec3 worldPosition) {
+    EmitterSample smpl;
+    smpl.radiance = vec3(0.0);
+    smpl.lightDistance = RAY_T_MAX;
+    smpl.pdf = 0.0;
+
+    const Emitter emitter = emitters.e[emitterIndex];
+    const MeshInstanceDescription instance = meshInstances.i[emitter.instanceIndex];
+    const Material material = materials.m[instance.materialIndex];
+
+    const Triangle triangle = getTriangle(instance.indexAddress, instance.vertexAddress, faceIndex);
+    const vec2 uv = getTextureCoords(triangle, barycentrics) * instance.textureTilingFactor;
+
+    smpl.radiance = getEmission(material, uv);
+
+    if (smpl.radiance == vec3(0.0)) {
+        return smpl;
+    }
+
+    const vec3 emitterObjPosition = getPosition(triangle, barycentrics);
+    const vec3 emitterObjNormal = getNormal(triangle, barycentrics);
+
+    const mat4 emitterObjectToWorld = mat4(instance.objectToWorld);
+    // The upper 3x3 of the world-to-object matrix is the normal matrix
+    const mat3 emitterNormalMatrix = mat3(instance.worldToObject);
+
+    const vec3 emitterPosition = vec3(emitterObjectToWorld * vec4(emitterObjPosition, 1.0));
+    const vec3 emitterNormal = normalize(emitterNormalMatrix * emitterObjNormal);
+
+    // vector from emitter the surface to the emitter
+    vec3 outLightVec = worldPosition - emitterPosition;
+
+    smpl.lightDistance = length(outLightVec);
+
+    const float areaWorld = calculateWorldSpaceTriangleArea(triangle, mat3(instance.objectToWorld));
+
+    if (areaWorld <= 0.0 || smpl.lightDistance <= 0) {
+        return smpl;
+    }
+
+    vec3 outLightDir = outLightVec / smpl.lightDistance;
+
+    smpl.emitterCosTheta = cosTheta(emitterNormal, outLightDir);
+    if (smpl.emitterCosTheta <= 0.0) {
+        return smpl;
+    }
+
+    const uint numEmitters = uint(emitters.numEmitters);
+    const uint totalSamplableEmitters = numEmitters + USE_SKY_AS_NEE_EMITTER;
+
+    smpl.inLightDirWorld = -outLightDir;
+    smpl.pdf = pow2(smpl.lightDistance) / (smpl.emitterCosTheta * areaWorld * totalSamplableEmitters * emitter.numberOfFaces);
+
+    return smpl;
+}
+
+vec3 evaluateTransmittance(inout EmitterSample emitterSample, vec3 worldPosition, int currentMediumIndex) {
     vec3 transmittance = vec3(1.0);
 
     Ray ray;
@@ -62,7 +118,7 @@ vec3 evaluateTransmittance(EmitterSample emitterSample, vec3 worldPosition, int 
         const MeshInstanceDescription instance = meshInstances.i[instanceIndex];
 
         bool isInsideSurface = currentSurfaceHitCount % 2 == 1; // I dont know if (bool)intValue conversion is the same
-        bool isInMedium = currentMediumIndex != -1;
+        bool isInMedium = currentMediumIndex != -1 && isInsideSurface;
 
         if (isInMedium) {
             const Volume volume = volumes.volumes[currentMediumIndex];
@@ -91,6 +147,25 @@ vec3 evaluateTransmittance(EmitterSample emitterSample, vec3 worldPosition, int 
             currentSurfaceHitCount = 1;
 
             const Material material = materials.m[instance.materialIndex];
+
+            const Triangle triangle = getTriangle(instance.indexAddress, instance.vertexAddress, p_visibility.primitiveId);
+
+            const vec2 uv = getTextureCoords(triangle, p_visibility.barycentrics) * instance.textureTilingFactor;
+
+            vec3 emission = getEmission(material, uv);
+
+            // We have encountered an emitter during the visibility for the provided emitter
+            // We update the emitterSample using the current hit and return the accumulated
+            // transmittance which correspond to the transmittance for the found emitter.
+            if (maxComponent(emission) > 0.0) {
+				uint emitterIndex = instance.emitterIndex;
+
+				emitterSample = sampleEmitterAt(emitterIndex, p_visibility.primitiveId,
+                                                p_visibility.barycentrics, worldPosition);
+
+                return transmittance;
+            }
+
             float transmission = material.transmission;
 
             // if the surface is opaque we stop
@@ -98,10 +173,6 @@ vec3 evaluateTransmittance(EmitterSample emitterSample, vec3 worldPosition, int 
                 transmittance = vec3(0.0);
                 break;
             }
-
-            const Triangle triangle = getTriangle(instance.indexAddress, instance.vertexAddress, p_visibility.primitiveId);
-
-            const vec2 uv = getTextureCoords(triangle, p_visibility.barycentrics) * instance.textureTilingFactor;
 
             vec3 albedo = getAlbedo(material, uv, instance.textureTintColor);
             float metalness = getMetalness(material, uv);
@@ -118,7 +189,7 @@ vec3 evaluateTransmittance(EmitterSample emitterSample, vec3 worldPosition, int 
         }
 
         // Prepare for the next segment of the ray
-        float offset = p_visibility.hitDistance + RAY_T_MIN;
+        float offset = p_visibility.hitDistance;
         ray.origin += ray.direction * offset;
         tMax -= offset;
 
@@ -142,15 +213,6 @@ vec3 evaluateTransmittance(EmitterSample emitterSample, vec3 worldPosition, int 
  * @param smpl Output parameter to store the sampled emitter data.
  */
 void sampleEmitter(uint emitterIndex, vec3 worldPosition, out EmitterSample smpl, inout uint seed) {
-    smpl.radiance = vec3(0.0);
-    smpl.lightDistance = RAY_T_MAX;
-    smpl.pdf = 0.0;
-
-    vec3 worldInLightDir = vec3(0.0);
-
-    const uint numEmitters = uint(emitters.numEmitters);
-    const uint totalSamplableEmitters = numEmitters + USE_SKY_AS_NEE_EMITTER;
-
     // Sample a mesh emitter
     const Emitter emitter = emitters.e[emitterIndex];
     const MeshInstanceDescription emitterInstance = meshInstances.i[emitter.instanceIndex];
@@ -159,48 +221,9 @@ void sampleEmitter(uint emitterIndex, vec3 worldPosition, out EmitterSample smpl
     const uint faceIndex = nextUint(seed, emitter.numberOfFaces);
 
     // Generate barycentric coordinates for the triangle
-    vec2 emitterBarycentrics = sampleTrianglePoint(seed);
-    
-    const Triangle emitterTriangle = getTriangle(emitterInstance.indexAddress, emitterInstance.vertexAddress, faceIndex);
-    const vec2 uv = getTextureCoords(emitterTriangle, emitterBarycentrics) * emitterInstance.textureTilingFactor;
-        
-    smpl.radiance = getEmission(material, uv);
+    vec2 barycentrics = sampleTrianglePoint(seed);
 
-    if (smpl.radiance == vec3(0.0)) {
-        return; 
-    }
-
-    const vec3 emitterObjPosition = getPosition(emitterTriangle, emitterBarycentrics);
-    const vec3 emitterObjNormal = getNormal(emitterTriangle, emitterBarycentrics);
-
-    const mat4 emitterObjectToWorld = mat4(emitterInstance.objectToWorld);
-    // The upper 3x3 of the world-to-object matrix is the normal matrix
-    const mat3 emitterNormalMatrix = mat3(emitterInstance.worldToObject);
-
-    const vec3 emitterPosition = vec3(emitterObjectToWorld * vec4(emitterObjPosition, 1.0));
-    const vec3 emitterNormal = normalize(emitterNormalMatrix * emitterObjNormal);
-
-    // vector from emitter the surface to the emitter
-    vec3 outLightVec = worldPosition - emitterPosition;
-
-    smpl.lightDistance = length(outLightVec);
-
-    const float areaWorld = calculateWorldSpaceTriangleArea(emitterTriangle, mat3(emitterInstance.objectToWorld));
-
-    if (areaWorld <= 0.0 || smpl.lightDistance <= 0) {
-        return;
-    }
-
-    vec3 outLightDir = outLightVec / smpl.lightDistance;
-
-    smpl.emitterCosTheta = cosTheta(emitterNormal, outLightDir);
-    if (smpl.emitterCosTheta <= 0.0) {
-        return;
-    }
-
-    worldInLightDir = -outLightDir; 
-    smpl.inLightDirWorld = worldInLightDir;
-    smpl.pdf = pow2(smpl.lightDistance) / (smpl.emitterCosTheta * areaWorld * totalSamplableEmitters * emitter.numberOfFaces);
+    smpl = sampleEmitterAt(emitterIndex, faceIndex, barycentrics, worldPosition);
 }
 
 /**

@@ -173,7 +173,7 @@ void directLighting(vec3 worldPosition) {
 
     emitterSample.radiance *= transmittance;
 
-    if (emitterSample.radiance == vec3(0.0)) return;
+    if (emitterSample.pdf == 0 || emitterSample.radiance == vec3(0.0)) return;
 
     float HGPdfSolidAngle;
 
@@ -209,7 +209,7 @@ void main()
     vec3 finalColor = vec3(0.0);
 
     const uint samplesPerPixel = 1;
-    const int maxBounces = 7;
+    const int maxBounces = 10;
 
     for (uint currentSample = 0; currentSample < samplesPerPixel; ++currentSample) {
         // for random operations
@@ -346,7 +346,7 @@ void main()
 
                         // Treat volume scatter as "specular" to disable NEE
                         // on the next bounce if we hit an emitter
-                        setFlag(p_pathTrace, FLAG_SPECULAR);
+                        //setFlag(p_pathTrace, FLAG_SPECULAR);
                     }
                     // (Else) If it's a null collision, we do nothing. The ray continues from the 
                     // new origin in the same direction, which is handled by the next loop iteration.
