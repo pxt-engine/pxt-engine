@@ -35,7 +35,7 @@ namespace PXTEngine {
 		createDescriptorSets();
 		defineShaderGroups();
 		createPipelineLayout(globalSetLayout);
-		createPipeline();
+		createPipeline(false); // TODO: understand why glslLangVaalidator cannot compile this
 		createShaderBindingTable();
 	}
 

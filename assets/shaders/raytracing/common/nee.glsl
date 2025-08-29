@@ -19,6 +19,7 @@ struct EmitterSample {
     float pdf;
     vec3 normalWorld;
     uint index;
+    uint faceIndex;
 };
 
 EmitterSample sampleEmitterAt(uint emitterIndex, uint faceIndex, vec2 barycentrics, vec3 worldPosition) {
@@ -27,6 +28,7 @@ EmitterSample sampleEmitterAt(uint emitterIndex, uint faceIndex, vec2 barycentri
     smpl.lightDistance = RAY_T_MAX;
     smpl.pdf = 0.0;
     smpl.index = emitterIndex;
+    smpl.faceIndex = faceIndex;
 
     const Emitter emitter = emitters.e[emitterIndex];  
     const MeshInstanceDescription instance = meshInstances.i[emitter.instanceIndex];
@@ -68,7 +70,7 @@ EmitterSample sampleEmitterAt(uint emitterIndex, uint faceIndex, vec2 barycentri
 
     smpl.emitterCosTheta = abs(cosTheta(emitterNormal, outLightDir));
 
-    if (smpl.emitterCosTheta <= 0.0) {
+    if (smpl.emitterCosTheta == 0.0) {
         return smpl;
     }
 
@@ -93,22 +95,28 @@ EmitterSample sampleEmitterAt(uint emitterIndex, uint faceIndex, vec2 barycentri
     return smpl;
 }
 
-vec3 evaluateTransmittance(inout EmitterSample emitterSample, vec3 worldPosition, int currentMediumIndex) {
+vec3 evaluateTransmittance(inout EmitterSample emitterSample, vec3 worldPosition, int initialMediumIndex) {
     vec3 transmittance = vec3(1.0);
 
     Ray ray;
     ray.origin = worldPosition;
     ray.direction = emitterSample.inLightDirWorld;
 
+    const uint INVALID_INDEX = UINT_MAX;
+
+    float tMax = max(0.0, emitterSample.lightDistance + FLT_EPSILON);
+    
     // we need to keep track of the last surface we hit to know
     // if we are exiting an object inside a volume.
     // think of a donut inside a volume, we need to account
     // for transmittance of the volume in the hole of the donut.
-    int currentSurfaceIndex = -1;
-    // we also need to know how many times we hit the same surface
-    int currentSurfaceHitCount = 0;
+    uint interactionStack[NEE_MAX_BOUNCES];
+    uint stackPtr = 0;
+    
+    // sentinel to check for empty stack
+    interactionStack[stackPtr] = INVALID_INDEX;
 
-    float tMax = max(0.0, emitterSample.lightDistance);
+    bool isStartingInsideVolume = initialMediumIndex != -1;
 
     int depth;
     for (depth = 0; depth < NEE_MAX_BOUNCES; depth++) {
@@ -126,46 +134,64 @@ vec3 evaluateTransmittance(inout EmitterSample emitterSample, vec3 worldPosition
             VisibilityPayloadLocation
         );
 
-        int instanceIndex = p_visibility.instance;
-        const MeshInstanceDescription instance = meshInstances.i[instanceIndex];
-
-        if (instanceIndex == -1 || instance.materialIndex == emitterSample.index) {
-            // There are no more objects in between the point and the light source
+        if (p_visibility.instance == -1) {
+            // shouldn't happen.
             break;
         }
 
-        
+        uint instanceIndex = uint(p_visibility.instance);
+        const MeshInstanceDescription instance = meshInstances.i[instanceIndex];
 
-        bool isInsideSurface = currentSurfaceHitCount % 2 == 1; // I dont know if (bool)intValue conversion is the same
-        bool isInMedium = currentMediumIndex != -1 && isInsideSurface;
+        uint topStackInstanceIndex = interactionStack[stackPtr];
+        int volumeIndex;
+        bool doVolumeInteraction = false;
 
-        if (isInMedium) {
-            const Volume volume = volumes.volumes[currentMediumIndex];
+        if (topStackInstanceIndex != INVALID_INDEX) {
+            const MeshInstanceDescription topStackInstance = meshInstances.i[topStackInstanceIndex];
+            // if we had a volume still in the stack, we need to do medium interaction before popping it
+            doVolumeInteraction = topStackInstance.volumeIndex != INVALID_INDEX;
+            volumeIndex = int(topStackInstance.volumeIndex);
+        } else if (isStartingInsideVolume) {
+            doVolumeInteraction = true;
+            volumeIndex = initialMediumIndex;
+            isStartingInsideVolume = false;
+        }
+            
+        if (doVolumeInteraction) {
+            const Volume volume = volumes.volumes[volumeIndex];
 
             // We have travelled the medium from start to finish
             // we need to account for the absorption
             vec3 sigma_t = volume.absorption.rgb + volume.scattering.rgb;
             if (maxComponent(sigma_t) > 0.0) {
                 // TODO: support for heterogeneous media
-
                 // Beer-Lambert law for transmittance
                 transmittance *= exp(-sigma_t * p_visibility.hitDistance);
             }
         }
 
-        // if we hit a volume
-        if (instance.volumeIndex != UINT_MAX) {
-            // Update the current medium index
-            currentMediumIndex = int(instance.volumeIndex);
+        // update the interaction stack
+        if (interactionStack[stackPtr] == uint(instanceIndex)) {
+            stackPtr--;
+        } else {
+            stackPtr++;
+            if (stackPtr > NEE_MAX_BOUNCES) {
+                // too many nested surfaces
+                return vec3(0.0);
+            }
+            interactionStack[stackPtr] = uint(instanceIndex);
         }
 
-        // if we hit a surface that has a material (maybe volume inside)
-            // if we hit the same surface again, we are inside a transparent object
-            // we just need to go through (no refraction is accounted for now).
-        if (currentSurfaceIndex != instanceIndex && instance.materialIndex != UINT_MAX) {
-            currentSurfaceIndex = instanceIndex;
-            currentSurfaceHitCount = 1;
+        topStackInstanceIndex = interactionStack[stackPtr];
 
+        // if the stack is not empty and we hit the same instance at the top of the stack
+        // and the instance has a material, we are entering a surface with a material
+        // (we do the interaction only once when hitting the front face)
+        bool doSurfaceInteraction = topStackInstanceIndex != INVALID_INDEX &&
+                                    topStackInstanceIndex == instanceIndex &&
+                                    instance.materialIndex != INVALID_INDEX;
+
+        if (doSurfaceInteraction) {
             const Material material = materials.m[instance.materialIndex];
 
             const Triangle triangle = getTriangle(instance.indexAddress, instance.vertexAddress, p_visibility.primitiveId);
@@ -178,14 +204,16 @@ vec3 evaluateTransmittance(inout EmitterSample emitterSample, vec3 worldPosition
             // We update the emitterSample using the current hit and return the accumulated
             // transmittance which correspond to the transmittance for the found emitter.
             if (maxComponent(emission) > 0.0) {
-                /*uint emitterIndex = instance.emitterIndex;
+                if (p_visibility.primitiveId == emitterSample.faceIndex && instanceIndex == int(emitterSample.index)) {
+                    // we hit the same emitter we were testing visibility for
+                    // we can stop here
+                    break;
+                }
+                uint emitterIndex = instance.emitterIndex;
 
-                emitterSample = sampleEmitterAt(emitterIndex, p_visibility.primitiveId,
-                    p_visibility.barycentrics, worldPosition);
+                emitterSample = sampleEmitterAt(emitterIndex, p_visibility.primitiveId, p_visibility.barycentrics, worldPosition);
 
-                return transmittance;*/
-                
-                continue;
+                break;
             }
 
             float transmission = material.transmission;
@@ -205,9 +233,11 @@ vec3 evaluateTransmittance(inout EmitterSample emitterSample, vec3 worldPosition
             // Note: we multiply by albedo and not sqrt(albedo) because the second time
             //       we touch the same transmissive object (on exit - in the else branch) we do no operations.
             transmittance *= (1.0 - metalness) * (1.0 - roughness) * transmission * albedo;
+        }
 
-        } else {
-            currentSurfaceHitCount++;
+        // If the transmittance is too low, we can stop early
+        if (maxComponent(transmittance) <= FLT_EPSILON) {
+            return vec3(0.0);
         }
 
         // Prepare for the next segment of the ray

@@ -167,7 +167,7 @@ void directLighting(vec3 worldPosition) {
     
     sampleRandomEmitter(worldPosition, emitterSample);
 
-    if (emitterSample.pdf == 0 || emitterSample.radiance == vec3(0.0)) return;
+    if (emitterSample.radiance == vec3(0.0)) return;
 
     vec3 transmittance = evaluateTransmittance(emitterSample, worldPosition, p_pathTrace.mediumIndex);
 

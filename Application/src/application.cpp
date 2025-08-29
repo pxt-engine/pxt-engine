@@ -201,14 +201,14 @@ public:
 
         auto roofLightMaterial = Material::Builder()
             .setEmissiveMap(rm.get<Image>(TEXTURES_PATH + "white_pixel.png"))
-            .setEmissiveColor(glm::vec4{ 1.0f, 1.0f, 1.0f, 12.0f})
+            .setEmissiveColor(glm::vec4{ 1.0f, 1.0f, 1.0f, 7.0f})
             .build();
         rm.add(roofLightMaterial, "roof_light_material");
 
-        auto roofLightMesh = rm.get<Mesh>(MODELS_PATH + "cube.obj");
+        auto roofLightMesh = rm.get<Mesh>(MODELS_PATH + "sphere.obj");
 
         Entity entity = getScene().createEntity("lamp")
-            .add<TransformComponent>(glm::vec3{ 0.0f, -0.995f, 0.0f }, glm::vec3{ 0.25f, 0.01f, 0.25f }, glm::vec3{ glm::pi<float>(), 0.0, 0.0})
+            .add<TransformComponent>(glm::vec3{ 0.0f, -1.1f, 0.0f }, glm::vec3{ 0.25f, 0.25f, 0.25f }, glm::vec3{ glm::pi<float>(), 0.0, 0.0})
             .add<MeshComponent>(roofLightMesh)
             .add<MaterialComponent>(MaterialComponent::Builder()
                 .setMaterial(roofLightMaterial).build());
@@ -267,11 +267,11 @@ public:
 		prepareEnvironment();
         createCameraEntity();
         createFloor();
-        createTeapotAndVases();
-        createRubikCube();
+        //createTeapotAndVases();
+        //createRubikCube();
         //createLamp();
 		createRoofLight();
-        createPencilAndPen();
+        //createPencilAndPen();
         createLights();
 
         auto& rm = getResourceManager();
@@ -280,7 +280,8 @@ public:
         albedoInfo.format = RGBA8_SRGB;
 
         // create first volume
-		auto cubeModel = rm.get<Mesh>(MODELS_PATH + "cube.obj");
+		auto sphereModel = rm.get<Mesh>(MODELS_PATH + "sphere.obj");
+        auto cubeModel = rm.get<Mesh>(MODELS_PATH + "cube_hd.obj");
         
         auto glassMaterial = Material::Builder()
             .setAlbedoColor(glm::vec4(0.0f, 0.66f, 0.42f, 1.0f))
@@ -294,30 +295,30 @@ public:
         rm.add(glassMaterial, "glass_material1");
 
         auto volumeCubeEntity = getScene().createEntity("Volume Cube")
-            .add<TransformComponent>(glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3{ 0.0f }, glm::vec3{ 0.0f, 0.0f, 0.0f })
+            .add<TransformComponent>(glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3{ 0.5f }, glm::vec3{ 0.0f, 0.0f, 0.0f })
             .add<MeshComponent>(cubeModel)
             .add<VolumeComponent>(VolumeComponent::Builder()
-                .setAbsorption(glm::vec4{ 0.0f })
-                .setScattering(glm::vec4{ 5.0f })
-                .setPhaseFunctionG(-0.9f)
-                .build())
-            .add<MaterialComponent>(MaterialComponent::Builder()
-                .setMaterial(glassMaterial)
+                .setAbsorption(glm::vec4{ 2.0f })
+                .setScattering(glm::vec4{ 2.0f })
+                .setPhaseFunctionG(0.0f)
                 .build());
+            /*.add<MaterialComponent>(MaterialComponent::Builder()
+                .setMaterial(glassMaterial)
+                .build());*/
 
         
         auto emissiveMat = Material::Builder()
             .setEmissiveMap(rm.get<Image>(TEXTURES_PATH + "white_pixel.png"))
-            .setEmissiveColor(glm::vec4{ 1.0f, 1.0f, 1.0f, 40.0f })
+            .setEmissiveColor(glm::vec4{ 1.0f, 1.0f, 1.0f, 20.0f })
             .build();
         rm.add(emissiveMat, "emissive_mat");
 
-        auto emissiveCube = getScene().createEntity("Emissive Cube")
+        /*auto emissiveCube = getScene().createEntity("Emissive Cube")
             .add<TransformComponent>(glm::vec3{ 0.0f, 0.9f, 0.15f }, glm::vec3{ 0.02f }, glm::vec3{ 0.0f, 0.0f, 0.0f })
-            .add<MeshComponent>(cubeModel)
+            .add<MeshComponent>(sphereModel)
             .add<MaterialComponent>(MaterialComponent::Builder()
                 .setMaterial(emissiveMat)
-                .build());
+                .build());*/
 
         auto bunny = rm.get<Mesh>(MODELS_PATH + "bunny/bunny.obj");
         /*auto bunnyMaterial = Material::Builder()
@@ -340,7 +341,7 @@ public:
         
         /*Entity entity = getScene().createEntity("cube")
             .add<TransformComponent>(glm::vec3{ 0.0f, 0.7f, 0.0f }, glm::vec3{ 0.0f }, glm::vec3{ 0.0f, glm::pi<float>() / 4, 0.0f })
-            .add<MeshComponent>(cubeModel)
+            .add<MeshComponent>(sphereModel)
             .add<MaterialComponent>(MaterialComponent::Builder()
                 .setMaterial(glassMaterial)
                 .build());
@@ -348,14 +349,14 @@ public:
 
         /*entity = getScene().createEntity("cube2")
             .add<TransformComponent>(glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3{ 0.15f }, glm::vec3{ 0.0f, 0.0f, 0.0f })
-            .add<MeshComponent>(cubeModel)
+            .add<MeshComponent>(sphereModel)
             .add<MaterialComponent>(MaterialComponent::Builder()
                 .setMaterial(bunnyMaterial)
                 .setTint(glm::vec3(1.0, 0.812, 0.408))
                 .build());*/
 
         
-        auto entity = getScene().createEntity("Bunny")
+        /*auto entity = getScene().createEntity("Bunny")
             .add<TransformComponent>(glm::vec3{ 0.0f, 1.0f, 0.0f }, glm::vec3{ 2.5f, 2.5f, 2.5f }, glm::vec3{ glm::pi<float>(), 0.0f, 0.0f })
             .add<MeshComponent>(bunny)
             .add<VolumeComponent>(VolumeComponent::Builder()
@@ -366,7 +367,7 @@ public:
             .add<MaterialComponent>(MaterialComponent::Builder()
                 .setMaterial(glassMaterial)
                 .setTint(glm::vec4(0.0f, 0.66f, 0.42f, 1.0f))
-                .build());
+                .build());*/
     }
 
     
