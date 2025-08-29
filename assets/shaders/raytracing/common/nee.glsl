@@ -18,6 +18,7 @@ struct EmitterSample {
     float emitterCosTheta;
     float pdf;
     vec3 normalWorld;
+    uint index;
 };
 
 EmitterSample sampleEmitterAt(uint emitterIndex, uint faceIndex, vec2 barycentrics, vec3 worldPosition) {
@@ -25,8 +26,9 @@ EmitterSample sampleEmitterAt(uint emitterIndex, uint faceIndex, vec2 barycentri
     smpl.radiance = vec3(0.0);
     smpl.lightDistance = RAY_T_MAX;
     smpl.pdf = 0.0;
+    smpl.index = emitterIndex;
 
-    const Emitter emitter = emitters.e[emitterIndex];
+    const Emitter emitter = emitters.e[emitterIndex];  
     const MeshInstanceDescription instance = meshInstances.i[emitter.instanceIndex];
     const Material material = materials.m[instance.materialIndex];
 
@@ -54,15 +56,18 @@ EmitterSample sampleEmitterAt(uint emitterIndex, uint faceIndex, vec2 barycentri
 
     smpl.lightDistance = length(outLightVec);
 
-    const float areaWorld = calculateWorldSpaceTriangleArea(triangle, mat3(instance.objectToWorld));
+    const float area = calculateWorldSpaceTriangleArea(triangle, mat3(instance.objectToWorld));
 
-    if (areaWorld <= 0.0 || smpl.lightDistance <= 0) {
+    if (area <= 0.0 || smpl.lightDistance <= 0) {
         return smpl;
     }
 
     vec3 outLightDir = outLightVec / smpl.lightDistance;
 
-    smpl.emitterCosTheta = cosTheta(emitterNormal, outLightDir);
+    smpl.inLightDirWorld = -outLightDir;
+
+    smpl.emitterCosTheta = abs(cosTheta(emitterNormal, outLightDir));
+
     if (smpl.emitterCosTheta <= 0.0) {
         return smpl;
     }
@@ -70,8 +75,20 @@ EmitterSample sampleEmitterAt(uint emitterIndex, uint faceIndex, vec2 barycentri
     const uint numEmitters = uint(emitters.numEmitters);
     const uint totalSamplableEmitters = numEmitters + USE_SKY_AS_NEE_EMITTER;
 
-    smpl.inLightDirWorld = -outLightDir;
-    smpl.pdf = pow2(smpl.lightDistance) / (smpl.emitterCosTheta * areaWorld * totalSamplableEmitters * emitter.numberOfFaces);
+
+	// TODO: this assumes that all faces of the emitter have the same area
+	//       which is not true in general. We should precompute the total area
+	const float areaPdf = 1.0 / (area * emitter.numberOfFaces);
+
+    // Jacobian for PDF conversion from area to solid angle
+    const float jacobian = pow2(smpl.lightDistance) / smpl.emitterCosTheta;
+
+
+	smpl.pdf = jacobian * areaPdf;
+
+    // Since we sample a single emitter we need to divide by the number of samplable emitters
+    // to account for the probability of having chosen this emitter.
+    smpl.pdf /= totalSamplableEmitters;
 
     return smpl;
 }
@@ -91,7 +108,7 @@ vec3 evaluateTransmittance(inout EmitterSample emitterSample, vec3 worldPosition
     // we also need to know how many times we hit the same surface
     int currentSurfaceHitCount = 0;
 
-    float tMax = max(0.0, emitterSample.lightDistance - FLT_EPSILON);
+    float tMax = max(0.0, emitterSample.lightDistance);
 
     int depth;
     for (depth = 0; depth < NEE_MAX_BOUNCES; depth++) {
@@ -110,12 +127,14 @@ vec3 evaluateTransmittance(inout EmitterSample emitterSample, vec3 worldPosition
         );
 
         int instanceIndex = p_visibility.instance;
-        if (instanceIndex == -1) {
+        const MeshInstanceDescription instance = meshInstances.i[instanceIndex];
+
+        if (instanceIndex == -1 || instance.materialIndex == emitterSample.index) {
             // There are no more objects in between the point and the light source
             break;
         }
 
-        const MeshInstanceDescription instance = meshInstances.i[instanceIndex];
+        
 
         bool isInsideSurface = currentSurfaceHitCount % 2 == 1; // I dont know if (bool)intValue conversion is the same
         bool isInMedium = currentMediumIndex != -1 && isInsideSurface;
@@ -128,6 +147,7 @@ vec3 evaluateTransmittance(inout EmitterSample emitterSample, vec3 worldPosition
             vec3 sigma_t = volume.absorption.rgb + volume.scattering.rgb;
             if (maxComponent(sigma_t) > 0.0) {
                 // TODO: support for heterogeneous media
+
                 // Beer-Lambert law for transmittance
                 transmittance *= exp(-sigma_t * p_visibility.hitDistance);
             }
@@ -158,12 +178,14 @@ vec3 evaluateTransmittance(inout EmitterSample emitterSample, vec3 worldPosition
             // We update the emitterSample using the current hit and return the accumulated
             // transmittance which correspond to the transmittance for the found emitter.
             if (maxComponent(emission) > 0.0) {
-				uint emitterIndex = instance.emitterIndex;
+                /*uint emitterIndex = instance.emitterIndex;
 
-				emitterSample = sampleEmitterAt(emitterIndex, p_visibility.primitiveId,
-                                                p_visibility.barycentrics, worldPosition);
+                emitterSample = sampleEmitterAt(emitterIndex, p_visibility.primitiveId,
+                    p_visibility.barycentrics, worldPosition);
 
-                return transmittance;
+                return transmittance;*/
+                
+                continue;
             }
 
             float transmission = material.transmission;
