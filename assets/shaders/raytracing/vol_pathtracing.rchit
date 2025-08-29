@@ -47,11 +47,9 @@ void directLighting(SurfaceData surface, vec3 worldPosition, vec3 outLightDir) {
     
     sampleRandomEmitter(surface.tbn, worldPosition, emitterSample, p_pathTrace);
 
-    if (emitterSample.pdf == 0 || emitterSample.radiance == vec3(0.0)) return;
+    if (emitterSample.radiance == vec3(0.0)) return;
 
-    vec3 transmittance = vec3(1.0); //evaluateTransmittance(emitterSample, worldPosition, p_pathTrace.mediumIndex);
-
-    emitterSample.radiance *= transmittance;
+    vec3 transmittance = evaluateTransmittance(emitterSample, worldPosition, p_pathTrace.mediumIndex);
 
     if (emitterSample.pdf == 0 || emitterSample.radiance == vec3(0.0)) return;
 
@@ -63,19 +61,12 @@ void directLighting(SurfaceData surface, vec3 worldPosition, vec3 outLightDir) {
     float bsdfPdfSolidAngle;
 
     const vec3 bsdf = evaluateBSDF(surface, outLightDir, inLightDirTangent, halfVector, bsdfPdfSolidAngle);
-    
-    // Jacobian for PDF conversion from solid angle to area
-    const float G_term = emitterSample.emitterCosTheta / pow2(emitterSample.lightDistance);
-
-    // Convert the BSDF PDF from solid angle to area so it can be used in MIS with the NEE pdf
-    // that is already in area units.
-    const float bsdfPdfarea = bsdfPdfSolidAngle * G_term;
             
     const vec3 contribution = (emitterSample.radiance * bsdf * receiverCos) / emitterSample.pdf;        
 
-    const float weight = powerHeuristic(emitterSample.pdf, bsdfPdfarea);
+    const float weight = powerHeuristic(emitterSample.pdf, bsdfPdfSolidAngle);
 
-    p_pathTrace.radiance += contribution * p_pathTrace.throughput * weight;  
+    p_pathTrace.radiance += contribution * p_pathTrace.throughput * transmittance * weight;  
 }
 
 /**
@@ -179,16 +170,10 @@ void main() {
             EmitterSample emitterSample;
             sampleEmitter(emitterIndex, prevBouncePos, emitterSample, p_pathTrace.seed);
 
-            // Jacobian for PDF conversion from solid angle to area
-            const float G_term = emitterSample.emitterCosTheta / pow2(emitterSample.lightDistance);
-
-            // Convert the BSDF PDF from solid angle to area so it can be used in MIS
-            const float bsdfPdfarea = p_pathTrace.pdf * G_term;
-
             float misWeight = 1.0;
 
             if (p_pathTrace.pdf > FLT_EPSILON) {
-                misWeight = powerHeuristic(bsdfPdfarea, emitterSample.pdf);
+                misWeight = powerHeuristic(p_pathTrace.pdf, emitterSample.pdf);
             }
 
             p_pathTrace.radiance += emission * p_pathTrace.throughput * misWeight;
@@ -209,7 +194,6 @@ void main() {
 
     // Calculate the probabilities for the surface properties for the bsdf
     calculateProbabilities(surface, outgoingLightDirection);
-
 
     directLighting(surface, worldPosition, outgoingLightDirection);
 

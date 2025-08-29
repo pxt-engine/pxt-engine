@@ -185,20 +185,13 @@ void directLighting(vec3 worldPosition) {
 
     // Then evaluate the phase function PDF value (prob of choosing that direction)
     HGPdfSolidAngle = evalHenyeyGreenstein(cosTheta, phaseFunctionG);
-
-    // Jacobian for PDF conversion from solid angle to area
-    const float G_term = emitterSample.emitterCosTheta / pow2(emitterSample.lightDistance);
-
-    // Convert the BSDF PDF from solid angle to area so it can be used in MIS with the NEE pdf
-    // that is already in area units.
-    const float HGPdfarea = HGPdfSolidAngle * G_term;
             
     // here contribution already takes into account the transmittance of THIS volume and
     // any other volumes between the point and the emitter. There is no BSDF to calculate
     // since we are not on a surface.
     const vec3 contribution = (emitterSample.radiance) / emitterSample.pdf;        
 
-    const float weight = powerHeuristic(emitterSample.pdf, HGPdfarea);
+    const float weight = powerHeuristic(emitterSample.pdf, HGPdfSolidAngle);
 
     p_pathTrace.radiance += contribution * p_pathTrace.throughput * weight;
 }
@@ -330,10 +323,7 @@ void main()
                         float cosTheta = dot(p_pathTrace.direction, newDirection);
 
                         // Then evaluate the phase function PDF value (prob of choosing that direction)
-                        p_pathTrace.pdf = evalHenyeyGreenstein(cosTheta, phaseFunctionG);
-
-                        // TODO: implement multiple importance sampling for multiple scattering volumes
-                        // https://graphics.pixar.com/library/ProductionVolumeRendering/paper.pdf (section 4.2)   
+                        p_pathTrace.pdf = evalHenyeyGreenstein(cosTheta, phaseFunctionG); 
 
                         // NEE for volumes
                         directLighting(p_pathTrace.origin);
