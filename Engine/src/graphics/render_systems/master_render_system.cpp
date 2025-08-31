@@ -387,6 +387,9 @@ namespace PXTEngine {
 		// update shadow map
 		m_shadowMapRenderSystem->update(frameInfo, ubo);
 
+		// update material descriptor set
+		m_materialRegistry.updateDescriptorSet(frameInfo.frameIndex);
+
 		// update raytracing scene
 		if (m_isRaytracingEnabled) {
 			m_denoiserRenderSystem->update(ubo);

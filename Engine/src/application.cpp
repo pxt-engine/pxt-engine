@@ -44,7 +44,9 @@ namespace PXTEngine {
 
 		// create the descriptor sets for the materials
 		m_materialRegistry.setDescriptorAllocator(m_descriptorAllocator);
-		m_materialRegistry.createDescriptorSet();
+		m_materialRegistry.createDescriptorSets();
+		// materials descriptor set will be updated every frame
+        // in the master render system update method
 
 		// create descriptor set for skybox
         if (m_scene.getEnvironment()->getSkybox()) {

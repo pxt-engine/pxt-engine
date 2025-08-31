@@ -1,18 +1,12 @@
 #include "graphics/render_systems/raytracing_render_system.hpp"
 
 namespace PXTEngine {
-	struct RayTracingPushConstantData {
+	struct  alignas(16)RayTracingPushConstantData {
 		uint32_t noiseType = 0;
 		uint32_t blueNoiseTextureCount = 0; // Number of blue noise textures available
 		uint32_t blueNoiseTextureSize = 0;  // Size of each blue noise texture (assumed square)
 		VkBool32 selectSingleTextures = VK_FALSE;  // Whether to select single textures or use
 									    // different blue noise textures every frame
-
-		float metalness;
-		float roughness;
-		float transmission;
-		float ior;
-		glm::vec4 albedo;
 
 		uint32_t blueNoiseDebugIndex = 0; // Index of the blue noise texture to use in case selectSingleTextures is true
 	};
@@ -367,14 +361,14 @@ namespace PXTEngine {
 
 		std::array<VkDescriptorSet, 10> descriptorSets = { 
 			frameInfo.globalDescriptorSet, 
-			m_rtSceneManager.getTLASDescriptorSet(), 
+			m_rtSceneManager.getTLASDescriptorSet(frameInfo.frameIndex), 
 			m_textureRegistry.getDescriptorSet(),
 			m_storageImageDescriptorSet,
-			m_materialRegistry.getDescriptorSet(),
+			m_materialRegistry.getDescriptorSet(frameInfo.frameIndex),
 			m_skybox->getDescriptorSet(),
-			m_rtSceneManager.getMeshInstanceDescriptorSet(),
-			m_rtSceneManager.getEmittersDescriptorSet(),
-			m_rtSceneManager.getVolumeDescriptorSet(),
+			m_rtSceneManager.getMeshInstanceDescriptorSet(frameInfo.frameIndex),
+			m_rtSceneManager.getEmittersDescriptorSet(frameInfo.frameIndex),
+			m_rtSceneManager.getVolumeDescriptorSet(frameInfo.frameIndex),
 			m_blueNoiseDescriptorSet
 		};
 	
@@ -396,12 +390,6 @@ namespace PXTEngine {
 		pushConstants.blueNoiseTextureSize = BLUE_NOISE_TEXTURE_SIZE;
 		pushConstants.selectSingleTextures = m_selectSingleBlueNoiseTextures;
 		pushConstants.blueNoiseDebugIndex = m_blueNoiseDebugIndex;
-
-		pushConstants.metalness = m_metalness;
-		pushConstants.roughness = m_roughness;
-		pushConstants.transmission = m_transmission;
-		pushConstants.ior = m_ior;
-		pushConstants.albedo = m_albedo;
 
 		vkCmdPushConstants(
 			frameInfo.commandBuffer,
@@ -451,12 +439,5 @@ namespace PXTEngine {
 				ImGui::InputInt(inputMessage.c_str(), reinterpret_cast<int*>(&m_blueNoiseDebugIndex));
 			}
 		}
-
-		ImGui::SeparatorText("Material Properties Debug (applied to id = 0 object)");
-		ImGui::SliderFloat("Metalness", &m_metalness, 0.0f, 1.0f, "%.5f");
-		ImGui::SliderFloat("Roughness", &m_roughness, 0.0001f, 1.0f, "%.5f");
-		ImGui::SliderFloat("Transmission", &m_transmission, 0.0f, 1.0f);
-		ImGui::SliderFloat("Ior", &m_ior, 1.0f, 3.0f, "%.5f");
-		ImGui::ColorEdit3("Albedo", &m_albedo.x, ImGuiColorEditFlags_Float);
 	}
 }

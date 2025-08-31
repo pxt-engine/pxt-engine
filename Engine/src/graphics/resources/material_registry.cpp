@@ -4,7 +4,7 @@ namespace PXTEngine {
 
 	MaterialRegistry::MaterialRegistry(Context& context, TextureRegistry& textureRegistry)
 		: m_context(context), m_textureRegistry(textureRegistry) {
-		m_materialDescriptorSet = VK_NULL_HANDLE;
+		std::fill(m_materialDescriptorSets.begin(), m_materialDescriptorSets.end(), VK_NULL_HANDLE);
 		m_materialDescriptorSetLayout = nullptr;
 		m_descriptorAllocator = nullptr;
 	}
@@ -25,15 +25,15 @@ namespace PXTEngine {
 		return it != m_idToIndex.end() ? it->second : 0;
 	}
 
-	VkDescriptorSet MaterialRegistry::getDescriptorSet() {
-		return m_materialDescriptorSet;
+	VkDescriptorSet MaterialRegistry::getDescriptorSet(int frameIndex) {
+		return m_materialDescriptorSets[frameIndex];
 	}
 
 	VkDescriptorSetLayout MaterialRegistry::getDescriptorSetLayout() {
 		return m_materialDescriptorSetLayout->getDescriptorSetLayout();
 	}
 
-	void MaterialRegistry::createDescriptorSet() {
+	void MaterialRegistry::createDescriptorSets() {
 		m_materialDescriptorSetLayout = DescriptorSetLayout::Builder(m_context)
 			.addBinding(0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 
 				VK_SHADER_STAGE_FRAGMENT_BIT |
@@ -42,6 +42,15 @@ namespace PXTEngine {
 				1)
 			.build();
 
+		for (int i = 0; i < SwapChain::MAX_FRAMES_IN_FLIGHT; i++) {
+			m_descriptorAllocator->allocate(
+				m_materialDescriptorSetLayout->getDescriptorSetLayout(),
+				m_materialDescriptorSets[i]
+			);
+		}
+	}
+
+	void MaterialRegistry::updateDescriptorSet(int frameIndex) {
 		std::vector<MaterialData> materialsData;
 		for (const auto& material : m_materials) {
 			materialsData.push_back(getMaterialData(material));
@@ -60,7 +69,7 @@ namespace PXTEngine {
 		stagingBuffer->writeToBuffer(materialsData.data(), bufferSize);
 		stagingBuffer->unmap();
 
-		m_materialsGpuBuffer = createUnique<VulkanBuffer>(
+		m_materialsGpuBuffers[frameIndex] = createUnique<VulkanBuffer>(
 			m_context,
 			bufferSize,
 			1,
@@ -68,18 +77,13 @@ namespace PXTEngine {
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
 		);
 
-		m_context.copyBuffer(stagingBuffer->getBuffer(), m_materialsGpuBuffer->getBuffer(), bufferSize);
+		m_context.copyBuffer(stagingBuffer->getBuffer(), m_materialsGpuBuffers[frameIndex]->getBuffer(), bufferSize);
 
-		auto bufferInfo = m_materialsGpuBuffer->descriptorInfo();
-
-		m_descriptorAllocator->allocate(
-			m_materialDescriptorSetLayout->getDescriptorSetLayout(),
-			m_materialDescriptorSet
-		);
+		auto bufferInfo = m_materialsGpuBuffers[frameIndex]->descriptorInfo();
 
 		DescriptorWriter(m_context, *m_materialDescriptorSetLayout)
 			.writeBuffer(0, &bufferInfo)
-			.updateSet(m_materialDescriptorSet);
+			.updateSet(m_materialDescriptorSets[frameIndex]);
 	}
 
 	MaterialData MaterialRegistry::getMaterialData(Shared<Material> material) {

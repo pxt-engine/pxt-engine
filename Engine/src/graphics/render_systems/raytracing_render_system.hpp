@@ -77,13 +77,6 @@ namespace PXTEngine {
 		uint32_t m_blueNoiseDebugIndex = 0; // Index of the blue noise texture to use
 		VkBool32 m_selectSingleBlueNoiseTextures = VK_FALSE; // Whether to select single textures or use different blue noise textures every frame
 
-		// temporary for UI
-		float m_metalness = 0.0;
-		float m_roughness = 0.0001;
-		float m_transmission = 0.99;
-		float m_ior = 1.5;
-		glm::vec4 m_albedo = glm::vec4(1.0);
-
 		const std::vector<ShaderGroupInfo> SHADER_GROUPS_PT = {
 				// General RayGen Group
 				{
