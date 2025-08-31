@@ -80,7 +80,15 @@ namespace PXTEngine {
 		float getTransmission() const;
 		float getIndexOfRefraction() const;
 
+        /*void setMetallic(float metallic) { m_metallic = metallic; }
+		void setRoughness(float roughness) { m_roughness = roughness; }
+		void setEmissiveColor(const glm::vec4& color) { m_emissiveColor = color; }
+		void setTransmission(float transmission) { m_transmission = transmission; }
+		void setIndexOfRefraction(float ior) { m_ior = ior; }*/
+
         bool isEmissive();
+
+        void drawMaterialUi();
 
     protected:
         glm::vec4 m_albedoColor{ 1.0f };

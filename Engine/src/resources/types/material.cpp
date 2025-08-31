@@ -146,4 +146,49 @@ namespace PXTEngine {
 			m_ior
         );
     }
+
+	// -------- UI --------
+    void Material::drawMaterialUi() {
+        ImGui::DragFloat("Metallic", &m_metallic, 0.01f, 0.0f, 1.0f);
+        ImGui::DragFloat("Roughness", &m_roughness, 0.01f, 0.0f, 1.0f);
+
+        if (ImGui::TreeNode("Textures (Work in progress)")) {
+            // TODO: handle texture window on selection
+            // either we modify imgui backend to support bindless access
+			// or we create a descriptor set per material (i dont like this one)
+
+			if (m_albedoMap) {
+				ImGui::Text("Albedo Map is set (id: %s, alias: %s)",
+					m_albedoMap->id.toString().c_str(), m_albedoMap->alias.c_str());
+			}
+
+			if (m_normalMap) {
+				ImGui::Text("Normal Map is set (id: %s, alias: %s)",
+					m_normalMap->id.toString().c_str(), m_normalMap->alias.c_str());
+			}
+
+			if (m_metallicMap) {
+				ImGui::Text("Metallic Map is set (id: %s, alias: %s)",
+					m_metallicMap->id.toString().c_str(), m_metallicMap->alias.c_str());
+			}
+
+			if (m_roughnessMap) {
+				ImGui::Text("Roughness Map is set (id: %s, alias: %s)",
+					m_roughnessMap->id.toString().c_str(), m_roughnessMap->alias.c_str());
+			}
+
+            if (m_emissiveMap) {
+                ImGui::Text("Emissive Map is set (id: %s, alias: %s)",
+                    m_emissiveMap->id.toString().c_str(), m_emissiveMap->alias.c_str());
+            }
+
+			ImGui::TreePop();
+        }
+
+		ImGui::ColorEdit3("Emissive Color", glm::value_ptr(m_emissiveColor));
+		ImGui::DragFloat("Emissive Intensity", &m_emissiveColor.a, 0.01f, 0.0f, 100.0f);
+
+		ImGui::DragFloat("Transmission", &m_transmission, 0.01f, 0.0f, 1.0f);
+		ImGui::DragFloat("Index of Refraction", &m_ior, 0.01f, 1.0f, 3.0f);
+    }
 }

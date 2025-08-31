@@ -4,6 +4,8 @@ namespace PXTEngine {
 
 	UiRenderSystem::UiRenderSystem(Context& context, VkRenderPass renderPass) : m_context(context) {
 		initImGui(renderPass);
+
+		registerComponents();
 	}
 
 	UiRenderSystem::~UiRenderSystem() {
@@ -92,8 +94,49 @@ namespace PXTEngine {
 		return descriptorSet;
 	}
 
+	void UiRenderSystem::drawSceneEntityList(Scene& scene)
+	{
+		ImGui::Begin("Scene Entities");
+		if (ImGui::Button("Add Entity")) {
+			scene.createEntity("New Entity");
+		}
+		ImGui::Separator();
+
+		// draw all entities in the scene
+		auto view = scene.getEntitiesWith<IDComponent, NameComponent>();
+		for (auto entityHandle : view) {
+			const auto& [idComponent, nameComponent] = view.get<IDComponent, NameComponent>(entityHandle);
+
+			bool selected = (m_selectedEntityID == idComponent.uuid);
+			if (ImGui::Selectable(nameComponent.name.c_str(), selected)) {
+				m_selectedEntityID = idComponent.uuid;
+				isAnEntitySelected = true;
+			}
+		}
+		ImGui::End();
+	}
+
+	void UiRenderSystem::drawEntityInspector(Scene& scene) {
+		ImGui::Begin("Entity Inspector");
+		if (isAnEntitySelected) {
+			Entity entity = scene.getEntity(m_selectedEntityID);
+
+			if (entity) {
+				// draw registered components
+				for (auto& info : m_componentUiRegistry) {
+					info.drawer(entity);
+				}
+			}
+		}
+		else {
+			ImGui::Text("No entity selected");
+		}
+
+		ImGui::End();
+	}
+
 	void UiRenderSystem::render(FrameInfo& frameInfo) {
-		buildUi();
+		buildUi(frameInfo.scene);
 
 		ImGui::Render();
 		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), frameInfo.commandBuffer);
@@ -124,8 +167,109 @@ namespace PXTEngine {
 		ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport(), ImGuiDockNodeFlags_PassthruCentralNode);
 	}
 
-	void UiRenderSystem::buildUi() {
-		// TODO: add ImGui windows
+	void UiRenderSystem::buildUi(Scene& scene) {
+		drawSceneEntityList(scene);
+		drawEntityInspector(scene);
+
 		ImGui::ShowMetricsWindow();
+	}
+
+	void UiRenderSystem::registerComponents() {
+		// IDComponent
+		RegisterComponent<IDComponent>("IDComponent", [](auto& c) {
+			ImGui::Text("UUID: %s", c.uuid.toString().c_str());
+		});
+
+		// NameComponent
+		RegisterComponent<NameComponent>("NameComponent", [](auto& c) {
+			char buffer[25];
+			memset(buffer, 0, sizeof(buffer));
+			strncpy(buffer, c.name.c_str(), sizeof(buffer) - 1);
+			if (ImGui::InputText("Name (max 25 chars)", buffer, sizeof(buffer))) {
+				c.name = buffer;
+			}
+		});
+
+		// ColorComponent
+		RegisterComponent<ColorComponent>("ColorComponent", [](auto& c) {
+			ImGui::ColorEdit3("Color", glm::value_ptr(c.color));
+		});
+
+		// VolumeComponent
+		RegisterComponent<VolumeComponent>("VolumeComponent", [](auto& c) {
+			ImGui::ColorEdit3("Absorption", glm::value_ptr(c.volume.absorption));
+			ImGui::ColorEdit3("Scattering", glm::value_ptr(c.volume.scattering));
+			ImGui::DragFloat("PhaseFunctionG", &c.volume.phaseFunctionG, 0.001f, -1.0f, 1.0f);
+			ImGui::SeparatorText("Density Texture");
+			if (c.volume.densityTextureId == std::numeric_limits<uint32_t>::max()) {
+				ImGui::Text("Not selected");
+			}
+			else {
+				ImGui::Text("Texture ID: %u", c.volume.densityTextureId);
+			}
+
+			ImGui::SeparatorText("Detail Texture");
+			if (c.volume.detailTextureId == std::numeric_limits<uint32_t>::max()) {
+				ImGui::Text("Not selected");
+			}
+			else {
+				ImGui::Text("Texture ID: %u", c.volume.detailTextureId);
+			}
+		});
+
+		// MaterialComponent
+		RegisterComponent<MaterialComponent>("MaterialComponent", [](auto& c) {
+			if (c.material) {
+				ImGui::Text("Material: %s", c.material->alias.c_str());
+				c.material->drawMaterialUi();
+			}
+			else {
+				ImGui::Text("No Material assigned");
+			}
+
+			ImGui::DragFloat("Texture Tiling Factor", &c.tilingFactor, 0.1f, 0.0f, 100.0f);
+			ImGui::ColorEdit3("Tint", glm::value_ptr(c.tint));
+		});
+
+		// Transform2dComponent
+		RegisterComponent<Transform2dComponent>("Transform2dComponent", [](auto& c) {
+			ImGui::DragFloat2("Translation", glm::value_ptr(c.translation), 0.01f);
+			ImGui::DragFloat2("Scale", glm::value_ptr(c.scale), 0.01f);
+			ImGui::DragFloat("Rotation", &c.rotation, 0.01f, -360.0f, 360.0f);
+		});
+
+		// TransformComponent
+		RegisterComponent<TransformComponent>("TransformComponent", [](auto& c) {
+			ImGui::DragFloat3("Translation", glm::value_ptr(c.translation), 0.01f);
+			ImGui::DragFloat3("Scale", glm::value_ptr(c.scale), 0.01f);
+			ImGui::DragFloat3("Rotation", glm::value_ptr(c.rotation), 0.01f);
+		});
+
+		// MeshComponent
+		RegisterComponent<MeshComponent>("MeshComponent", [](MeshComponent& c) {
+			ImGui::Text("Mesh name: %s", c.mesh->alias.c_str());
+		});
+
+		// ScriptComponent
+		RegisterComponent<ScriptComponent>("ScriptComponent", [](ScriptComponent& c) {
+			if (c.script) {
+				ImGui::Text("Script instance: %p", c.script);
+			}
+			else {
+				ImGui::Text("No script bound.");
+			}
+		});
+
+		// CameraComponent
+		RegisterComponent<CameraComponent>("CameraComponent", [](CameraComponent& c) {
+			ImGui::BeginDisabled(true); //TODO: remove when we can choose which camera to use
+			ImGui::Checkbox("Main Camera", &c.isMainCamera);
+			ImGui::EndDisabled();
+		});
+
+		// PointLightComponent
+		RegisterComponent<PointLightComponent>("PointLightComponent", [](PointLightComponent& c) {
+			ImGui::DragFloat("Intensity", &c.lightIntensity, 0.1f, 0.0f, 10.0f);
+		});
 	}
 }
