@@ -137,7 +137,7 @@ public:
         entity.addAndGet<MaterialComponent>(MaterialComponent::Builder()
             .setMaterial(metallicMaterial).build()).tint = glm::vec3(0.737, 0.776, 0.8);
 
-        entity = getScene().createEntity("vase")
+        entity = getScene().createEntity("vase2")
             .add<TransformComponent>(glm::vec3{ -0.65f, 0.99f, 0.4f }, glm::vec3{ 1.8f, 1.4f, 1.8f }, glm::vec3{ 0.0f, 0.0f, 0.0f })
             .add<MeshComponent>(vaseMesh);
         entity.addAndGet<MaterialComponent>(MaterialComponent::Builder()
@@ -207,7 +207,7 @@ public:
 
         auto roofLightMesh = rm.get<Mesh>(MODELS_PATH + "sphere.obj");
 
-        Entity entity = getScene().createEntity("lamp")
+        Entity entity = getScene().createEntity("roofLight")
             .add<TransformComponent>(glm::vec3{ 0.0f, -1.1f, 0.0f }, glm::vec3{ 0.25f, 0.25f, 0.25f }, glm::vec3{ glm::pi<float>(), 0.0, 0.0})
             .add<MeshComponent>(roofLightMesh)
             .add<MaterialComponent>(MaterialComponent::Builder()
@@ -347,7 +347,7 @@ public:
             .build();
 		rm.add(bunnyMaterial, "bunny_material");
         
-        /*Entity entity = getScene().createEntity("cube")
+        /*Entity entity = getScene().createEntity("glass cube")
             .add<TransformComponent>(glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3{ 0.1f }, glm::vec3{ 0.0f, glm::pi<float>() / 4, 0.0f })
             .add<MeshComponent>(cubeModel)
             .add<MaterialComponent>(MaterialComponent::Builder()
