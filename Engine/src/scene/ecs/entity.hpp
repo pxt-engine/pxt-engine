@@ -12,7 +12,7 @@ namespace PXTEngine {
         Entity(entt::entity entity, Scene* scene) : m_enttEntity(entity), m_scene(scene) {}
 
         operator entt::entity() const { return m_enttEntity; }
-        operator bool() const { return m_enttEntity != entt::null; }
+        operator bool() const { return m_scene->m_registry.valid(m_enttEntity); }
 
         /**
          * @brief Check if entity has a component
