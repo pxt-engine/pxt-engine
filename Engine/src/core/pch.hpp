@@ -52,6 +52,7 @@
 #include <glm/gtx/hash.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/constants.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 // Vulkan Headers - For using the Vulkan API, a low-level graphics API
 #include <vulkan/vulkan.h>
