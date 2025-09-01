@@ -2,26 +2,26 @@
 
 namespace PXTEngine {
 
-    void Camera::setOrthographic(float left, float right, float top, float bottom, float zNear, float zFar) {
+    void Camera::setOrthographic() {
         m_projectionMatrix = glm::mat4{1.0f};
-        m_projectionMatrix[0][0] = 2.f / (right - left);
-        m_projectionMatrix[1][1] = 2.f / (bottom - top);
-        m_projectionMatrix[2][2] = 1.f / (zFar - zNear);
-        m_projectionMatrix[3][0] = -(right + left) / (right - left);
-        m_projectionMatrix[3][1] = -(bottom + top) / (bottom - top);
-        m_projectionMatrix[3][2] = -zNear / (zFar - zNear);
+        m_projectionMatrix[0][0] = 2.f / (m_orthoParams[ORTHO_RIGHT] - m_orthoParams[ORTHO_LEFT]);
+        m_projectionMatrix[1][1] = 2.f / (m_orthoParams[ORTHO_BOTTOM] - m_orthoParams[ORTHO_TOP]);
+        m_projectionMatrix[2][2] = 1.f / (m_zFar - m_zNear);
+        m_projectionMatrix[3][0] = -(m_orthoParams[ORTHO_RIGHT] + m_orthoParams[ORTHO_LEFT]) / (m_orthoParams[ORTHO_RIGHT] - m_orthoParams[ORTHO_LEFT]);
+        m_projectionMatrix[3][1] = -(m_orthoParams[ORTHO_BOTTOM] + m_orthoParams[ORTHO_TOP]) / (m_orthoParams[ORTHO_BOTTOM] - m_orthoParams[ORTHO_TOP]);
+        m_projectionMatrix[3][2] = -m_zNear / (m_zFar - m_zNear);
     }
 
-    void Camera::setPerspective(float fovY, float aspect, float zNear, float zFar) {
+    void Camera::setPerspective(float aspect) {
         PXT_ASSERT(glm::abs(aspect - std::numeric_limits<float>::epsilon()) > 0.0f);
 
-        const float tanHalfFovy = tan(fovY / 2.f);
+        const float tanHalfFovy = tan(glm::radians(m_fovYDegrees) / 2.f);
         m_projectionMatrix = glm::mat4{0.0f};
         m_projectionMatrix[0][0] = 1.f / (aspect * tanHalfFovy);
         m_projectionMatrix[1][1] = 1.f / (tanHalfFovy);
-        m_projectionMatrix[2][2] = zFar / (zFar - zNear);
+        m_projectionMatrix[2][2] = m_zFar / (m_zFar - m_zNear);
         m_projectionMatrix[2][3] = 1.f;
-        m_projectionMatrix[3][2] = -(zFar * zNear) / (zFar - zNear);
+        m_projectionMatrix[3][2] = -(m_zFar * m_zNear) / (m_zFar - m_zNear);
     }
 
     void Camera::setViewDirection(glm::vec3 position, glm::vec3 direction, glm::vec3 up) {
@@ -80,6 +80,20 @@ namespace PXTEngine {
         m_inverseViewMatrix[3][0] = position.x;
         m_inverseViewMatrix[3][1] = position.y;
         m_inverseViewMatrix[3][2] = position.z;
+    }
+
+
+    void Camera::drawCameraUi() {
+        ImGui::Checkbox("Perspective View", &m_isPerspective);
+        if (m_isPerspective) {
+            ImGui::SliderFloat("Vertical FOV (degrees)", &m_fovYDegrees, 1.0f, 120.0f);
+		}
+		else {
+			ImGui::DragFloat4("Ortho Params (left, right, top, bottom)", glm::value_ptr(m_orthoParams), 0.1f);
+		}
+
+		ImGui::SliderFloat("Near Plane", &m_zNear, 0.01f, m_zFar - 0.01f);
+		ImGui::SliderFloat("Far Plane", &m_zFar, m_zNear + 0.01f, 1000.0f);
     }
 
 }

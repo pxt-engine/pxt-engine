@@ -199,7 +199,7 @@ namespace PXTEngine {
 		RegisterComponent<VolumeComponent>("VolumeComponent", [](auto& c) {
 			ImGui::ColorEdit3("Absorption", glm::value_ptr(c.volume.absorption));
 			ImGui::ColorEdit3("Scattering", glm::value_ptr(c.volume.scattering));
-			ImGui::DragFloat("PhaseFunctionG", &c.volume.phaseFunctionG, 0.001f, -1.0f, 1.0f);
+			ImGui::SliderFloat("PhaseFunctionG", &c.volume.phaseFunctionG, -1.0f, 1.0f, "%.2f");
 			ImGui::SeparatorText("Density Texture");
 			if (c.volume.densityTextureId == std::numeric_limits<uint32_t>::max()) {
 				ImGui::Text("Not selected");
@@ -227,7 +227,7 @@ namespace PXTEngine {
 				ImGui::Text("No Material assigned");
 			}
 
-			ImGui::DragFloat("Texture Tiling Factor", &c.tilingFactor, 0.1f, 0.0f, 100.0f);
+			ImGui::SliderFloat("Texture Tiling Factor", &c.tilingFactor, 0.0f, 25.0f);
 			ImGui::ColorEdit3("Tint", glm::value_ptr(c.tint));
 		});
 
@@ -265,6 +265,8 @@ namespace PXTEngine {
 			ImGui::BeginDisabled(true); //TODO: remove when we can choose which camera to use
 			ImGui::Checkbox("Main Camera", &c.isMainCamera);
 			ImGui::EndDisabled();
+
+			c.camera.drawCameraUi();
 		});
 
 		// PointLightComponent

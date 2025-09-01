@@ -149,8 +149,8 @@ namespace PXTEngine {
 
 	// -------- UI --------
     void Material::drawMaterialUi() {
-        ImGui::DragFloat("Metallic", &m_metallic, 0.01f, 0.0f, 1.0f);
-        ImGui::DragFloat("Roughness", &m_roughness, 0.01f, 0.0f, 1.0f);
+        ImGui::SliderFloat("Metallic", &m_metallic, 0.0f, 1.0f);
+        ImGui::SliderFloat("Roughness", &m_roughness, 0.0f, 1.0f);
 
         if (ImGui::TreeNode("Textures (Work in progress)")) {
             // TODO: handle texture window on selection
@@ -186,9 +186,9 @@ namespace PXTEngine {
         }
 
 		ImGui::ColorEdit3("Emissive Color", glm::value_ptr(m_emissiveColor));
-		ImGui::DragFloat("Emissive Intensity", &m_emissiveColor.a, 0.01f, 0.0f, 100.0f);
+		ImGui::SliderFloat("Emissive Intensity", &m_emissiveColor.a, 0.0f, 100.0f);
 
-		ImGui::DragFloat("Transmission", &m_transmission, 0.01f, 0.0f, 1.0f);
-		ImGui::DragFloat("Index of Refraction", &m_ior, 0.01f, 1.0f, 3.0f);
+		ImGui::SliderFloat("Transmission", &m_transmission, 0.0f, 1.0f);
+		ImGui::SliderFloat("Index of Refraction", &m_ior, 1.0f, 3.0f);
     }
 }

@@ -153,7 +153,7 @@ namespace PXTEngine {
 			.setRoughness(0.0f)
             //.setMetallicMap(m_resourceManager.get<Image>(BLACK_PIXEL_LINEAR))
             //.setRoughnessMap(m_resourceManager.get<Image>(GRAY_PIXEL_LINEAR))
-            .setEmissiveMap(m_resourceManager.get<Image>(BLACK_PIXEL_LINEAR))
+            .setEmissiveMap(m_resourceManager.get<Image>(WHITE_PIXEL_LINEAR))
             .setTransmission(0.0f)
             .setIndexOfRefraction(1.3f)
             .build();
@@ -276,11 +276,12 @@ namespace PXTEngine {
             camera = cameraComponent.camera;
             camera.setViewYXZ(transform.translation, transform.rotation);
 
-			//TODO: camera projection
-            camera.setPerspective(
-                glm::radians(50.f), 
-                m_renderer.getAspectRatio(), 
-                0.1f, 100.f);
+            if (camera.isPerspective()) {
+                camera.setPerspective(m_renderer.getAspectRatio());
+            }
+            else {
+				camera.setOrthographic();
+            }
         }
 	}
 

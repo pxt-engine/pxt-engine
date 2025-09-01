@@ -4,6 +4,13 @@
 
 namespace PXTEngine {
 
+    namespace {
+		constexpr uint32_t ORTHO_LEFT = 0;
+		constexpr uint32_t ORTHO_RIGHT = 1;
+		constexpr uint32_t ORTHO_TOP = 2;
+		constexpr uint32_t ORTHO_BOTTOM = 3;
+    }
+
     /**
      * @brief Camera class for handling perspective and orthographic projections.
      */
@@ -12,24 +19,14 @@ namespace PXTEngine {
         /**
          * @brief Sets the camera projection to a perspective projection.
          * 
-         * @param fovY The vertical field of view in radians.
          * @param aspect The aspect ratio (width / height).
-         * @param near The near clipping plane.
-         * @param far The far clipping plane.
          */
-        void setPerspective(float fovY, float aspect, float near, float far);
+        void setPerspective(float aspect);
 
         /**
          * @brief Sets the camera projection to an orthographic projection.
-         * 
-         * @param left The left boundary of the orthographic view.
-         * @param right The right boundary of the orthographic view.
-         * @param top The top boundary of the orthographic view.
-         * @param bottom The bottom boundary of the orthographic view.
-         * @param near The near clipping plane.
-         * @param far The far clipping plane.
          */
-        void setOrthographic(float left, float right, float top, float bottom, float near, float far);
+        void setOrthographic();
 
         /**
          * @brief Sets the camera view matrix based on a direction vector.
@@ -85,6 +82,10 @@ namespace PXTEngine {
          */
         const glm::vec3 getPosition() const { return glm::vec3(m_inverseViewMatrix[3]); }
 
+		const bool isPerspective() const { return m_isPerspective; }
+
+		void drawCameraUi();
+
     private:
         /**
          * @brief Updates the camera's view matrix based on provided basis vectors.
@@ -98,7 +99,15 @@ namespace PXTEngine {
 
         glm::mat4 m_projectionMatrix{1.f}; 
         glm::mat4 m_viewMatrix{1.f}; 
-        glm::mat4 m_inverseViewMatrix{1.f}; 
+        glm::mat4 m_inverseViewMatrix{1.f};
+
+		float m_fovYDegrees{ 50.f };
+		float m_zNear{ 0.1f };
+		float m_zFar{ 100.f };
+
+		glm::vec4 m_orthoParams{ -1.f, 1.f, -1.f, 1.f }; // left, right, top, bottom
+
+		bool m_isPerspective{ true };
     };
 
 }
