@@ -20,6 +20,8 @@ namespace PXTEngine {
     public:
         Scene() = default;
         ~Scene() = default;
+
+		std::string getName() const { return m_name; }
         
         /**
          * @brief Creates a new entity in the scene.
@@ -77,6 +79,7 @@ namespace PXTEngine {
         Shared<Environment> getEnvironment() const { return m_environment; }
 
     private:
+		std::string m_name = "Unnamed-Scene";
         std::unordered_map<UUID, entt::entity> m_entityMap;
         
         // The entity registry for managing components.
