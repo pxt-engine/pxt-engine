@@ -84,6 +84,16 @@ namespace PXTEngine {
 
 		const bool isPerspective() const { return m_isPerspective; }
 
+		float getFovYDegrees() const { return m_fovYDegrees; }
+
+		float getNearPlane() const { return m_zNear; }
+		float getFarPlane() const { return m_zFar; }
+
+		float getOrthoLeft() const { return m_orthoParams[ORTHO_LEFT]; }
+		float getOrthoRight() const { return m_orthoParams[ORTHO_RIGHT]; }
+		float getOrthoTop() const { return m_orthoParams[ORTHO_TOP]; }
+		float getOrthoBottom() const { return m_orthoParams[ORTHO_BOTTOM]; }
+
 		void drawCameraUi();
 
     private:
