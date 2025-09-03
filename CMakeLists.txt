@@ -56,6 +56,9 @@ add_subdirectory(Engine/vendor/tracy) # target : TracyClient or alias Tracy::Tra
 add_library(stb INTERFACE)
 target_include_directories(stb INTERFACE ${CMAKE_SOURCE_DIR}/Engine/vendor/stb)
 
+# YAML-CPP library
+add_subdirectory(Engine/vendor/yaml-cpp) 
+
 # IMGUI Library
 set(IMGUI_DIR ${PROJECT_SOURCE_DIR}/Engine/vendor/imgui)
 include_directories(${IMGUI_DIR} ${IMGUI_DIR}/backends)
@@ -142,6 +145,7 @@ if (WIN32)
     Tracy::TracyClient
     spdlog::spdlog_header_only
     Vulkan::shaderc_combined
+    yaml-cpp
   )
 
 
