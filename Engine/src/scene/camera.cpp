@@ -24,6 +24,21 @@ namespace PXTEngine {
         m_projectionMatrix[3][2] = -(m_zFar * m_zNear) / (m_zFar - m_zNear);
     }
 
+    void Camera::setPerspectiveParams(float fovYDegrees, float zNear, float zFar) {
+        m_fovYDegrees = fovYDegrees;
+        m_zNear = zNear;
+        m_zFar = zFar;
+	}
+
+    void Camera::setOrthographicParams(float left, float right, float top, float bottom, float zNear, float zFar) {
+        m_orthoParams[ORTHO_LEFT] = left;
+        m_orthoParams[ORTHO_RIGHT] = right;
+        m_orthoParams[ORTHO_TOP] = top;
+        m_orthoParams[ORTHO_BOTTOM] = bottom;
+        m_zNear = zNear;
+        m_zFar = zFar;
+	}
+
     void Camera::setViewDirection(glm::vec3 position, glm::vec3 direction, glm::vec3 up) {
         PXT_ASSERT((glm::dot(direction, direction) > std::numeric_limits<float>::epsilon()), "Direction cannot be zero");
 

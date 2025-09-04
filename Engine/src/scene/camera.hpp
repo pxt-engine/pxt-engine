@@ -23,10 +23,16 @@ namespace PXTEngine {
          */
         void setPerspective(float aspect);
 
+		void setPerspectiveParams(float fovYDegrees, float zNear, float zFar);
+
         /**
          * @brief Sets the camera projection to an orthographic projection.
          */
         void setOrthographic();
+
+		void setOrthographicParams(float left, float right, float top, float bottom, float zNear, float zFar);
+
+		void setIsPerspective(bool isPerspective) { m_isPerspective = isPerspective; }
 
         /**
          * @brief Sets the camera view matrix based on a direction vector.
