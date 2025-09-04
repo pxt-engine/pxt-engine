@@ -22,3 +22,4 @@
 #include "scene/ecs/entity.hpp"
 #include "scene/script/script.hpp"
 #include "scene/ecs/component.hpp"
+#include "scene/scene_serializer.hpp"
