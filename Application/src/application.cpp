@@ -264,7 +264,11 @@ public:
     }
 
     void loadScene() override {
-		prepareEnvironment();
+        SceneSerializer serializer(&getScene(), &getResourceManager());
+        serializer.deserialize(SCENES_PATH + "test.pxtscene");
+
+        return;
+		
         createCameraEntity();
         createFloor();
         createTeapotAndVases();
@@ -331,6 +335,13 @@ public:
                 .setMaterial(emissiveMat)
                 .build());
 
+        auto glassSphere = getScene().createEntity("Glass sphere")
+            .add<TransformComponent>(glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3{ 0.06f }, glm::vec3{ 0.0f, 0.0f, 0.0f })
+            .add<MeshComponent>(sphereModel)
+            .add<MaterialComponent>(MaterialComponent::Builder()
+                .setMaterial(glassMaterial)
+                .build());
+
         auto bunny = rm.get<Mesh>(MODELS_PATH + "bunny/bunny.obj");
         /*auto bunnyMaterial = Material::Builder()
             .setAlbedoMap(rm.get<Image>(MODELS_PATH + "bunny/terracotta.jpg", &albedoInfo))
@@ -355,7 +366,7 @@ public:
 				.setTint(glm::vec4(1.0f, 0.0f, 0.0f, 1.0f))
                 .build());*/
 
-        Entity entity = getScene().createEntity("Bunny")
+        /*Entity entity = getScene().createEntity("Bunny")
             .add<TransformComponent>(glm::vec3{ 0.0f, 1.0f, 0.0f }, glm::vec3{ 2.5f, 2.5f, 2.5f }, glm::vec3{ glm::pi<float>(), 0.0f, 0.0f })
             .add<MeshComponent>(bunny)
             .add<VolumeComponent>(VolumeComponent::Builder()
@@ -366,7 +377,7 @@ public:
             .add<MaterialComponent>(MaterialComponent::Builder()
                 .setMaterial(jadeMaterial)
                 .setTint(glm::vec4(0.0f, 0.66f, 0.42f, 1.0f))
-                .build());
+                .build());*/
     }
 
     
