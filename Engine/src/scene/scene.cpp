@@ -6,10 +6,10 @@
 
 namespace PXTEngine {
 
-    Entity Scene::createEntity(const std::string& name) {
+    Entity Scene::createEntity(const std::string& name, UUID id) {
         Entity entity = { m_registry.create(), this };
 
-        entity.add<IDComponent>(UUID());
+        entity.add<IDComponent>(id);
         entity.add<NameComponent>(name.empty() ? "Unnamed-Entity" : name);
 
         m_entityMap[entity.getUUID()] = entity;

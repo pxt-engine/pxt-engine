@@ -26,9 +26,10 @@ namespace PXTEngine {
         /**
          * @brief Creates a new entity in the scene.
          * @param name Optional name for the entity.
+		 * @param id Optional UUID for the entity. If not provided, a new UUID is generated.
          * @return The created entity.
          */
-        Entity createEntity(const std::string& name = std::string());
+        Entity createEntity(const std::string& name = std::string(), UUID id = UUID());
         
         /**
          * @brief Retrieves an entity by its UUID.
