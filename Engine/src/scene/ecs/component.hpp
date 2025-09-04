@@ -244,7 +244,7 @@ namespace PXTEngine
 		bool isMainCamera = true;
 
 		CameraComponent();
-
+		CameraComponent(const Camera& camera) : camera(camera) {}
 		CameraComponent(const CameraComponent&) = default;
 	};
 
