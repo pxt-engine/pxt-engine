@@ -264,11 +264,12 @@ public:
     }
 
     void loadScene() override {
-        SceneSerializer serializer(&getScene(), &getResourceManager());
-        serializer.deserialize(SCENES_PATH + "test.pxtscene");
+        //SceneSerializer serializer(&getScene(), &getResourceManager());
+        //serializer.deserialize(SCENES_PATH + "test.pxtscene");
 
-        return;
-		
+        //return;
+
+		prepareEnvironment();
         createCameraEntity();
         createFloor();
         createTeapotAndVases();
