@@ -457,12 +457,17 @@ namespace PXTEngine {
 		m_frameCount = ubo.frameCount;
 
 		m_accumulationCount = m_isAccumulationEnabled ? m_accumulationCount + 1 : 0;
+
+        if (m_accumulationCount > m_maxAccumulationFrames) {
+            m_accumulationCount = m_maxAccumulationFrames;
+        }
     }
 
     void DenoiserRenderSystem::updateUi() {
         // Accumulation Section
         ImGui::SeparatorText("Accumulation Filter");
         ImGui::Checkbox("Enable Accumulation", &m_isAccumulationEnabled);
+        ImGui::InputInt("Max frame", reinterpret_cast<int*>(&m_maxAccumulationFrames));
         ImGui::Text("Number of frames accumulated: %d", m_accumulationCount);
         
         // Temporal Section

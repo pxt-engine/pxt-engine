@@ -82,6 +82,7 @@ namespace PXTEngine {
         std::string m_temporalShaderPath = "temporal.comp";
         std::string m_spatialShaderPath = "spatial_gaussian_2d.comp";
 
+        uint32_t m_maxAccumulationFrames = UINT_MAX;
         uint32_t m_accumulationCount = 0;
 		uint32_t m_frameCount = 0;
 
