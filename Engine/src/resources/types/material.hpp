@@ -29,6 +29,8 @@ namespace PXTEngine {
             Builder& setEmissiveMap(Shared<Image> map);
 			Builder& setTransmission(float value);
 			Builder& setIndexOfRefraction(float value);
+            Builder& setBlinnPhongSpecularIntensity(float value);
+            Builder& setBlinnPhongSpecularShininess(float value);
             Shared<Material> build();
 
         protected:
@@ -44,6 +46,8 @@ namespace PXTEngine {
             Shared<Image> m_emissiveMap{ nullptr };
             float m_transmission = 0.0;
             float m_ior = 1.3;
+            float m_blinnPhongSpecularIntensity = 0.0;
+            float m_blinnPhongSpecularShininess = 1.0;
         private:
 			bool m_useMetallicWeight = false;
 			bool m_useRoughnessWeight = false;
@@ -61,7 +65,9 @@ namespace PXTEngine {
             const glm::vec4& emissiveColor,
             const Shared<Image>& emissiveMap,
 			const float transmission,
-			const float ior
+			const float ior,
+            const float blinnPhongSpecularIntensity,
+            const float blinnPhongSpecularShininess
         );
 
         static Type getStaticType();
@@ -79,6 +85,8 @@ namespace PXTEngine {
         Shared<Image> getEmissiveMap() const;
 		float getTransmission() const;
 		float getIndexOfRefraction() const;
+        float getBlinnPhongSpecularIntensity() const;
+        float getBlinnPhongSpecularShininess() const;
 
         /*void setMetallic(float metallic) { m_metallic = metallic; }
 		void setRoughness(float roughness) { m_roughness = roughness; }
@@ -103,5 +111,7 @@ namespace PXTEngine {
         Shared<Image> m_emissiveMap{ nullptr };
 		float m_transmission{ 0.0f };
 		float m_ior{ 1.3f };
+        float m_blinnPhongSpecularIntensity{ 0.0 };
+        float m_blinnPhongSpecularShininess{ 1.0 };
     };
 }

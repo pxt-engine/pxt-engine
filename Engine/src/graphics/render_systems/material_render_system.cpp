@@ -124,8 +124,8 @@ namespace PXTEngine {
             push.modelMatrix = transform.mat4();
             push.normalMatrix = transform.normalMatrix();
             push.color = material->getAlbedoColor() * glm::vec4(materialComponent.tint, 1.0f);
-            push.specularIntensity = 0.0f;
-            push.shininess = 1.0f;
+            push.specularIntensity = material->getBlinnPhongSpecularIntensity();
+            push.shininess = material->getBlinnPhongSpecularShininess();
             push.textureIndex = m_textureRegistry.getIndex(material->getAlbedoMap()->id);
             push.normalMapIndex = m_textureRegistry.getIndex(material->getNormalMap()->id);
 			//push.metallicMapIndex = m_textureRegistry.getIndex(material->getMetallicMap()->id);

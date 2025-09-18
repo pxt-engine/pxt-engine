@@ -17,6 +17,8 @@ entities:
       emissiveMap: pixel_0xFFFFFFFF_RGBA8_LINEAR
       transmission: 1
       indexOfRefraction: 1.5
+      blinnPhongSpecularIntensity: 0.0
+      blinnPhongSpecularShininess: 1.0
       tilingFactor: 1
       tint: [1, 1, 1]
     TransformComponent:
@@ -43,6 +45,8 @@ entities:
       emissiveMap: ../assets/textures/white_pixel.png
       transmission: 0
       indexOfRefraction: 1.3
+      blinnPhongSpecularIntensity: 0.0
+      blinnPhongSpecularShininess: 1.0
       tilingFactor: 1
       tint: [1, 1, 1]
     TransformComponent:
@@ -73,6 +77,10 @@ entities:
       translation: [0.57735026, 0.5, 0.2]
       scale: [0.025, 1, 1]
       rotation: [0, 0, 0]
+    PointLightComponent:
+      lightIntensity: 0.5
+    ColorComponent:
+      color: [1, 1, 1]
   - entity: 01991672-86ee-73ae-8155-0bf7c39e58ac
     NameComponent: pencil2
     MaterialComponent:
@@ -90,6 +98,8 @@ entities:
       emissiveMap: pixel_0xFFFFFFFF_RGBA8_LINEAR
       transmission: 0
       indexOfRefraction: 1.3
+      blinnPhongSpecularIntensity: 0.0
+      blinnPhongSpecularShininess: 1.0
       tilingFactor: 1
       tint: [1, 1, 1]
     TransformComponent:
@@ -116,6 +126,8 @@ entities:
       emissiveMap: pixel_0xFFFFFFFF_RGBA8_LINEAR
       transmission: 0
       indexOfRefraction: 1.3
+      blinnPhongSpecularIntensity: 0.0
+      blinnPhongSpecularShininess: 1.0
       tilingFactor: 1
       tint: [1, 1, 1]
     TransformComponent:
@@ -142,6 +154,8 @@ entities:
       emissiveMap: pixel_0xFFFFFFFF_RGBA8_LINEAR
       transmission: 0
       indexOfRefraction: 1.3
+      blinnPhongSpecularIntensity: 0.0
+      blinnPhongSpecularShininess: 1.0
       tilingFactor: 1
       tint: [1, 1, 1]
     TransformComponent:
@@ -168,6 +182,8 @@ entities:
       emissiveMap: pixel_0xFFFFFFFF_RGBA8_LINEAR
       transmission: 1
       indexOfRefraction: 1.67
+      blinnPhongSpecularIntensity: 0.0
+      blinnPhongSpecularShininess: 1.0
       tilingFactor: 1
       tint: [1, 1, 1]
     TransformComponent:
@@ -194,6 +210,8 @@ entities:
       emissiveMap: pixel_0xFFFFFFFF_RGBA8_LINEAR
       transmission: 0
       indexOfRefraction: 1.3
+      blinnPhongSpecularIntensity: 0.0
+      blinnPhongSpecularShininess: 1.0
       tilingFactor: 1
       tint: [0.737, 0.776, 0.8]
     TransformComponent:
@@ -220,6 +238,8 @@ entities:
       emissiveMap: pixel_0xFFFFFFFF_RGBA8_LINEAR
       transmission: 1
       indexOfRefraction: 1.67
+      blinnPhongSpecularIntensity: 0.0
+      blinnPhongSpecularShininess: 1.0
       tilingFactor: 1
       tint: [0.63, 0.84, 0.99]
     TransformComponent:
@@ -246,6 +266,8 @@ entities:
       emissiveMap: pixel_0xFFFFFFFF_RGBA8_LINEAR
       transmission: 0
       indexOfRefraction: 1.3
+      blinnPhongSpecularIntensity: 0.0
+      blinnPhongSpecularShininess: 1.0
       tilingFactor: 1
       tint: [1, 1, 1]
     TransformComponent:
@@ -272,6 +294,8 @@ entities:
       emissiveMap: pixel_0xFFFFFFFF_RGBA8_LINEAR
       transmission: 0
       indexOfRefraction: 1.3
+      blinnPhongSpecularIntensity: 0.0
+      blinnPhongSpecularShininess: 1.0
       tilingFactor: 1
       tint: [1, 1, 1]
     TransformComponent:
@@ -298,6 +322,8 @@ entities:
       emissiveMap: pixel_0xFFFFFFFF_RGBA8_LINEAR
       transmission: 0
       indexOfRefraction: 1.3
+      blinnPhongSpecularIntensity: 0.0
+      blinnPhongSpecularShininess: 1.0
       tilingFactor: 1
       tint: [0, 1, 0]
     TransformComponent:
@@ -324,6 +350,8 @@ entities:
       emissiveMap: pixel_0xFFFFFFFF_RGBA8_LINEAR
       transmission: 0
       indexOfRefraction: 1.3
+      blinnPhongSpecularIntensity: 0.0
+      blinnPhongSpecularShininess: 1.0
       tilingFactor: 1
       tint: [1, 0, 0]
     TransformComponent:
@@ -350,6 +378,8 @@ entities:
       emissiveMap: pixel_0xFFFFFFFF_RGBA8_LINEAR
       transmission: 0
       indexOfRefraction: 1.3
+      blinnPhongSpecularIntensity: 0.0
+      blinnPhongSpecularShininess: 1.0
       tilingFactor: 1
       tint: [1, 1, 1]
     TransformComponent:

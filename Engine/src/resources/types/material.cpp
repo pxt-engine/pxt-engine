@@ -15,7 +15,10 @@ namespace PXTEngine {
         const glm::vec4& emissiveColor,
         const Shared<Image>& emissiveMap,
 		const float transmission,
-        const float ior)
+        const float ior,
+        const float blinnPhongSpecularIntensity,
+        const float blinnPhongSpecularShininess
+    )
         : m_albedoColor(albedoColor),
         m_albedoMap(albedoMap),
         m_normalMap(normalMap),
@@ -27,7 +30,10 @@ namespace PXTEngine {
         m_emissiveColor(emissiveColor),
         m_emissiveMap(emissiveMap),
 		m_transmission(transmission),
-		m_ior(ior) {}
+		m_ior(ior),
+        m_blinnPhongSpecularIntensity(blinnPhongSpecularIntensity),
+        m_blinnPhongSpecularShininess(blinnPhongSpecularShininess)
+        {}
 
     Material::Type Material::getStaticType() {
         return Type::Material;
@@ -49,6 +55,8 @@ namespace PXTEngine {
     Shared<Image> Material::getEmissiveMap() const { return m_emissiveMap; }
 	float Material::getTransmission() const { return m_transmission; }
 	float Material::getIndexOfRefraction() const { return m_ior; }
+    float Material::getBlinnPhongSpecularIntensity() const { return m_blinnPhongSpecularIntensity;}
+    float Material::getBlinnPhongSpecularShininess() const { return m_blinnPhongSpecularShininess; }
 
     bool Material::isEmissive() {
         return m_emissiveColor.a > 0.0f;
@@ -118,6 +126,18 @@ namespace PXTEngine {
 		return *this;
 	}
 
+    Material::Builder& Material::Builder::setBlinnPhongSpecularIntensity(float value)
+    {
+        m_blinnPhongSpecularIntensity = value;
+        return *this;
+    }
+
+    Material::Builder& Material::Builder::setBlinnPhongSpecularShininess(float value)
+    {
+        m_blinnPhongSpecularShininess = value;
+        return *this;
+    }
+
     Shared<Material> Material::Builder::build() {
         if (!m_albedoMap) m_albedoMap = ResourceManager::defaultMaterial->getAlbedoMap();
         if (!m_normalMap) m_normalMap = ResourceManager::defaultMaterial->getNormalMap();
@@ -143,7 +163,9 @@ namespace PXTEngine {
             m_emissiveColor,
             m_emissiveMap,
             m_transmission,
-			m_ior
+			m_ior,
+            m_blinnPhongSpecularIntensity,
+            m_blinnPhongSpecularShininess
         );
     }
 
@@ -190,5 +212,12 @@ namespace PXTEngine {
 
 		ImGui::SliderFloat("Transmission", &m_transmission, 0.0f, 1.0f);
 		ImGui::SliderFloat("Index of Refraction", &m_ior, 1.0f, 3.0f);
+
+        if (ImGui::TreeNode("Blinn-Phong Specular Parameters")) {
+            ImGui::SliderFloat("Specular Intensity", &m_blinnPhongSpecularIntensity, 0.0f, 1.0f);
+            ImGui::SliderFloat("Specular Shininess", &m_blinnPhongSpecularShininess, 1.0f, 50.0f);
+
+            ImGui::TreePop();
+        }   
     }
 }
