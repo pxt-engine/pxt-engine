@@ -25,6 +25,14 @@ namespace PXTEngine {
 			out << YAML::Key << "NameComponent" << YAML::Value << c.name;
 		})},
 
+		// Color Component
+		{ typeid(ColorComponent), makeSerializer<ColorComponent>([](auto& c, YAML::Emitter& out) {
+			out << YAML::Key << "ColorComponent";
+			out << YAML::BeginMap;
+			out << YAML::Key << "color" << YAML::Value << YAML::Flow << YAML::BeginSeq << c.color.x << c.color.y << c.color.z << YAML::EndSeq;
+			out << YAML::EndMap;
+		})},
+
 		// Transform Component
 		{ typeid(TransformComponent), makeSerializer<TransformComponent>([](auto& c, YAML::Emitter& out) {
 			out << YAML::Key << "TransformComponent";
@@ -32,6 +40,16 @@ namespace PXTEngine {
 			out << YAML::Key << "translation" << YAML::Value << YAML::Flow << YAML::BeginSeq << c.translation.x << c.translation.y << c.translation.z << YAML::EndSeq;
 			out << YAML::Key << "scale" << YAML::Value << YAML::Flow << YAML::BeginSeq << c.scale.x << c.scale.y << c.scale.z << YAML::EndSeq;
 			out << YAML::Key << "rotation" << YAML::Value << YAML::Flow << YAML::BeginSeq << c.rotation.x << c.rotation.y << c.rotation.z << YAML::EndSeq;
+			out << YAML::EndMap;
+		})},
+
+		// Transform2d Component
+		{ typeid(Transform2dComponent), makeSerializer<Transform2dComponent>([](auto& c, YAML::Emitter& out) {
+			out << YAML::Key << "Transform2dComponent";
+			out << YAML::BeginMap;
+			out << YAML::Key << "translation" << YAML::Value << YAML::Flow << YAML::BeginSeq << c.translation.x << c.translation.y << YAML::EndSeq;
+			out << YAML::Key << "scale" << YAML::Value << YAML::Flow << YAML::BeginSeq << c.scale.x << c.scale.y << YAML::EndSeq;
+			out << YAML::Key << "rotation" << YAML::Value << c.rotation;
 			out << YAML::EndMap;
 		})},
 
@@ -81,6 +99,8 @@ namespace PXTEngine {
 			out << YAML::Key << "emissiveMap" << YAML::Value << (c.material->getEmissiveMap() ? c.material->getEmissiveMap()->alias : "null");
 			out << YAML::Key << "transmission" << YAML::Value << c.material->getTransmission();
 			out << YAML::Key << "indexOfRefraction" << YAML::Value << c.material->getIndexOfRefraction();
+			out << YAML::Key << "blinnPhongSpecularIntensity" << YAML::Value << c.material->getBlinnPhongSpecularIntensity();
+			out << YAML::Key << "blinnPhongSpecularShininess" << YAML::Value << c.material->getBlinnPhongSpecularShininess();
 			out << YAML::Key << "tilingFactor" << YAML::Value << c.tilingFactor;
 			out << YAML::Key << "tint" << YAML::Value << YAML::Flow << YAML::BeginSeq
 				<< c.tint.r << c.tint.g << c.tint.b << YAML::EndSeq;
@@ -99,6 +119,14 @@ namespace PXTEngine {
 			out << YAML::Key << "orthoParams" << YAML::Value << YAML::Flow << YAML::BeginSeq
 				<< c.camera.getOrthoLeft() << c.camera.getOrthoRight()
 				<< c.camera.getOrthoTop() << c.camera.getOrthoBottom() << YAML::EndSeq;
+			out << YAML::EndMap;
+		})},
+
+		// PointLight Component
+		{ typeid(PointLightComponent), makeSerializer<PointLightComponent>([](auto& c, YAML::Emitter& out) {
+			out << YAML::Key << "PointLightComponent";
+			out << YAML::BeginMap;
+			out << YAML::Key << "lightIntensity" << YAML::Value << c.lightIntensity;
 			out << YAML::EndMap;
 		})},
 	};
@@ -205,7 +233,7 @@ namespace PXTEngine {
 
 		auto environment = m_scene->getEnvironment();
 
-		environment->setAmbientLight({ 1.0, 1.0, 1.0, 0.0f });
+		environment->setAmbientLight({ 1.0, 1.0, 1.0, 0.1f });
 		environment->setSkybox(skyboxTextures);
 		// ----------------
 
@@ -231,6 +259,26 @@ namespace PXTEngine {
 					glm::vec3(rotation[0], rotation[1], rotation[2])
 				);
 			}
+
+			// Deserialize Transform2dComponent
+			if (auto transform2dComponentNode = entityNode["Transform2dComponent"]) {
+				auto translation = transform2dComponentNode["translation"].as<std::vector<float>>();
+				auto scale = transform2dComponentNode["scale"].as<std::vector<float>>();
+				float rotation = transform2dComponentNode["rotation"].as<float>();
+				entity.add<Transform2dComponent>(
+					glm::vec2(translation[0], translation[1]),
+					glm::vec2(scale[0], scale[1]),
+					rotation
+				);
+			}
+
+			// Deserialize ColorComponent
+			if (auto colorComponentNode = entityNode["ColorComponent"]) {
+				auto color = colorComponentNode["color"].as<std::vector<float>>();
+
+				entity.add<ColorComponent>(glm::vec3{ color[0], color[1], color[2] });
+			}
+
 			// Deserialize VolumeComponent
 			if (auto volumeComponentNode = entityNode["VolumeComponent"]) {
 				auto absorption = volumeComponentNode["absorption"].as<std::vector<float>>();
@@ -272,21 +320,35 @@ namespace PXTEngine {
 				auto emissiveMapName = materialComponentNode["emissiveMap"].as<std::string>();
 				auto transmission = materialComponentNode["transmission"].as<float>();
 				auto indexOfRefraction = materialComponentNode["indexOfRefraction"].as<float>();
+				auto blinnPhongSpecularIntensity = materialComponentNode["blinnPhongSpecularIntensity"].as<float>();
+				auto blinnPhongSpecularShininess = materialComponentNode["blinnPhongSpecularShininess"].as<float>();
 
-				auto material = Material::Builder()
+				auto materialBuilder = Material::Builder()
 					.setAlbedoColor({ albedoColor[0], albedoColor[1], albedoColor[2], albedoColor[3] })
 					.setAlbedoMap(rm->get<Image>(albedoMapName, &albedoInfo))
-					.setMetallic(metallic)
-					.setMetallicMap(rm->get<Image>(metallicMapName))
-					.setRoughness(roughness)
-					.setRoughnessMap(rm->get<Image>(roughnessMapName))
 					.setNormalMap(rm->get<Image>(normalMapName))
 					.setAmbientOcclusionMap(rm->get<Image>(ambientOcclusionMapName))
 					.setEmissiveColor({ emissiveColor[0], emissiveColor[1], emissiveColor[2], emissiveColor[3] })
 					.setEmissiveMap(rm->get<Image>(emissiveMapName))
 					.setTransmission(transmission)
 					.setIndexOfRefraction(indexOfRefraction)
-					.build();
+					.setBlinnPhongSpecularIntensity(blinnPhongSpecularIntensity)
+					.setBlinnPhongSpecularShininess(blinnPhongSpecularShininess);
+
+				if (metallicMapName == "null") {
+					materialBuilder.setMetallic(metallic);
+				}
+				else {
+					materialBuilder.setMetallicMap(rm->get<Image>(metallicMapName));
+				}
+				if (roughnessMapName == "null") {
+					materialBuilder.setRoughness(roughness);
+				}
+				else {
+					materialBuilder.setRoughnessMap(rm->get<Image>(roughnessMapName));
+				}
+				auto material = materialBuilder.build();
+
 				rm->add(material, "mat-" + name);
 
 				float tilingFactor = 1.0f;
@@ -321,6 +383,12 @@ namespace PXTEngine {
 				camera.setOrthographicParams(orthoParams[0], orthoParams[1], orthoParams[2], orthoParams[3], nearPlane, farPlane);
 				camera.setIsPerspective(isPerspective);
 				entity.add<CameraComponent>(camera);
+			}
+
+			// Deserialize PointLightComponent
+			if (auto pointLightComponentNode = entityNode["PointLightComponent"]) {
+				float lightIntensity = pointLightComponentNode["lightIntensity"].as<float>();
+				entity.add<PointLightComponent>(lightIntensity);
 			}
 		}
 

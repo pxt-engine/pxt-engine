@@ -14,6 +14,8 @@ struct Material {
     int emissiveMapIndex;
     float transmission;
     float ior;
+    float blinnPhongSpecularIntensity;
+    float blinnPhongSpecularShininess;
 };
 
 struct MeshInstanceDescription {

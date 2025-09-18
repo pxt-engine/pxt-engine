@@ -76,6 +76,45 @@ namespace PXTEngine {
 		uint32_t m_blueNoiseTextureIndeces[BLUE_NOISE_TEXTURE_COUNT]; // Indices of the blue noise textures in the texture registry
 		uint32_t m_blueNoiseDebugIndex = 0; // Index of the blue noise texture to use
 		VkBool32 m_selectSingleBlueNoiseTextures = VK_FALSE; // Whether to select single textures or use different blue noise textures every frame
+		
+		const std::vector<ShaderGroupInfo> SHADER_GROUPS_BASIC = {
+			// General RayGen Group
+			{
+				VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR,
+				{
+				// Shader stages + filepaths
+				// only one shader stage for raygen is permitted
+				{VK_SHADER_STAGE_RAYGEN_BIT_KHR, "primary.rgen"}
+			}
+		},
+			// Main Miss Group
+			{
+				VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR,
+				{
+				// Shader stages + filepaths
+				// here we can have multiple miss shaders
+				{VK_SHADER_STAGE_MISS_BIT_KHR, "primary.rmiss"}
+			}
+		},
+			// Shadow Miss Group
+			{
+				VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR,
+				{
+				// Shader stages + filepaths
+				// here we can have multiple miss shaders
+				{VK_SHADER_STAGE_MISS_BIT_KHR, "shadow.rmiss"}
+			}
+		},
+			// Closest Hit Group (Triangle Hit Group)
+			{
+				VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR,
+				{
+				// Shader stages + filepaths
+				// here there can be a chit, ahit or intersection shader (every combination of these)
+				{VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, "primary.rchit"}
+			}
+		},
+		};
 
 		const std::vector<ShaderGroupInfo> SHADER_GROUPS_PT = {
 				// General RayGen Group

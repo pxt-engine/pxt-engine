@@ -113,6 +113,10 @@ namespace PXTEngine {
 		data.emissiveMapIndex = m_textureRegistry.getIndex(material->getEmissiveMap()->id);
 		data.transmission = material->getTransmission();
 		data.ior = material->getIndexOfRefraction();
+		
+		data.blinnPhongSpecularIntensity = material->getBlinnPhongSpecularIntensity();
+		data.blinnPhongSpecularShininess = material->getBlinnPhongSpecularShininess();
+	
 		return data;
 	}
 }

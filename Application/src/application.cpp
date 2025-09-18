@@ -22,7 +22,7 @@ public:
 
         auto environment = getScene().getEnvironment();
 
-        environment->setAmbientLight({ 1.0, 1.0, 1.0, 0.0f });
+        environment->setAmbientLight({ 1.0, 1.0, 1.0, 0.1f });
         environment->setSkybox(skyboxTextures);
     }
 
@@ -249,7 +249,7 @@ public:
         //entity.get<TransformComponent>().translation = glm::vec3{0.0f, 0.0f, 0.0f};
 
         // Three rotating lights (white, green, blue)
-        Entity entity = createPointLightEntity(1.0f, 0.025f, glm::vec3{ 1.f, 1.f, 1.f });
+        Entity entity = createPointLightEntity(0.5f, 0.025f, glm::vec3{ 1.f, 1.f, 1.f });
         entity.get<TransformComponent>().translation = glm::vec3{ 1.0f / (float) sqrt(3), 0.5f, 0.2f };
         entity.addAndGet<ScriptComponent>().bind<RotatingLightController>();
 #if 0
@@ -264,10 +264,21 @@ public:
     }
 
     void loadScene() override {
-        //SceneSerializer serializer(&getScene(), &getResourceManager());
-        //serializer.deserialize(SCENES_PATH + "test.pxtscene");
+        Scene& scene = getScene();
+        SceneSerializer serializer(&scene, &getResourceManager());
+        serializer.deserialize(SCENES_PATH + "test.pxtscene");
+        
+        // TODO: add scripts to scene serialize
+        Entity camera = scene.getMainCameraEntity();
+        camera.addAndGet<ScriptComponent>().bind<CameraController>();
 
-        //return;
+        auto view = scene.getEntitiesWith<PointLightComponent>();
+        for (auto entity : view) {
+            Entity ent = { entity, &scene };
+            ent.addAndGet<ScriptComponent>().bind<RotatingLightController>();
+        }
+
+        return;
 
 		prepareEnvironment();
         createCameraEntity();

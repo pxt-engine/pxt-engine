@@ -25,6 +25,8 @@ layout(push_constant) uniform Push {
 	int normalMapIndex;
 	int ambientOcclusionMapIndex;
 	float tilingFactor;
+    float blinnPhongSpecularIntensity;
+    float blinnPhongSpecularShininess;
 } push;
 
 /*
@@ -59,8 +61,8 @@ void main() {
     vec3 viewDirection = normalize(cameraPosWorld - fragPosWorld);
 
     vec3 diffuseLight, specularLight;
-    float shininess = 1.0;
-    float specularIntensity = 0.0;
+    float shininess = push.blinnPhongSpecularShininess;
+    float specularIntensity = push.blinnPhongSpecularIntensity;
     computeBlinnPhongLighting(surfaceNormal, viewDirection, fragPosWorld, 
         shininess, specularIntensity, diffuseLight, specularLight);
 

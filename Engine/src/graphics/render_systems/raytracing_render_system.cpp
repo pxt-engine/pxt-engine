@@ -111,7 +111,7 @@ namespace PXTEngine {
 	}
 
 	void RayTracingRenderSystem::defineShaderGroups() {
-		m_shaderGroups = SHADER_GROUPS_VOL_PT;
+		m_shaderGroups = SHADER_GROUPS_BASIC;
 	}
 
 	void RayTracingRenderSystem::createPipelineLayout(DescriptorSetLayout& setLayout) {

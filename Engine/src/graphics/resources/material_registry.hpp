@@ -33,6 +33,8 @@ namespace PXTEngine {
 		int emissiveMapIndex;
 		float transmission;
 		float ior;
+		float blinnPhongSpecularIntensity;
+		float blinnPhongSpecularShininess;
 	};
 
 	/**
