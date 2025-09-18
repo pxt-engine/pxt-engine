@@ -23,7 +23,7 @@ namespace PXTEngine {
 		UiRenderSystem(const UiRenderSystem&) = delete;
 		UiRenderSystem& operator=(const UiRenderSystem&) = delete;
 
-		void beginBuildingUi();
+		void beginBuildingUi(Scene& scene);
 		void render(FrameInfo& frameInfo);
 
 	private:
@@ -32,6 +32,7 @@ namespace PXTEngine {
 
 		VkDescriptorSet addImGuiTexture(VkSampler sampler, VkImageView imageView, VkImageLayout layout);
 
+		void saveSceneUi(Scene& scene);
 		void drawSceneEntityList(Scene& scene);
 		void drawEntityInspector(Scene& scene);
 		void buildUi(Scene& scene);
@@ -43,7 +44,8 @@ namespace PXTEngine {
 
 		std::vector<ComponentUiInfo> m_componentUiRegistry;
 		UUID m_selectedEntityID; // currently selected entity in the inspector
-		bool isAnEntitySelected = false;
+		bool m_isAnEntitySelected = false;
+		bool m_openSaveSceneDialog = false;
 
 		/*
 		 *@brief Registers a component of type T into the m_componentUiRegistry.
