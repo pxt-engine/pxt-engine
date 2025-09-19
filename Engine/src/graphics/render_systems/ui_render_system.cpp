@@ -201,7 +201,8 @@ namespace PXTEngine {
 			ImGui::ColorEdit3("Scattering", glm::value_ptr(c.volume.scattering));
 			ImGui::SliderFloat("PhaseFunctionG", &c.volume.phaseFunctionG, -1.0f, 1.0f, "%.2f");
 			ImGui::SeparatorText("Density Texture");
-			if (c.volume.densityTextureId == std::numeric_limits<uint32_t>::max()) {
+			//TODO: volume textures
+			/*if (c.volume.densityTextureId == std::numeric_limits<uint32_t>::max()) {
 				ImGui::Text("Not selected");
 			}
 			else {
@@ -214,7 +215,7 @@ namespace PXTEngine {
 			}
 			else {
 				ImGui::Text("Texture ID: %u", c.volume.detailTextureId);
-			}
+			}*/
 		});
 
 		// MaterialComponent

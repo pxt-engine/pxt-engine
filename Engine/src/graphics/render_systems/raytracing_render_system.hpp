@@ -50,7 +50,7 @@ namespace PXTEngine {
         
         Shared<DescriptorAllocatorGrowable> m_descriptorAllocator = nullptr;
         
-        RayTracingSceneManagerSystem m_rtSceneManager{m_context, m_materialRegistry, m_blasRegistry, m_descriptorAllocator};
+        RayTracingSceneManagerSystem m_rtSceneManager{m_context, m_materialRegistry, m_blasRegistry, m_textureRegistry, m_descriptorAllocator};
 
         Unique<Pipeline> m_pipeline;
         VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;

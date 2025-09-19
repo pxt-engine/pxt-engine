@@ -5,10 +5,11 @@
 
 namespace PXTEngine {
 	RayTracingSceneManagerSystem::RayTracingSceneManagerSystem(Context& context, MaterialRegistry& materialRegistry, 
-		BLASRegistry& blasRegistry, Shared<DescriptorAllocatorGrowable> allocator)
+		BLASRegistry& blasRegistry, TextureRegistry& textureRegistry, Shared<DescriptorAllocatorGrowable> allocator)
 		: m_context(context), 
 		m_materialRegistry(materialRegistry),
 		m_blasRegistry(blasRegistry), 
+		m_textureRegistry(textureRegistry),
 		m_descriptorAllocator(allocator) {
 		createTLASDescriptorSets();
 		createMeshInstanceDescriptorSets();
@@ -40,8 +41,8 @@ namespace PXTEngine {
 		m_volumes.clear();
 		m_meshInstanceData.clear();
 
-		int instanceIndex = 0;
-		int volumeIndex = 0; // for now just iterative increase
+		uint32_t instanceIndex = 0;
+		uint32_t volumeIndex = 0; // for now just iterative increase
 		for (auto entityHandle : view) {
 			Entity entity(entityHandle, &frameInfo.scene);
 
@@ -105,13 +106,15 @@ namespace PXTEngine {
 				
 				meshInstanceData.volumeIndex = volumeIndex++;
 				
-				// TODO: handle defaults differently
-				if (volume.densityTextureId == invalidIndex) {
-					volume.densityTextureId = 2; //grey default
+				uint32_t densityTextureId = invalidIndex;
+				uint32_t detailTextureId = invalidIndex;
+
+				if (volume.densityTexture.get() != nullptr) {
+					densityTextureId = m_textureRegistry.getIndex(volume.densityTexture->id);
 				}
 
-				if (volume.detailTextureId == invalidIndex) {
-					volume.detailTextureId = 2; //grey default
+				if (volume.detailTexture.get() != nullptr) {
+					detailTextureId = m_textureRegistry.getIndex(volume.detailTexture->id);
 				}
 
 				m_volumes.push_back(
@@ -119,8 +122,9 @@ namespace PXTEngine {
 						.absorption = volume.absorption,
 						.scattering = volume.scattering,
 						.phaseFunctionG = volume.phaseFunctionG,
-						.densityTextureId = volume.densityTextureId,
-						.detailTextureId = volume.detailTextureId,
+						.densityTextureId = densityTextureId,
+						.detailTextureId = detailTextureId,
+						.instanceIndex = instanceIndex
 					}
 				);
 			}

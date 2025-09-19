@@ -55,8 +55,8 @@ namespace PXTEngine
 			// phaseFunctionG > 0.0 for forward scattering
 			// phaseFunctionG < 0.0 for backward scattering
 			float phaseFunctionG = 0;
-			uint32_t densityTextureId = std::numeric_limits<uint32_t>::max();
-			uint32_t detailTextureId = std::numeric_limits<uint32_t>::max(); // for edge details of the volume
+			Shared<Image> densityTexture{};
+			Shared<Image> detailTexture{}; // for edge details of the volume
 		};
 
 		Volume volume;
@@ -83,13 +83,13 @@ namespace PXTEngine
 				return *this;
 			}
 
-			Builder& setDensityTextureId(uint32_t textureId) {
-				volume.densityTextureId = textureId;
+			Builder& setDensityTexture(Shared<Image> texture) {
+				volume.densityTexture = texture;
 				return *this;
 			}
 
-			Builder& setDetailTextureId(uint32_t textureId) {
-				volume.detailTextureId = textureId;
+			Builder& setDetailTexture(Shared<Image> texture) {
+				volume.detailTexture = texture;
 				return *this;
 			}
 

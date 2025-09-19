@@ -32,12 +32,12 @@ namespace PXTEngine {
 		float phaseFunctionG;
 		uint32_t densityTextureId;
 		uint32_t detailTextureId;
+		uint32_t instanceIndex;
 	};
 
 	class RayTracingSceneManagerSystem {
 	public:
-		RayTracingSceneManagerSystem(Context& context, MaterialRegistry& materialRegistry, BLASRegistry& blasRegistry, 
-			Shared<DescriptorAllocatorGrowable> allocator);
+		RayTracingSceneManagerSystem(Context& context, MaterialRegistry& materialRegistry, BLASRegistry& blasRegistry, TextureRegistry& textureRegistry, Shared<DescriptorAllocatorGrowable> allocator);
 		~RayTracingSceneManagerSystem();
 
 		// Delete the copy constructor and copy assignment operator
@@ -76,6 +76,7 @@ namespace PXTEngine {
 		Context& m_context;
 		MaterialRegistry& m_materialRegistry;
 		BLASRegistry& m_blasRegistry;
+		TextureRegistry& m_textureRegistry;
 
 		std::vector<VkAccelerationStructureKHR> m_tlases{ SwapChain::MAX_FRAMES_IN_FLIGHT };
 		Unique<VulkanBuffer> m_tlasBuffer;
