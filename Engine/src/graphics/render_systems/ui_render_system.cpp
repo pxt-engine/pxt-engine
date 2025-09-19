@@ -1,4 +1,6 @@
 #include "graphics/render_systems/ui_render_system.hpp"
+#include "scene/scene_serializer.hpp"
+#include "application.hpp"
 
 namespace PXTEngine {
 
@@ -97,9 +99,11 @@ namespace PXTEngine {
 	void UiRenderSystem::drawSceneEntityList(Scene& scene)
 	{
 		ImGui::Begin("Scene Entities");
+
 		if (ImGui::Button("Add Entity")) {
 			scene.createEntity("New Entity");
 		}
+
 		ImGui::Separator();
 
 		// draw all entities in the scene
@@ -110,7 +114,7 @@ namespace PXTEngine {
 			bool selected = (m_selectedEntityID == idComponent.uuid);
 			if (ImGui::Selectable(nameComponent.name.c_str(), selected)) {
 				m_selectedEntityID = idComponent.uuid;
-				isAnEntitySelected = true;
+				m_isAnEntitySelected = true;
 			}
 		}
 		ImGui::End();
@@ -118,7 +122,7 @@ namespace PXTEngine {
 
 	void UiRenderSystem::drawEntityInspector(Scene& scene) {
 		ImGui::Begin("Entity Inspector");
-		if (isAnEntitySelected) {
+		if (m_isAnEntitySelected) {
 			Entity entity = scene.getEntity(m_selectedEntityID);
 
 			if (entity) {
@@ -142,7 +146,7 @@ namespace PXTEngine {
 		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), frameInfo.commandBuffer);
 	}
 
-	void UiRenderSystem::beginBuildingUi() {
+	void UiRenderSystem::beginBuildingUi(Scene& scene) {
 		ImGui_ImplVulkan_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
@@ -154,6 +158,9 @@ namespace PXTEngine {
 					// TODO: Implement "Open" logic here
 					printf("File -> Open... clicked!\n");
 				}
+				if (ImGui::MenuItem("Save Scene")) {
+					m_openSaveSceneDialog = true;
+				}
 				if (ImGui::MenuItem("Exit")) {
 					// TODO: Implement "Exit" logic here
 					printf("File -> Exit clicked!\n");
@@ -163,13 +170,53 @@ namespace PXTEngine {
 			ImGui::EndMainMenuBar();
 		}
 
+		if (m_openSaveSceneDialog) {
+			ImGui::OpenPopup("Save Scene Dialog");
+			m_openSaveSceneDialog = false;
+		}
+
 		// IMPORTANT: This is required for docking to work in the main window (for customizations, view imgui_demo.cpp)
 		ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport(), ImGuiDockNodeFlags_PassthruCentralNode);
+	}
+
+	void UiRenderSystem::saveSceneUi(Scene& scene) {
+		// Always center this window when appearing
+		ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+		ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+
+		if (ImGui::BeginPopupModal("Save Scene Dialog", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+			static char sceneNameBuffer[64] = "";
+			ImGui::Text("Enter Scene Name: (64 max)");
+			ImGui::InputText("##SceneName", sceneNameBuffer, IM_ARRAYSIZE(sceneNameBuffer));
+
+			if (ImGui::Button("OK", ImVec2(120, 0))) {
+				std::string sceneName = sceneNameBuffer;
+				if (!sceneName.empty()) {
+					scene.setName(sceneName);
+
+					auto& rm = Application::get().getResourceManager();
+					SceneSerializer serializer(&scene, &rm);
+					serializer.serialize(SCENES_PATH + sceneName + ".pxtscene");
+					PXT_INFO("Saving scene with name: {}\n", sceneName);
+				}
+
+				ImGui::CloseCurrentPopup();
+				memset(sceneNameBuffer, 0, sizeof(sceneNameBuffer));
+			}
+			ImGui::SetItemDefaultFocus();
+			ImGui::SameLine();
+			if (ImGui::Button("Cancel", ImVec2(120, 0))) {
+				ImGui::CloseCurrentPopup();
+			}
+			ImGui::EndPopup();
+		}
 	}
 
 	void UiRenderSystem::buildUi(Scene& scene) {
 		drawSceneEntityList(scene);
 		drawEntityInspector(scene);
+
+		saveSceneUi(scene);
 
 		ImGui::ShowMetricsWindow();
 	}

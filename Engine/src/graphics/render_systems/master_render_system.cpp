@@ -399,7 +399,7 @@ namespace PXTEngine {
 
 	void MasterRenderSystem::doRenderPasses(FrameInfo& frameInfo) {
 		// begin new frame imgui
-		m_uiRenderSystem->beginBuildingUi();
+		m_uiRenderSystem->beginBuildingUi(frameInfo.scene);
 
 		// render to offscreen main render pass
 		if (m_isRaytracingEnabled) {

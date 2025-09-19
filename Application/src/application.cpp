@@ -266,7 +266,7 @@ public:
     void loadScene() override {
         Scene& scene = getScene();
         SceneSerializer serializer(&scene, &getResourceManager());
-        serializer.deserialize(SCENES_PATH + "test.pxtscene");
+        serializer.deserialize(SCENES_PATH + "sneakyVase.pxtscene");
         
         // TODO: add scripts to scene serialize
         Entity camera = scene.getMainCameraEntity();

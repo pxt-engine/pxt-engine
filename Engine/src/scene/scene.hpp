@@ -22,6 +22,7 @@ namespace PXTEngine {
         ~Scene() = default;
 
 		std::string getName() const { return m_name; }
+        void setName(std::string name) { m_name = name; }
         
         /**
          * @brief Creates a new entity in the scene.
