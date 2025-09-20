@@ -71,8 +71,10 @@ void main()
 
     // compute diffuse and specular
     vec3 specularLight, diffuseLight;
-    const vec3 viewDirection = -gl_WorldRayDirectionEXT;
-    computeBlinnPhongLighting(surfaceNormal, viewDirection, worldPosition + worldNormal * FLT_EPSILON, material.blinnPhongSpecularIntensity, material.blinnPhongSpecularShininess, diffuseLight, specularLight);
+    const vec3 viewDirection = -normalize(gl_WorldRayDirectionEXT);
+    float specularIntensity = material.blinnPhongSpecularIntensity;
+    float specularShininess = material.blinnPhongSpecularShininess;
+    computeBlinnPhongLighting(surfaceNormal, viewDirection, worldPosition, specularIntensity, specularShininess, diffuseLight, specularLight);
 
     vec3 albedo = getAlbedo(material, uv, instance.textureTintColor);
 
@@ -119,7 +121,8 @@ void main()
     }
 
     // Apply lighting
-    vec3 finalColor = (diffuseLight + specularLight) * albedo * attenuation;
+    //TODO: specualr is broken, because of something? maybe normals????
+    vec3 finalColor = (diffuseLight + vec3(0.0)) * albedo * attenuation;
     
     payload.color = vec4(finalColor, 1.0);
     payload.t = gl_HitTEXT;
