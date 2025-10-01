@@ -18,13 +18,15 @@ namespace PXTEngine {
 	Pipeline::Pipeline(Context& context, const RayTracingPipelineConfigInfo& configInfo)
         : m_context(context) {
 		createRayTracingPipeline(configInfo);
-		VulkanShader(m_context, SPV_SHADERS_PATH + "material_shader.vert.spv");
+	}
+
+	Pipeline::Pipeline(Context& context, const std::string& shaderFilePath,
+		const ComputePipelineConfigInfo& configInfo)
+		: m_context(context) {
+		createComputePipeline(shaderFilePath, configInfo);
 	}
 
 	Pipeline::~Pipeline() {
-		for (const auto shaderModule : m_shaderModules) {
-			vkDestroyShaderModule(m_context.getDevice(), shaderModule, nullptr);
-		}
         vkDestroyPipeline(m_context.getDevice(), m_pipeline, nullptr);
     }
 
@@ -142,10 +144,24 @@ namespace PXTEngine {
 	}
 
 	void Pipeline::createRayTracingPipeline(const RayTracingPipelineConfigInfo& configInfo) {
+		// --- SPECIALIZATION CONSTANT SETUP (if needed for all shaders) ---
+		SpecializationData specializationData = { MAX_LIGHTS };
+
+		VkSpecializationMapEntry mapEntries[1] = {
+			{ 0, offsetof(SpecializationData, maxLights), sizeof(int32_t) }
+		};
+
+		VkSpecializationInfo specializationInfo{};
+		specializationInfo.mapEntryCount = 1;
+		specializationInfo.pMapEntries = mapEntries;
+		specializationInfo.dataSize = sizeof(SpecializationData);
+		specializationInfo.pData = &specializationData;
+		
 		// --- Prepare shader stages ---
 		// Containers to keep created shader stage infos and shader group infos.
 		std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
 		std::vector<VkRayTracingShaderGroupCreateInfoKHR> shaderGroups;
+		std::vector<Unique<VulkanShader>> shaders{};
 
 		// Loop each group
 		for (const auto& group : configInfo.shaderGroups) {
@@ -162,23 +178,13 @@ namespace PXTEngine {
 			shaderGroupInfo.pShaderGroupCaptureReplayHandle = nullptr; // Optional
 
 			for (const auto& [stage, filepath] : group.stages) {
-				// Read the shader binary code from the file.
-				auto shaderCode = readFile(filepath);
+				// create vulkan shader
+				shaders.push_back(createUnique<VulkanShader>(m_context, filepath));
 
-				// Create the shader module.
-				VkShaderModule shaderModule;
-				createShaderModule(shaderCode, &shaderModule);
-				m_shaderModules.push_back(shaderModule);
+				VkPipelineShaderStageCreateInfo shaderStageCreateInfo = shaders.back()->getShaderStageCreateInfo();
+				shaderStageCreateInfo.pSpecializationInfo = &specializationInfo;
 
-				// Prepare the shader stage create info.
-				VkPipelineShaderStageCreateInfo shaderStageInfo{};
-				shaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-				shaderStageInfo.stage = stage;
-				shaderStageInfo.module = shaderModule;
-				shaderStageInfo.pName = "main";
-				shaderStageInfo.flags = 0;
-				shaderStageInfo.pNext = nullptr;
-				shaderStages.push_back(shaderStageInfo);
+				shaderStages.push_back(shaders.back()->getShaderStageCreateInfo());
 
 				uint32_t currentStageIndex = static_cast<uint32_t>(shaderStages.size() - 1);
 
@@ -238,14 +244,37 @@ namespace PXTEngine {
 		}
 
 		m_pipelineBindPoint = VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR;
-
-		// --- Clean up: Destroy the shader modules ---
-		for (auto& shaderModule : m_shaderModules) {
-			vkDestroyShaderModule(m_context.getDevice(), shaderModule, nullptr);
-			shaderModule = VK_NULL_HANDLE;
-		}
-		m_shaderModules.clear();
 	}
+
+	void Pipeline::createComputePipeline(const std::string& shaderFilePath, const ComputePipelineConfigInfo& configInfo) {
+		PXT_ASSERT(configInfo.pipelineLayout != nullptr,
+			"Cannot create compute pipeline: no pipelineLayout provided in config info");
+
+		// A compute pipeline has only one shader stage
+		Unique<VulkanShader> computeShader = createUnique<VulkanShader>(m_context, shaderFilePath);
+		VkPipelineShaderStageCreateInfo shaderStageInfo = computeShader->getShaderStageCreateInfo();
+
+		VkComputePipelineCreateInfo pipelineInfo{};
+		pipelineInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+		pipelineInfo.stage = shaderStageInfo;
+		pipelineInfo.layout = configInfo.pipelineLayout;
+		pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
+		pipelineInfo.basePipelineIndex = -1;
+
+		if (vkCreateComputePipelines(
+			m_context.getDevice(),
+			VK_NULL_HANDLE,
+			1,
+			&pipelineInfo,
+			nullptr,
+			&m_pipeline) != VK_SUCCESS) {
+			throw std::runtime_error("failed to create compute pipeline!");
+		}
+
+		// Set the correct bind point for vkCmdBindPipeline
+		m_pipelineBindPoint = VK_PIPELINE_BIND_POINT_COMPUTE;
+	}
+
 
 	void Pipeline::bind(VkCommandBuffer commandBuffer) {
         vkCmdBindPipeline(commandBuffer, m_pipelineBindPoint, m_pipeline);

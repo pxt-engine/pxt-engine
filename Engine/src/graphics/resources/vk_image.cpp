@@ -10,20 +10,7 @@ namespace PXTEngine {
 		m_imageView = VK_NULL_HANDLE;
 		m_sampler = VK_NULL_HANDLE;
 
-		switch (info.format)
-		{
-		case RGB8_LINEAR:
-			m_imageFormat = VK_FORMAT_R8G8B8_UNORM;
-			break;
-		case RGBA8_LINEAR:
-			m_imageFormat = VK_FORMAT_R8G8B8A8_UNORM;
-			break;
-		case RGB8_SRGB:
-			m_imageFormat = VK_FORMAT_R8G8B8_SRGB;
-			break;
-		case RGBA8_SRGB:
-			m_imageFormat = VK_FORMAT_R8G8B8A8_SRGB;
-		}
+		m_imageFormat = pxtToVulkanImageFormat(m_info.format);
 	}
 
 	VulkanImage::VulkanImage(Context& context, const VkImageCreateInfo& imageInfo, VkMemoryPropertyFlags memoryFlags)
@@ -33,8 +20,16 @@ namespace PXTEngine {
 	}
 
 	VulkanImage::~VulkanImage() {
-		vkDestroySampler(m_context.getDevice(), m_sampler, nullptr);
-		vkDestroyImageView(m_context.getDevice(), m_imageView, nullptr);
+		if (m_imageView != VK_NULL_HANDLE) {
+			vkDestroyImageView(m_context.getDevice(), m_imageView, nullptr);
+		}
+
+		// TODO: Samplers should be a separate resource, not tied to the image.
+		// because then if the image is destroyed, the sampler is also destroyed and
+		// could be still used/destroyed_twice in other images.
+		if (m_sampler != VK_NULL_HANDLE) {
+			vkDestroySampler(m_context.getDevice(), m_sampler, nullptr);
+		}
 
 		vkDestroyImage(m_context.getDevice(), m_vkImage, nullptr);
 		vkFreeMemory(m_context.getDevice(), m_imageMemory, nullptr);

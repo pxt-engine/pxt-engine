@@ -20,13 +20,17 @@ namespace PXTEngine {
     public:
         Scene() = default;
         ~Scene() = default;
+
+		std::string getName() const { return m_name; }
+        void setName(std::string name) { m_name = name; }
         
         /**
          * @brief Creates a new entity in the scene.
          * @param name Optional name for the entity.
+		 * @param id Optional UUID for the entity. If not provided, a new UUID is generated.
          * @return The created entity.
          */
-        Entity createEntity(const std::string& name = std::string());
+        Entity createEntity(const std::string& name = std::string(), UUID id = UUID());
         
         /**
          * @brief Retrieves an entity by its UUID.
@@ -77,6 +81,7 @@ namespace PXTEngine {
         Shared<Environment> getEnvironment() const { return m_environment; }
 
     private:
+		std::string m_name = "Unnamed-Scene";
         std::unordered_map<UUID, entt::entity> m_entityMap;
         
         // The entity registry for managing components.

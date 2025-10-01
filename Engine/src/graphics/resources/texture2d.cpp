@@ -13,13 +13,13 @@ namespace PXTEngine {
 
 	Texture2D::Texture2D(Context& context, const ImageInfo& info, const Buffer& buffer)
 	: VulkanImage(context, info, buffer) {
-		createTextureImage(info, buffer);
+		createTextureImage(buffer);
 		createTextureImageView();
 		createTextureSampler();
 	}
 
-	void Texture2D::createTextureImage(const ImageInfo& info, const Buffer& buffer) {
-		VkDeviceSize imageSize = info.width * info.height * info.channels;
+	void Texture2D::createTextureImage(const Buffer& buffer) {
+		VkDeviceSize imageSize = m_info.width * m_info.height * m_info.channels * getChannelBytePerPixelForFormat(m_info.format);
 		// create a staging buffer visible to the host and copy the pixels to it
 		Unique<VulkanBuffer> stagingBuffer = createUnique<VulkanBuffer>(
 			m_context,
@@ -34,7 +34,7 @@ namespace PXTEngine {
 		stagingBuffer->unmap();
 
 		// create an empty vkImage
-		createImage(info.width, info.height,
+		createImage(m_info.width, m_info.height,
 			VK_IMAGE_TILING_OPTIMAL,
 			// we want the image to be a transfer destination and sampled to be used in the shaders
 			VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
@@ -52,8 +52,8 @@ namespace PXTEngine {
 		m_context.copyBufferToImage(
 			stagingBuffer->getBuffer(),
 			m_vkImage,
-			info.width,
-			info.height
+			m_info.width,
+			m_info.height
 		);
 
 		// finally, we change the image layout again to be accessed from the shaders (VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
@@ -132,11 +132,13 @@ namespace PXTEngine {
 		VkSamplerCreateInfo samplerInfo{};
 		samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
 
+		VkBool32 useUnnormalizedCoordinates = (m_info.flags & ImageFlags::UnnormalizedCoordinates) != ImageFlags::None ? VK_TRUE : VK_FALSE;
+
 		// magFilter & minFilter determine how the texture is sampled when scaled up (mag) or down (min).
 		// VK_FILTER_LINEAR: linear interpolation (blurry but smooth)
 		// VK_FILTER_LINEAR: nearest neighbor interpolation (pixelated appearance)
-		samplerInfo.magFilter = VK_FILTER_LINEAR;
-		samplerInfo.minFilter = VK_FILTER_LINEAR;
+		samplerInfo.magFilter = pxtToVulkanImageFiltering(m_info.filtering);
+		samplerInfo.minFilter = pxtToVulkanImageFiltering(m_info.filtering);
 
 		// addressMode (U-V-W): determine what happens when texture coordinates go beyond the image boundaries.
 		// Example: https://vulkan-tutorial.com/images/texture_addressing.png
@@ -144,21 +146,27 @@ namespace PXTEngine {
 		// VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT: flips every repeat
 		// VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE: stretches edge texels
 		// VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER: uses a specified border color
-		samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-		samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-		samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		samplerInfo.addressModeU = useUnnormalizedCoordinates ? VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE : VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		samplerInfo.addressModeV = useUnnormalizedCoordinates ? VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE : VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		samplerInfo.addressModeW = useUnnormalizedCoordinates ? VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE : VK_SAMPLER_ADDRESS_MODE_REPEAT;
 
 		// enable anisotropic filtering, which improves texture quality at oblique angles.
 		// https://en.wikipedia.org/wiki/Anisotropic_filtering
-		samplerInfo.anisotropyEnable = VK_TRUE;
-		samplerInfo.maxAnisotropy = m_context.getPhysicalDeviceProperties().limits.maxSamplerAnisotropy;
-
+		// If unnormalized coordinates are used, anisotropy is disabled. See Vulkan Specification
+		if (useUnnormalizedCoordinates) {
+			samplerInfo.anisotropyEnable = VK_FALSE;
+		}
+		else {
+			samplerInfo.anisotropyEnable = VK_TRUE;
+			samplerInfo.maxAnisotropy = m_context.getPhysicalDeviceProperties().limits.maxSamplerAnisotropy;
+		}
+		
 		// which color to use when sampling outside the image borders (only if address mode is clamp to border)
 		samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
 
 		// VK_FALSE: Uses normalized texture coordinates [0,1) range, useful for giving same coords to different resolution textures.
 		// VK_TRUE: Uses actual texel coordinates [0, texWidth) and [0, texHeight)]
-		samplerInfo.unnormalizedCoordinates = VK_FALSE;
+		samplerInfo.unnormalizedCoordinates = useUnnormalizedCoordinates;
 
 		// Those are mainly used for percentage-closer filtering on shadow maps.
 		// https://developer.nvidia.com/gpugems/gpugems/part-ii-lighting-and-shadows/chapter-11-shadow-map-antialiasing
@@ -166,7 +174,7 @@ namespace PXTEngine {
 		samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
 
 		// Mipmapping settings
-		samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+		samplerInfo.mipmapMode = useUnnormalizedCoordinates ? VK_SAMPLER_MIPMAP_MODE_NEAREST : VK_SAMPLER_MIPMAP_MODE_LINEAR;
 		samplerInfo.mipLodBias = 0.0f;
 		samplerInfo.minLod = 0.0f;
 		samplerInfo.maxLod = 0.0f;

@@ -1,0 +1,347 @@
+#ifndef _NEXT_EVENT_ESTIMATION_RT_
+#define _NEXT_EVENT_ESTIMATION_RT_
+
+#include "../../common/ray.glsl"
+#include "../../common/payload.glsl"
+#include "../../common/geometry.glsl"
+#include "../../common/random.glsl"
+#include "sky.glsl"
+
+layout(location = VisibilityPayloadLocation) rayPayloadEXT VisibilityPayload p_visibility;
+
+#define NEE_MAX_BOUNCES 8
+
+struct EmitterSample {
+    vec3 radiance;
+    vec3 inLightDirWorld;
+    float lightDistance;
+    float emitterCosTheta;
+    float pdf;
+    vec3 normalWorld;
+    uint index;
+    uint faceIndex;
+};
+
+EmitterSample sampleEmitterAt(uint emitterIndex, uint faceIndex, vec2 barycentrics, vec3 worldPosition) {
+    EmitterSample smpl;
+    smpl.radiance = vec3(0.0);
+    smpl.lightDistance = RAY_T_MAX;
+    smpl.pdf = 0.0;
+    smpl.index = emitterIndex;
+    smpl.faceIndex = faceIndex;
+
+    const Emitter emitter = emitters.e[emitterIndex];  
+    const MeshInstanceDescription instance = meshInstances.i[emitter.instanceIndex];
+    const Material material = materials.m[instance.materialIndex];
+
+    const Triangle triangle = getTriangle(instance.indexAddress, instance.vertexAddress, faceIndex);
+    const vec2 uv = getTextureCoords(triangle, barycentrics) * instance.textureTilingFactor;
+
+    smpl.radiance = getEmission(material, uv);
+
+    if (smpl.radiance == vec3(0.0)) {
+        return smpl;
+    }
+
+    const vec3 emitterObjPosition = getPosition(triangle, barycentrics);
+    const vec3 emitterObjNormal = getNormal(triangle, barycentrics);
+
+    const mat4 emitterObjectToWorld = mat4(instance.objectToWorld);
+    // The upper 3x3 of the world-to-object matrix is the normal matrix
+    const mat3 emitterNormalMatrix = mat3(instance.worldToObject);
+
+    const vec3 emitterPosition = vec3(emitterObjectToWorld * vec4(emitterObjPosition, 1.0));
+    const vec3 emitterNormal = normalize(emitterNormalMatrix * emitterObjNormal);
+
+    // vector from emitter the surface to the emitter
+    vec3 outLightVec = worldPosition - emitterPosition;
+
+    smpl.lightDistance = length(outLightVec);
+
+    const float area = calculateWorldSpaceTriangleArea(triangle, mat3(instance.objectToWorld));
+
+    if (area <= 0.0 || smpl.lightDistance <= 0) {
+        return smpl;
+    }
+
+    vec3 outLightDir = outLightVec / smpl.lightDistance;
+
+    smpl.inLightDirWorld = -outLightDir;
+
+    smpl.emitterCosTheta = abs(cosTheta(emitterNormal, outLightDir));
+
+    if (smpl.emitterCosTheta == 0.0) {
+        return smpl;
+    }
+
+    const uint numEmitters = uint(emitters.numEmitters);
+    const uint totalSamplableEmitters = numEmitters + USE_SKY_AS_NEE_EMITTER;
+
+
+	// TODO: this assumes that all faces of the emitter have the same area
+	//       which is not true in general. We should precompute the total area
+	const float areaPdf = 1.0 / (area * emitter.numberOfFaces);
+
+    // Jacobian for PDF conversion from area to solid angle
+    const float jacobian = pow2(smpl.lightDistance) / smpl.emitterCosTheta;
+
+
+	smpl.pdf = jacobian * areaPdf;
+
+    // Since we sample a single emitter we need to divide by the number of samplable emitters
+    // to account for the probability of having chosen this emitter.
+    smpl.pdf /= totalSamplableEmitters;
+
+    return smpl;
+}
+
+vec3 evaluateTransmittance(inout EmitterSample emitterSample, vec3 worldPosition, int initialMediumIndex) {
+    vec3 transmittance = vec3(1.0);
+
+    Ray ray;
+    ray.origin = worldPosition;
+    ray.direction = emitterSample.inLightDirWorld;
+
+    const uint INVALID_INDEX = UINT_MAX;
+
+    float tMax = max(0.0, emitterSample.lightDistance + FLT_EPSILON);
+    
+    // we need to keep track of the last surface we hit to know
+    // if we are exiting an object inside a volume.
+    // think of a donut inside a volume, we need to account
+    // for transmittance of the volume in the hole of the donut.
+    uint interactionStack[NEE_MAX_BOUNCES];
+    uint stackPtr = 0;
+    
+    // sentinel to check for empty stack
+    interactionStack[stackPtr] = INVALID_INDEX;
+
+    bool isStartingInsideVolume = initialMediumIndex != -1;
+
+    int depth;
+    for (depth = 0; depth < NEE_MAX_BOUNCES; depth++) {
+        traceRayEXT(
+            TLAS,
+            gl_RayFlagsTerminateOnFirstHitEXT, // Ray Flags           
+            0xFF,  // Cull Mask         
+            1,
+            0,
+            1,
+            ray.origin,
+            RAY_T_MIN,
+            ray.direction,
+            tMax,
+            VisibilityPayloadLocation
+        );
+
+        if (p_visibility.instance == -1) {
+            // shouldn't happen.
+            break;
+        }
+
+        uint instanceIndex = uint(p_visibility.instance);
+        const MeshInstanceDescription instance = meshInstances.i[instanceIndex];
+
+        uint topStackInstanceIndex = interactionStack[stackPtr];
+        int volumeIndex;
+        bool doVolumeInteraction = false;
+
+        if (topStackInstanceIndex != INVALID_INDEX) {
+            const MeshInstanceDescription topStackInstance = meshInstances.i[topStackInstanceIndex];
+            // if we had a volume still in the stack, we need to do medium interaction before popping it
+            doVolumeInteraction = topStackInstance.volumeIndex != INVALID_INDEX;
+            volumeIndex = int(topStackInstance.volumeIndex);
+        } else if (isStartingInsideVolume) {
+            doVolumeInteraction = true;
+            volumeIndex = initialMediumIndex;
+            isStartingInsideVolume = false;
+        }
+            
+        if (doVolumeInteraction) {
+            const Volume volume = volumes.volumes[volumeIndex];
+
+            // We have travelled the medium from start to finish
+            // we need to account for the absorption
+            vec3 sigma_t = volume.absorption.rgb + volume.scattering.rgb;
+            if (maxComponent(sigma_t) > 0.0) {
+                // TODO: support for heterogeneous media
+                // Beer-Lambert law for transmittance
+                transmittance *= exp(-sigma_t * p_visibility.hitDistance);
+            }
+        }
+
+        // update the interaction stack
+        if (interactionStack[stackPtr] == uint(instanceIndex)) {
+            stackPtr--;
+        } else {
+            stackPtr++;
+            if (stackPtr > NEE_MAX_BOUNCES) {
+                // too many nested surfaces
+                return vec3(0.0);
+            }
+            interactionStack[stackPtr] = uint(instanceIndex);
+        }
+
+        topStackInstanceIndex = interactionStack[stackPtr];
+
+        // if the stack is not empty and we hit the same instance at the top of the stack
+        // and the instance has a material, we are entering a surface with a material
+        // (we do the interaction only once when hitting the front face)
+        bool doSurfaceInteraction = topStackInstanceIndex != INVALID_INDEX &&
+                                    topStackInstanceIndex == instanceIndex &&
+                                    instance.materialIndex != INVALID_INDEX;
+
+        if (doSurfaceInteraction) {
+            const Material material = materials.m[instance.materialIndex];
+
+            const Triangle triangle = getTriangle(instance.indexAddress, instance.vertexAddress, p_visibility.primitiveId);
+
+            const vec2 uv = getTextureCoords(triangle, p_visibility.barycentrics) * instance.textureTilingFactor;
+
+            vec3 emission = getEmission(material, uv);
+
+            // We have encountered an emitter during the visibility for the provided emitter
+            // We update the emitterSample using the current hit and return the accumulated
+            // transmittance which correspond to the transmittance for the found emitter.
+            if (maxComponent(emission) > 0.0) {
+                if (p_visibility.primitiveId == emitterSample.faceIndex && instanceIndex == int(emitterSample.index)) {
+                    // we hit the same emitter we were testing visibility for
+                    // we can stop here
+                    break;
+                }
+                uint emitterIndex = instance.emitterIndex;
+
+                emitterSample = sampleEmitterAt(emitterIndex, p_visibility.primitiveId, p_visibility.barycentrics, worldPosition);
+
+                break;
+            }
+
+            float transmission = material.transmission;
+
+            // if the surface is opaque we stop
+            if (transmission == 0.0) {
+                transmittance = vec3(0.0);
+                break;
+            }
+
+            vec3 albedo = getAlbedo(material, uv, instance.textureTintColor);
+            float metalness = getMetalness(material, uv);
+            float roughness = getRoughness(material, uv);
+
+            // Even if it's not physically correct we use this as an approximation of how much
+            // light reaches the point. Metallic and rough surfaces reflect the light.
+            // Note: we multiply by albedo and not sqrt(albedo) because the second time
+            //       we touch the same transmissive object (on exit - in the else branch) we do no operations.
+            transmittance *= (1.0 - metalness) * (1.0 - roughness) * transmission * albedo;
+        }
+
+        // If the transmittance is too low, we can stop early
+        if (maxComponent(transmittance) <= FLT_EPSILON) {
+            return vec3(0.0);
+        }
+
+        // Prepare for the next segment of the ray
+        float offset = p_visibility.hitDistance;
+        ray.origin += ray.direction * offset;
+        tMax -= offset;
+
+        if (tMax <= 0.0) {
+            break; // Ray has reached its maximum distance
+        }
+    }
+
+    if (depth == NEE_MAX_BOUNCES) return vec3(0.0);
+
+    return transmittance;
+}
+
+/**
+ * Samples a random emitter (either a mesh emitter or the sky) and returns the sample.
+ * The function samples a mesh emitter or the sky based on the provided seed.
+ * It calculates the radiance, light distance, PDF, and visibility of the sampled emitter.
+ *
+ * @param surface The SurfaceData containing geometric and material properties of the hit point.
+ * @param worldPosition The world position of the surface being sampled.
+ * @param smpl Output parameter to store the sampled emitter data.
+ */
+void sampleEmitter(uint emitterIndex, vec3 worldPosition, out EmitterSample smpl, inout uint seed) {
+    // Sample a mesh emitter
+    const Emitter emitter = emitters.e[emitterIndex];
+    const MeshInstanceDescription emitterInstance = meshInstances.i[emitter.instanceIndex];
+    const Material material = materials.m[emitterInstance.materialIndex];
+        
+    const uint faceIndex = nextUint(seed, emitter.numberOfFaces);
+
+    // Generate barycentric coordinates for the triangle
+    vec2 barycentrics = sampleTrianglePoint(seed);
+
+    smpl = sampleEmitterAt(emitterIndex, faceIndex, barycentrics, worldPosition);
+}
+
+/**
+ * Samples a random emitter (either a mesh emitter or the sky) and returns the sample.
+ * The function samples a mesh emitter or the sky based on the provided seed.
+ * It calculates the radiance, light distance, PDF, and visibility of the sampled emitter.
+ *
+ * @param surface The SurfaceData containing geometric and material properties of the hit point.
+ * @param worldPosition The world position of the surface being sampled.
+ * @param smpl Output parameter to store the sampled emitter data.
+ */
+void sampleRandomEmitter(mat3 tbn, vec3 worldPosition, out EmitterSample smpl, inout PathTracePayload payload) {
+    smpl.radiance = vec3(0.0);
+    smpl.lightDistance = RAY_T_MAX;
+    smpl.pdf = 0.0;
+
+    const uint numEmitters = uint(emitters.numEmitters);
+
+    if (numEmitters == 0) {
+        return;
+    }
+
+    // We add one extra emitters for the sky
+    const uint totalSamplableEmitters = numEmitters + USE_SKY_AS_NEE_EMITTER;
+
+    const uint emitterIndex = nextUint(payload.seed, totalSamplableEmitters);
+
+    if (emitterIndex == numEmitters) {
+        // Sample the sky as an emitter
+        vec3 inLightDirTangent = sampleCosineWeightedHemisphere(payload.samplingNoise);
+
+        smpl.inLightDirWorld = tangentToWorld(tbn, inLightDirTangent);
+
+        smpl.pdf = pdfCosineWeightedHemisphere(max(inLightDirTangent.z, 0)) / totalSamplableEmitters;
+        smpl.radiance = getSkyRadiance(smpl.inLightDirWorld);
+
+        if (smpl.radiance == vec3(0.0)) return;
+
+    }
+
+    sampleEmitter(emitterIndex, worldPosition, smpl, payload.seed);
+}
+
+/**
+ * Power Heuristic for combining multiple sampling strategies.
+ * This heuristic is used to balance the contributions of different sampling methods
+ * based on their probability density functions (PDFs).
+ *
+ * The generic power heurisitc is: w_i = pow(pdf_i, beta) / sum(pow(pdf_j, beta))
+ *
+ * The power heuristic, particularly with beta=2 was extensively studied and empirically shown to be
+ * highly effective by Eric Veach in his Ph.D. thesis.
+ * While not always strictly "optimal" in a mathematical sense for every single scenario, it provides
+ * a very robust and generally well-performing solution across a wide range of rendering situations.
+ * @see https://graphics.stanford.edu/papers/veach_thesis/thesis.pdf
+ *
+ * @param pdfA The PDF of the first sampling method.
+ * @param pdfB The PDF of the second sampling method.
+
+ * @return The weight for the first sampling method.
+ */
+float powerHeuristic(float pdfA, float pdfB) {
+    const float pdfASq = pow2(pdfA);
+    const float pdfBSq = pow2(pdfB);
+
+    return pdfASq / (pdfASq + pdfBSq);
+}
+
+#endif

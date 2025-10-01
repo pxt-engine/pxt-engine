@@ -28,6 +28,20 @@ namespace PXTEngine {
     };
 
     /**
+     * @struct ComputePipelineConfigInfo
+     * @brief Configuration information for the COMPUTE pipeline.
+     *
+     * This structure contains settings for creating a Vulkan compute pipeline.
+     */
+    struct ComputePipelineConfigInfo {
+        ComputePipelineConfigInfo() = default;
+        ComputePipelineConfigInfo(const ComputePipelineConfigInfo&) = delete;
+        ComputePipelineConfigInfo& operator=(const ComputePipelineConfigInfo&) = delete;
+
+        VkPipelineLayout pipelineLayout = nullptr;
+    };
+
+    /**
      * @struct RasterizationPipelineConfigInfo
      * @brief Configuration information for the GRAPHICS pipeline.
      *
@@ -67,6 +81,7 @@ namespace PXTEngine {
         Pipeline(Context& context, const std::vector<std::string>& shaderFilePaths,
                  const RasterizationPipelineConfigInfo& configInfo);
 		Pipeline(Context& context, const RayTracingPipelineConfigInfo& configInfo);
+        Pipeline(Context& context, const std::string& shaderFilePath, const ComputePipelineConfigInfo& configInfo);
                  
         ~Pipeline();
 
@@ -89,12 +104,13 @@ namespace PXTEngine {
 
 		void createRayTracingPipeline(const RayTracingPipelineConfigInfo& configInfo);
 
+        void createComputePipeline(const std::string& shaderFilePath, const ComputePipelineConfigInfo& configInfo);
+
         void createShaderModule(const std::vector<char>& code, VkShaderModule* shaderModule);
 
         Context& m_context;
         VkPipeline m_pipeline;
 
-        std::vector<VkShaderModule> m_shaderModules{};
 		VkPipelineBindPoint m_pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
     };
 }

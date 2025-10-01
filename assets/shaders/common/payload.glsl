@@ -3,7 +3,12 @@
 
 #define PathTracePayloadLocation  0
 #define VisibilityPayloadLocation 1
+#define DistancePayloadLocation   2
 
+
+// Payload Flags
+const uint FLAG_DONE = 1 << 0; // Path is done, no more bounces.
+const uint FLAG_SPECULAR = 1 << 1; // Last bounce was specular.
 
 struct PathTracePayload {
     // Accumulated color and energy along the path.
@@ -21,13 +26,44 @@ struct PathTracePayload {
     // The direction of the ray in world space.
     vec3 direction;
 
-    // A flag to signal that the path has been terminated (e.g., hit the sky, absorbed).
-    bool done;
+	// The instance that was hit by the ray. -1 if no hit.
+	float hitDistance;
+
+    // The medium (volume) the ray is currently in. (index)
+    // If -1, we are in the void.
+    int mediumIndex;
 
     // A seed for the random number generator, updated at each bounce.
     uint seed;
 
-    bool isSpecularBounce;
+    // A Noise value used for sampling. Can be white/blue etc...
+    vec2 samplingNoise;
+
+    // The PDF value of the last BSDF or phase function sampling
+    float pdf;
+
+    uint flags;
+};
+
+bool hasFlag(in PathTracePayload payload, in uint flag) {
+    return (payload.flags & flag) != 0u;
+}
+
+void setFlag(inout PathTracePayload payload, in uint flag) {
+    payload.flags |= flag;
+}
+
+void removeFlag(inout PathTracePayload payload, in uint flag) {
+    payload.flags &= ~flag;
+}
+
+
+
+struct VisibilityPayload {
+    int instance;
+    float hitDistance;
+    int primitiveId;
+    vec2 barycentrics;
 };
 
 #endif

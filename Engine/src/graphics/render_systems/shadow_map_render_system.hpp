@@ -23,6 +23,7 @@ namespace PXTEngine {
 		void update(FrameInfo& frameInfo, GlobalUbo& ubo);
         void render(FrameInfo& frameInfo, Renderer& renderer);
         void updateUi();
+		void reloadShaders();
 
 		FrameBuffer& getCubeFaceFramebuffer(uint32_t face_index) const { return *m_cubeFramebuffers[face_index]; }
 		VkExtent2D getExtent() const { return { m_shadowMapSize, m_shadowMapSize }; }

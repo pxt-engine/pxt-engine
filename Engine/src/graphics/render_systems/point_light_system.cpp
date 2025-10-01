@@ -10,7 +10,8 @@ namespace PXTEngine {
         float radius;
     };
 
-    PointLightSystem::PointLightSystem(Context& context, VkRenderPass renderPass, VkDescriptorSetLayout globalSetLayout) : m_context(context) {
+    PointLightSystem::PointLightSystem(Context& context, VkRenderPass renderPass, VkDescriptorSetLayout globalSetLayout) :
+		m_context(context), m_renderPass(renderPass) {
         createPipelineLayout(globalSetLayout);
         createPipeline(renderPass);
     }
@@ -42,7 +43,7 @@ namespace PXTEngine {
 
 
 
-    void PointLightSystem::createPipeline(VkRenderPass renderPass, bool useCompiledSpirvFiles) {
+    void PointLightSystem::createPipeline(bool useCompiledSpirvFiles) {
         PXT_ASSERT(m_pipelineLayout != nullptr, "Cannot create pipeline before pipelineLayout");
 
         RasterizationPipelineConfigInfo pipelineConfig{};
@@ -53,7 +54,7 @@ namespace PXTEngine {
         pipelineConfig.bindingDescriptions.clear();
         pipelineConfig.attributeDescriptions.clear();
 
-        pipelineConfig.renderPass = renderPass;
+        pipelineConfig.renderPass = m_renderPass;
         pipelineConfig.pipelineLayout = m_pipelineLayout;
 
         const std::string baseShaderPath = useCompiledSpirvFiles ? SPV_SHADERS_PATH : SHADERS_PATH;
@@ -143,5 +144,9 @@ namespace PXTEngine {
             
             vkCmdDraw(frameInfo.commandBuffer, 6, 1, 0, 0);
         }
+    }
+    void PointLightSystem::reloadShaders() {
+        PXT_INFO("Reloading shaders...");
+		createPipeline(false);
     }
 }

@@ -5,9 +5,6 @@
 #include "scene/scene.hpp"
 
 namespace PXTEngine {
-
-    #define MAX_LIGHTS 10
-
     struct PointLight {
         glm::vec4 position{};
         glm::vec4 color{}; // w is intensity
@@ -21,8 +18,6 @@ namespace PXTEngine {
         PointLight pointLights[MAX_LIGHTS];
         int numLights;
         uint32_t frameCount;
-        uint32_t ptAccumulationCount;
-        bool accumulationEnabled;
     };
 
     struct FrameInfo {

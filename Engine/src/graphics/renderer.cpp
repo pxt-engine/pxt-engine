@@ -13,6 +13,8 @@ namespace PXTEngine {
 
     void Renderer::recreateSwapChain() {
         auto extent = m_window.getExtent();
+
+        //TODO: fix when using ShowDesktop (Windows + D)
         while (extent.width == 0 || extent.height == 0) {
             extent = m_window.getExtent();
             glfwWaitEvents();

@@ -152,7 +152,8 @@ namespace PXTEngine {
 		sceneImageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 		sceneImageInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | // to be writable in a renderpass
 							   VK_IMAGE_USAGE_SAMPLED_BIT |			 // to be readable in a shader
-							   VK_IMAGE_USAGE_STORAGE_BIT;			 // to be writable for raytracing shaders
+							   VK_IMAGE_USAGE_STORAGE_BIT |			 // to be writable for raytracing shaders
+							   VK_IMAGE_USAGE_TRANSFER_DST_BIT;		 // to copy to it later (denoised image)
 		sceneImageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 		sceneImageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
@@ -323,6 +324,12 @@ namespace PXTEngine {
 			*m_globalSetLayout,
 			m_sceneImage
 		);
+
+		m_denoiserRenderSystem = createUnique<DenoiserRenderSystem>(
+			m_context,
+			m_descriptorAllocator,
+			m_renderer.getSwapChainExtent()
+		);
 	}
 
 	void MasterRenderSystem::reloadShaders() {
@@ -332,12 +339,16 @@ namespace PXTEngine {
 		PXT_INFO("Reloading shaders in MasterRenderSystem...");
 
 		// reload shaders in all render systems
-		m_materialRenderSystem->reloadShaders();
-		m_debugRenderSystem->reloadShaders();
-		//m_skyboxRenderSystem->reloadShaders();
-		//m_pointLightSystem->reloadShaders();
-		//m_shadowMapRenderSystem->reloadShaders();
-		//m_rayTracingRenderSystem->reloadShaders();
+		if (m_isRaytracingEnabled) {
+			m_rayTracingRenderSystem->reloadShaders();
+			m_denoiserRenderSystem->reloadShaders();
+		} else {
+			m_materialRenderSystem->reloadShaders();
+			m_debugRenderSystem->reloadShaders();
+			m_skyboxRenderSystem->reloadShaders();
+			m_pointLightSystem->reloadShaders();
+			m_shadowMapRenderSystem->reloadShaders();
+		}
 
 		PXT_INFO("Shaders reloaded successfully.");
 	}
@@ -351,6 +362,10 @@ namespace PXTEngine {
 
 			// update scene image for raytracing
 			m_rayTracingRenderSystem->updateSceneImage(m_sceneImage);
+
+			// update the denoiser's images with new extent
+			m_denoiserRenderSystem->updateImages(swapChainExtent);
+
 			m_lastFrameSwapChainExtent = swapChainExtent;
 		}
 
@@ -372,31 +387,38 @@ namespace PXTEngine {
 		// update shadow map
 		m_shadowMapRenderSystem->update(frameInfo, ubo);
 
+		// update material descriptor set
+		m_materialRegistry.updateDescriptorSet(frameInfo.frameIndex);
+
 		// update raytracing scene
 		if (m_isRaytracingEnabled) {
-			if (m_isAccumulationEnabled) {
-				ubo.accumulationEnabled = true;
-				ubo.ptAccumulationCount = m_rayTracingRenderSystem->getAndIncrementPathTracingAccumulationFrameCount();
-			} else {
-				ubo.accumulationEnabled = false;
-				ubo.ptAccumulationCount = 0;
-				m_rayTracingRenderSystem->resetPathTracingAccumulationFrameCount();
-			}
+			m_denoiserRenderSystem->update(ubo);
 			m_rayTracingRenderSystem->update(frameInfo);
 		}
 	}
 
 	void MasterRenderSystem::doRenderPasses(FrameInfo& frameInfo) {
 		// begin new frame imgui
-		m_uiRenderSystem->beginBuildingUi();
+		m_uiRenderSystem->beginBuildingUi(frameInfo.scene);
 
 		// render to offscreen main render pass
 		if (m_isRaytracingEnabled) {
 			m_rayTracingRenderSystem->render(frameInfo, m_renderer);
-			// this transitions the scene image back to shader_read_only_optimal for the next
-			// renderpass (for now only point light billboards)
-			m_rayTracingRenderSystem->transitionImageToShaderReadOnlyOptimal(frameInfo);
 
+			// transition the scene image to shader_read_only_optimal layout for denoiser sampling
+			m_rayTracingRenderSystem->transitionImageToShaderReadOnlyOptimal(frameInfo, VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR);
+
+			if (m_isDenoisingEnabled) {
+				m_denoiserRenderSystem->denoise(
+					frameInfo,
+					m_sceneImage
+				);
+
+				// this transitions the scene image back to shader_read_only_optimal for the next
+				// renderpass (for now only point light billboards or ImGui Presentation)
+				m_rayTracingRenderSystem->transitionImageToShaderReadOnlyOptimal(frameInfo, VK_PIPELINE_STAGE_TRANSFER_BIT);
+			}
+			
 			//begin offscreen render pass for point light billboards
 			/*m_renderer.beginRenderPass(frameInfo.commandBuffer, m_offscreenRenderPass->getVkRenderPass(),
 				m_offscreenFb, m_renderer.getSwapChainExtent());
@@ -518,13 +540,32 @@ namespace PXTEngine {
 		ImGui::Image(scene, m_sceneImageExtentInWindow);
 		ImGui::End();
 		ImGui::PopStyleVar();
+	}
+
+	void MasterRenderSystem::updateUi() {
+		updateSceneUi();
 
 		ImGui::Begin("Raytracing Renderer");
 		ImGui::Checkbox("Enable Raytracing", &m_isRaytracingEnabled);
+
+		ImGui::TextColored(ImVec4(0.8, 0.6, 0.1, 1.0),
+			"If changes were made to the %s shaders\n(prior of switching render type), you need to reload them!",
+			m_isRaytracingEnabled ? "Raytracing" : "Rasterization");
+
+		ImGui::Dummy(ImVec2(0.0f, 10.0f));
+
 		if (m_isRaytracingEnabled) {
-			ImGui::Checkbox("Enable Accumulation", &m_isAccumulationEnabled);
+			m_rayTracingRenderSystem->updateUi();
+
+			ImGui::Begin("Denoiser Settings");
+
+			ImGui::Checkbox("Enable Denoising", &m_isDenoisingEnabled);
+
+			if (m_isDenoisingEnabled) m_denoiserRenderSystem->updateUi();
+
+			ImGui::End();
 		}
-		
+
 		ImGui::End();
 
 		ImGui::Begin("Debug Renderer");
@@ -536,14 +577,11 @@ namespace PXTEngine {
 		if (m_isDebugEnabled) {
 			ImGui::Text("Debug Renderer is enabled");
 			m_debugRenderSystem->updateUi();
-		} else {
+		}
+		else {
 			ImGui::Text("Debug Renderer is disabled");
 		}
 		ImGui::End();
-	}
-
-	void MasterRenderSystem::updateUi() {
-		updateSceneUi();
 
 		if (!m_isRaytracingEnabled) {
 			m_shadowMapRenderSystem->updateUi();

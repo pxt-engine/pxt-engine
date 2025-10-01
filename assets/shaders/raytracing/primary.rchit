@@ -10,42 +10,13 @@
 #include "../common/math.glsl"
 #include "../common/ray.glsl"
 #include "../common/geometry.glsl"
+#include "../common/material.glsl"
 #include "../ubo/global_ubo.glsl"
 #include "../material/surface_normal.glsl"
 #include "../lighting/blinn_phong_lighting.glsl"
-
-layout(set = 1, binding = 0) uniform accelerationStructureEXT TLAS; // Used for shadows
-
-layout(set = 2, binding = 0) uniform sampler2D textures[];
-
-struct Material {
-	vec4 albedoColor;
-    vec4 emissiveColor;
-	int albedoMapIndex;
-	int normalMapIndex;
-	int ambientOcclusionMapIndex;
-	int metallicMapIndex;
-	int roughnessMapIndex;
-    int emissiveMapIndex;
-};
-
-layout(set = 2, binding = 0) uniform sampler2D textures[];
-
-layout(set = 4, binding = 0) readonly buffer materials {
-    Material materials[];
-} materialsSSBO;
-
-struct MeshInstanceDescription {
-    uint64_t vertexAddress;  
-    uint64_t indexAddress;   
-    uint materialIndex; 
-    float textureTilingFactor;
-    vec4 textureTintColor;
-};
-
-layout(set = 6, binding = 0, std430) readonly buffer meshInstances {
-    MeshInstanceDescription instances[]; 
-} meshInstancesSSBO;
+#include "../common/volume.glsl"
+#include "./common/surface.glsl"
+#include "./common/bindings.glsl"
 
 
 // Define the ray payload structure. Must match the raygen and miss shaders.
@@ -65,11 +36,11 @@ hitAttributeEXT vec2 HitAttribs;
 
 void main()
 {
-    MeshInstanceDescription instance = meshInstancesSSBO.instances[gl_InstanceCustomIndexEXT];
+    MeshInstanceDescription instance = meshInstances.i[gl_InstanceCustomIndexEXT];
 
     IndexBuffer indices = IndexBuffer(instance.indexAddress);
     VertexBuffer vertices = VertexBuffer(instance.vertexAddress);
-    Material material = materialsSSBO.materials[instance.materialIndex];
+    Material material = materials.m[instance.materialIndex];
 
     // Retrieve the indices of the triangle being hit.
     uint i0 = indices.i[gl_PrimitiveID * 3 + 0];
@@ -88,7 +59,7 @@ void main()
 
     // Normal Matrix (or Model-View Matrix) used to trasform from object space to world space.
     // its just the inverse of the gl_ObjectToWorld3x4EXT
-    const mat3 normalMatrix = mat3(gl_WorldToObject3x4EXT);
+    const mat3 normalMatrix = transpose(mat3(gl_WorldToObjectEXT));
     vec3 worldNormal = normalize(normalMatrix * objectNormal.xyz);
 
     // Calculate the Tangent-Bitangent-Normal (TBN) matrix and the surface normal in world space.
@@ -100,10 +71,12 @@ void main()
 
     // compute diffuse and specular
     vec3 specularLight, diffuseLight;
-    const vec3 viewDirection = gl_WorldRayDirectionEXT;
-    computeBlinnPhongLighting(surfaceNormal, viewDirection, worldPosition, 1.0, 0.0, diffuseLight, specularLight);
+    const vec3 viewDirection = -normalize(gl_WorldRayDirectionEXT);
+    float specularIntensity = material.blinnPhongSpecularIntensity;
+    float specularShininess = material.blinnPhongSpecularShininess;
+    computeBlinnPhongLighting(surfaceNormal, viewDirection, worldPosition, specularIntensity, specularShininess, diffuseLight, specularLight);
 
-    vec4 albedo = texture(textures[nonuniformEXT(material.albedoMapIndex)], uv);
+    vec3 albedo = getAlbedo(material, uv, instance.textureTintColor);
 
     // shadow
     float attenuation = 1.0;
@@ -120,13 +93,13 @@ void main()
 
     if(dot(worldNormal, dirToLight) > 0) {
         // A small bias to avoid the shadow terminator problem
-        const float bias = 0.007;
+        const float bias = 0.0005;
 
         Ray shadowRay;
         shadowRay.origin = worldPosition + worldNormal * bias;
         shadowRay.direction = dirToLight;
-        float tMin   = 0.001;
-        float tMax   = lightDistance;
+        float tMin   = RAY_T_MIN;
+        float tMax   = lightDistance - FLT_EPSILON;
         uint  flags  = gl_RayFlagsTerminateOnFirstHitEXT | gl_RayFlagsOpaqueEXT | gl_RayFlagsSkipClosestHitShaderEXT;
         
         traceRayEXT(TLAS,        // acceleration structure
@@ -147,11 +120,9 @@ void main()
         attenuation = 0.4;
     }
 
-    // Base Color
-    vec3 finalColor = albedo.rgb * instance.textureTintColor.rgb;
-
     // Apply lighting
-    finalColor = (diffuseLight + specularLight) * finalColor * attenuation;
+    //TODO: specualr is broken, because of something? maybe normals????
+    vec3 finalColor = (diffuseLight + vec3(0.0)) * albedo * attenuation;
     
     payload.color = vec4(finalColor, 1.0);
     payload.t = gl_HitTEXT;

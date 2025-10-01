@@ -57,11 +57,13 @@ namespace PXTEngine {
 
                 if (index.texcoord_index >= 0) {
                     vertex.uv = {
-
 						attrib.texcoords[2 * index.texcoord_index + 0],
 	                    1.0f - attrib.texcoords[2 * index.texcoord_index + 1],
                         1.0f, 1.0f // unused
                     };
+                }
+                else {
+					vertex.uv = { 0.0f, 0.0f, 1.0f, 1.0f };
                 }
 
 				if (!uniqueVertices.contains(vertex)) {
@@ -73,34 +75,51 @@ namespace PXTEngine {
         }
 
         // Iterate through triangles and calculate per-triangle tangents and bitangents
-        for (size_t i = 0; i < indices.size(); i += 3) {
-            Mesh::Vertex& v0 = vertices[indices[i + 0]];
-            Mesh::Vertex& v1 = vertices[indices[i + 1]];
-            Mesh::Vertex& v2 = vertices[indices[i + 2]];
+        // Only calculate tangents if the model has UV coordinates
+        if (!attrib.texcoords.empty()) {
+            for (size_t i = 0; i < indices.size(); i += 3) {
+                Mesh::Vertex& v0 = vertices[indices[i + 0]];
+                Mesh::Vertex& v1 = vertices[indices[i + 1]];
+                Mesh::Vertex& v2 = vertices[indices[i + 2]];
 
-            glm::vec3 edge1 = v1.position - v0.position;
-            glm::vec3 edge2 = v2.position - v0.position;
+                glm::vec3 edge1 = v1.position - v0.position;
+                glm::vec3 edge2 = v2.position - v0.position;
 
-            glm::vec2 deltaUV1 = v1.uv - v0.uv;
-            glm::vec2 deltaUV2 = v2.uv - v0.uv;
+                glm::vec2 deltaUV1 = glm::vec2(v1.uv) - glm::vec2(v0.uv);
+                glm::vec2 deltaUV2 = glm::vec2(v2.uv) - glm::vec2(v0.uv);
 
-            float f = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
+                float det = (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
 
-            glm::vec3 tangent;
-            tangent.x = f * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x);
-            tangent.y = f * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y);
-            tangent.z = f * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z);
+                // Check for zero determinant to avoid division by zero
+                if (glm::abs(det) < 1e-6f) {
+                    v0.tangent = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
+                    v1.tangent = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
+                    v2.tangent = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
+                    continue; // Skip to the next triangle
+                }
 
-            tangent = glm::normalize(tangent);
+                float f = 1.0f / det;
 
-            float handedness =
-                (glm::dot(glm::cross(glm::vec3(v0.normal), glm::vec3(v1.normal)), tangent) < 0.0f) ? -1.0f : 1.0f;
+                glm::vec3 tangent;
+                tangent.x = f * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x);
+                tangent.y = f * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y);
+                tangent.z = f * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z);
 
-            glm::vec4 tangent4 = glm::vec4(tangent, handedness);
+                tangent = glm::normalize(tangent);
 
-            v0.tangent = tangent4;
-            v1.tangent = tangent4;
-            v2.tangent = tangent4;
+                float handedness = (glm::dot(glm::cross(glm::vec3(v0.normal), glm::vec3(v1.normal)), tangent) < 0.0f) ? -1.0f : 1.0f;
+                glm::vec4 tangent4 = glm::vec4(tangent, handedness);
+
+                v0.tangent = tangent4;
+                v1.tangent = tangent4;
+                v2.tangent = tangent4;
+            }
+        }
+        else {
+            // Assign default tangents if no UVs are present
+            for (Mesh::Vertex& v : vertices) {
+                v.tangent = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
+            }
         }
 
 		return VulkanMesh::create(vertices, indices);

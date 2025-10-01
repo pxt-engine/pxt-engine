@@ -12,7 +12,7 @@ namespace PXTEngine {
         Entity(entt::entity entity, Scene* scene) : m_enttEntity(entity), m_scene(scene) {}
 
         operator entt::entity() const { return m_enttEntity; }
-        operator bool() const { return m_enttEntity != entt::null; }
+        operator bool() const { return m_scene->m_registry.valid(m_enttEntity); }
 
         /**
          * @brief Check if entity has a component
@@ -24,6 +24,17 @@ namespace PXTEngine {
         bool has() {
             return m_scene->m_registry.all_of<Components...>(m_enttEntity);
         }
+
+        /**
+         * @brief Check if entity has any of the provided components
+         * 
+         * @tparam Component type
+         * @return true if entity has any of the provided components, false otherwise
+		 */
+		template<typename... Components>
+        bool hasAny() {
+            return m_scene->m_registry.any_of<Components...>(m_enttEntity);
+		}
 
         /**
          * @brief Get a component from entity

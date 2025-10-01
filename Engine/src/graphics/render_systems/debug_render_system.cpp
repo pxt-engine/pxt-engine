@@ -15,6 +15,8 @@ namespace PXTEngine {
 		int normalMapIndex = 1;
 		int ambientOcclusionMapIndex = 0;
 		float tilingFactor = 1.0f;
+        float blinnPhongSpecularIntensity = 0.0f;
+        float blinnPhongSpecularShininess = 1.0f;
     };
 
     DebugRenderSystem::DebugRenderSystem(Context& context, Shared<DescriptorAllocatorGrowable> descriptorAllocator, TextureRegistry& textureRegistry, VkRenderPass renderPass, DescriptorSetLayout& globalSetLayout)
@@ -121,6 +123,8 @@ namespace PXTEngine {
 			push.normalMapIndex = m_isNormalMapEnabled ? m_textureRegistry.getIndex(material->getNormalMap()->id) : -1;
 			push.ambientOcclusionMapIndex = m_isAOMapEnabled ? m_textureRegistry.getIndex(material->getAmbientOcclusionMap()->id) : -1;
 			push.tilingFactor = materialComponent.tilingFactor;
+            push.blinnPhongSpecularIntensity = material->getBlinnPhongSpecularIntensity();
+            push.blinnPhongSpecularShininess = material->getBlinnPhongSpecularShininess();
 
             push.enableWireframe = (uint32_t)(m_renderMode == Wireframe);
 			push.enableNormals = (uint32_t)m_isNormalColorEnabled;
@@ -153,6 +157,7 @@ namespace PXTEngine {
     }
 
     void DebugRenderSystem::reloadShaders() {
+        PXT_INFO("Reloading shaders...");
         createPipelines(false);
     }
 }

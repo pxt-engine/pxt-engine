@@ -1,0 +1,399 @@
+#version 460
+
+#extension GL_EXT_ray_tracing : require
+#extension GL_EXT_debug_printf : enable
+#extension GL_GOOGLE_include_directive : require
+#extension GL_EXT_nonuniform_qualifier : enable
+#extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
+#extension GL_EXT_buffer_reference : require
+
+#include "../ubo/global_ubo.glsl"
+#include "../common/ray.glsl"
+#include "../common/payload.glsl"
+#include "../common/material.glsl"
+#include "../common/geometry.glsl"
+#include "../common/math.glsl"
+#include "../common/random.glsl"
+#include "../common/tone_mapping.glsl"
+#include "../common/volume.glsl"
+#include "./common/push.glsl"
+#include "./common/bindings.glsl"
+#include "./common/surface.glsl"
+#include "./common/nee.glsl"
+
+// Min depth for Russian Roulette termination
+#define RR_MIN_DEPTH 3
+
+layout(location = PathTracePayloadLocation) rayPayloadEXT PathTracePayload p_pathTrace;
+layout(location = DistancePayloadLocation) rayPayloadEXT float p_distance;
+
+
+Ray getCameraRay(vec2 samplingNoise) {
+    // gl_LaunchIDEXT is the pixel coordinate (x, y, z) of the current invocation.
+    // We add 0.5 to get the center of the pixel.
+    const vec2 pixelCenter = vec2(gl_LaunchIDEXT.xy) + vec2(0.5);
+
+    // gl_LaunchSizeEXT is the total number of ray generation invocations (width, height, depth).
+    const vec2 imageDimensions = vec2(gl_LaunchSizeEXT.xy);
+
+    // Apply jitter within the pixel for anti-aliasing, using the sampling noise in [0, 1] range.
+    // We shift it to [-0.5, 0.5] to jitter around the pixel center.
+    const vec2 jitter = samplingNoise - 0.5;
+    const vec2 pixelPos = pixelCenter + jitter;
+        
+    // Normalized device coordinates (NDC), converted to [-1, 1] range (NDC space)
+    const vec2 ndc = pixelPos / imageDimensions * 2.0 - 1.0;
+
+    // Ray origin and direction in camera/view space
+    // Assuming perspective projection
+    const vec4 rayOriginView = vec4(0.0, 0.0, 0.0, 1.0);
+    const vec4 rayTargetView = /*ubo.inverseProjectionMatrix*/ inverse(ubo.projectionMatrix) * vec4(ndc.x, ndc.y, 1.0, 1.0); 
+
+    // Transform ray to world space
+    Ray worldRay;
+    // Camera position in world space
+    worldRay.origin = (ubo.inverseViewMatrix * rayOriginView).xyz; 
+    worldRay.direction = normalize((ubo.inverseViewMatrix * vec4(normalize(rayTargetView.xyz / rayTargetView.w), 0.0)).xyz);
+    
+    return worldRay;
+}
+
+/**
+ * @brief Generates a random 2D blue noise value using a texture array.
+ * 
+ * The blue noise texture array is expected to be 64x64 pixels, with 64 different textures.
+ * Each texture is used to animate the noise over time.
+ * 
+ * @param pixel The pixel coordinates (not UV) to sample from the blue noise texture.
+ * @param frame The current frame index, used to select the appropriate texture slice.
+ * @param blueNoiseBaseIndex The base index of the blue noise texture in the texture array.
+ *
+ * @return A float2 containing two [0..1] values sampled from the animated blue noise texture.
+ */
+vec2 animated_blue_noise(uvec2 pixel, uint frame,
+                        uint textureCount,
+                        uint blueTextureSize,
+                        bool selectSingleTextures,
+                        uint blueNoiseIndex) {
+    pixel = uvec2(pixel.x % blueTextureSize, pixel.y % blueTextureSize);
+    
+    uint slice = selectSingleTextures ? 0 : (frame % textureCount);
+    blueNoiseIndex = selectSingleTextures ? blueNoiseIndex : 0;
+
+    // Retrieve the index of the "i-th" blue noise texture (they are not contiguous in the texture array).
+    uint index = blueNoiseTextures.indeces[blueNoiseIndex + slice];
+
+    // Read blue noise from texture without filtering.
+    // Adding non nearest/point filter is wrong.
+    vec2 blue_noise = texture(textures[index], pixel).rg;
+    
+    return blue_noise;
+}
+
+vec2 getSamplingNoise(uint seed) {
+    if (push.noiseType == 0) {
+        return randomVec2(seed);
+    } else if (push.noiseType == 1) {
+        // Use blue noise for sampling
+        return animated_blue_noise(gl_LaunchIDEXT.xy, ubo.frameCount,
+                                    push.blueNoiseTextureCount, push.blueNoiseTextureSize, 
+                                    push.selectSingleTextures, push.blueNoiseDebugIndex);
+    }
+    return vec2(0.0);
+}
+
+/**
+ * Samples a random emitter (either a mesh emitter or the sky) and returns the sample.
+ * The function samples a mesh emitter or the sky based on the provided seed.
+ * It calculates the radiance, light distance, PDF, and visibility of the sampled emitter.
+ *
+ * @param surface The SurfaceData containing geometric and material properties of the hit point.
+ * @param worldPosition The world position of the surface being sampled.
+ * @param smpl Output parameter to store the sampled emitter data.
+ */
+void sampleRandomEmitter(vec3 worldPosition, out EmitterSample smpl) {
+    smpl.radiance = vec3(0.0);
+    smpl.lightDistance = RAY_T_MAX;
+    smpl.pdf = 0.0;
+
+    const uint numEmitters = uint(emitters.numEmitters);
+
+    if (numEmitters == 0) {
+        return;
+    }
+    
+    // We add one extra emitters for the sky
+    const uint totalSamplableEmitters = numEmitters + USE_SKY_AS_NEE_EMITTER;
+
+    const uint emitterIndex = nextUint(p_pathTrace.seed, totalSamplableEmitters);
+
+    // TODO: implement cosineWeightedHemisphere sampling in World space to enable this
+    //       (because we dont have a TBN for volumes - it doesnt make sense)
+    //       or maybe change sky sampling technique.
+    /*
+    if (emitterIndex == numEmitters) {
+        // Sample the sky as an emitter
+        vec3 inLightDirTangent = sampleCosineWeightedHemisphere(p_pathTrace.samplingNoise);
+
+        smpl.inLightDirWorld = tangentToWorld(tbn, inLightDirTangent);
+
+        smpl.pdf = pdfCosineWeightedHemisphere(max(inLightDirTangent.z, 0)) / totalSamplableEmitters;
+        smpl.radiance = getSkyRadiance(smpl.inLightDirWorld);
+
+        if (smpl.radiance == vec3(0.0)) return;
+
+    }*/
+
+    sampleEmitter(emitterIndex, worldPosition, smpl, p_pathTrace.seed);
+}
+
+
+
+/**
+ * @brief Calculates the direct illumination at a given surface point using Next Event Estimation (NEE)
+ * and Multiple Importance Sampling (MIS).
+ *
+ * This function is responsible for computing the radiance received directly from light sources (emitters)
+ * at a specified surface point. It employs two complementary sampling strategies for direct lighting
+ * and combines their contributions using the Power Heuristic to minimize variance.
+ *
+ * @param surface The SurfaceData containing geometric and material properties of the hit point.
+ * @param worldPosition The world-space coordinates of the surface point where direct lighting is being calculated.
+ * @param outLightDir The outgoing light direction from the surface point.
+ */
+void directLighting(vec3 worldPosition) {
+    
+    EmitterSample emitterSample;
+    
+    sampleRandomEmitter(worldPosition, emitterSample);
+
+    if (emitterSample.radiance == vec3(0.0)) return;
+
+    vec3 transmittance = evaluateTransmittance(emitterSample, worldPosition, p_pathTrace.mediumIndex);
+
+    emitterSample.radiance *= transmittance;
+
+    if (emitterSample.pdf == 0 || emitterSample.radiance == vec3(0.0)) return;
+
+    float HGPdfSolidAngle;
+
+    Volume currentVolume = volumes.volumes[p_pathTrace.mediumIndex];
+    float phaseFunctionG = currentVolume.phaseFunctionG;
+
+    // calculate the angle between the old and new direction
+    float cosTheta = dot(p_pathTrace.direction, emitterSample.inLightDirWorld);
+
+    // Then evaluate the phase function PDF value (prob of choosing that direction)
+    HGPdfSolidAngle = evalHenyeyGreenstein(cosTheta, phaseFunctionG);
+            
+    // here contribution already takes into account the transmittance of THIS volume and
+    // any other volumes between the point and the emitter. There is no BSDF to calculate
+    // since we are not on a surface.
+    const vec3 contribution = (emitterSample.radiance) / emitterSample.pdf;        
+
+    const float weight = powerHeuristic(emitterSample.pdf, HGPdfSolidAngle);
+
+    p_pathTrace.radiance += contribution * p_pathTrace.throughput * weight;
+}
+
+
+void main()
+{
+    vec3 finalColor = vec3(0.0);
+
+    const uint samplesPerPixel = 1;
+    const int maxBounces = 10;
+
+    for (uint currentSample = 0; currentSample < samplesPerPixel; ++currentSample) {
+        // for random operations
+        uint seed = tea(
+            tea(gl_LaunchIDEXT.x, gl_LaunchIDEXT.y),
+            tea(uint(ubo.frameCount), currentSample)
+        );
+
+        vec2 samplingNoise = getSamplingNoise(seed);
+
+        Ray worldRay = getCameraRay(samplingNoise);
+
+        p_pathTrace.radiance = vec3(0.0);
+        p_pathTrace.throughput = vec3(1.0);
+        p_pathTrace.origin = worldRay.origin;
+        p_pathTrace.direction = worldRay.direction;
+        p_pathTrace.depth = 0;
+        p_pathTrace.flags = 0;
+        p_pathTrace.seed = seed;
+        p_pathTrace.samplingNoise = samplingNoise;
+        p_pathTrace.pdf = 1.0;
+
+        // TODO: set the medium index based on the volume the ray starts in
+        // Assume camera starts in a vacuum. A more complex scene might require
+        // a point-in-mesh test to determine if the camera is inside a volume.
+        p_pathTrace.mediumIndex = -1; // Assuming no medium at the start
+
+        while (!hasFlag(p_pathTrace, FLAG_DONE) && p_pathTrace.depth < maxBounces) {
+        
+        /* // this was used to change blue noise texture based on the bounce
+            if (push.noiseType == 0) {
+                samplingNoise = randomVec2(seed);
+            } else if (push.noiseType == 1) {
+                samplingNoise = animated_blue_noise(gl_LaunchIDEXT.xy, ubo.frameCount + p_pathTrace.depth,
+                                                push.blueNoiseTextureCount, push.blueNoiseTextureSize,
+                                                push.selectSingleTextures, push.blueNoiseDebugIndex);
+            }
+
+            p_pathTrace.samplingNoise = samplingNoise;
+        */
+            // We're currently in vacuum, so we simply trace the ray to find the nearest surface.
+            if (p_pathTrace.mediumIndex == -1) {
+                 traceRayEXT(
+                    TLAS,
+                    gl_RayFlagsOpaqueEXT,
+                    0xFF, 
+                    0, 0, 0,
+                    p_pathTrace.origin, 
+                    RAY_T_MIN,
+                    p_pathTrace.direction, 
+                    RAY_T_MAX,
+                    PathTracePayloadLocation
+                );  
+            }
+
+            // We're inside a medium, perform Delta Tracking (Woodcock Tracking)
+            else {
+                // Find distance to the next surface. This is our maximum travel distance.
+                p_distance = 0.0;
+                traceRayEXT(
+                    TLAS,
+                    gl_RayFlagsOpaqueEXT,
+                    0xFF, 
+                    2, 0, 2,
+                    p_pathTrace.origin, 
+                    RAY_T_MIN,
+                    p_pathTrace.direction, 
+                    RAY_T_MAX,
+                    DistancePayloadLocation
+                );
+                float t_hit = p_distance;
+
+                // Sample the current medium
+                Volume currentVolume = volumes.volumes[p_pathTrace.mediumIndex];
+
+                vec3 sigma_a = currentVolume.absorption.rgb;
+                vec3 sigma_s = currentVolume.scattering.rgb;
+                vec3 sigma_t = sigma_a + sigma_s;
+                float sigma_t_maj = maxComponent(sigma_t);
+
+                float phaseFunctionG = currentVolume.phaseFunctionG;
+
+                float t_medium = RAY_T_MAX;
+
+                // If the medium is not empty, we sample the distance to the next interaction point
+                if (sigma_t_maj > 0.0f) {
+                    // This is the distance to the next interaction point in the medium
+                    t_medium = -log(1.0 - randomFloat(p_pathTrace.seed)) / sigma_t_maj;
+                }
+
+                // Compare the distances to decide the next volume event
+                if (t_medium < t_hit) {
+                    // Volumetric interaction occurs (real or null collision)
+
+                    // Advance ray to the interaction point (origin + direction * t_medium)
+                    p_pathTrace.origin += p_pathTrace.direction * t_medium;
+
+                    // Assuming homogeneous for now - if heterogeneous:
+                    // - we have to obtain the current sigma_t of the medium at pointX 
+                    // - we then check if maxComponent(current_sigma_t(pointX)) / sigma_t_maj(pointX)
+                    vec3 current_sigma_t = sigma_t;
+
+                    // Use Woodcock tracking (null-scattering) to decide if it's a real event.
+                    // For heterogeneous media, you'd sample density at the new origin.
+                    if (maxComponent(current_sigma_t) / sigma_t_maj > randomFloat(p_pathTrace.seed)) {
+                        // It's a "real" scattering event.
+
+                        // Single Scattering Albedo. It is a common way to do Delta Tracking when
+                        // emissive volumes are not present. Directly simulates the amount of light
+                        // scattered by the medium at the point of interaction.
+                        // https://graphics.pixar.com/library/ProductionVolumeRendering/paper.pdf (Section 2.1.1)
+                        vec3 scatteringAlbedo = sigma_s / current_sigma_t;
+
+                        // Sample new direction using phase function
+                        vec3 newDirection = sampleHenyeyGreenstein(p_pathTrace.direction, phaseFunctionG, p_pathTrace.seed);
+                    
+                        // calculate the angle between the old and new direction
+                        float cosTheta = dot(p_pathTrace.direction, newDirection);
+
+                        // Then evaluate the phase function PDF value (prob of choosing that direction)
+                        p_pathTrace.pdf = evalHenyeyGreenstein(cosTheta, phaseFunctionG); 
+
+                        // NEE for volumes
+                        directLighting(p_pathTrace.origin);
+                        
+                        // TODO: separate scattering and absorption -> easier emissive volumes integration
+                        p_pathTrace.throughput *= scatteringAlbedo;
+
+                        p_pathTrace.direction = newDirection;
+                        p_pathTrace.depth++;
+
+                        // Treat volume scatter as "specular" to disable NEE
+                        // on the next bounce if we hit an emitter
+                        //setFlag(p_pathTrace, FLAG_SPECULAR);
+                    }
+                    // (Else) If it's a null collision, we do nothing. The ray continues from the 
+                    // new origin in the same direction, which is handled by the next loop iteration.
+
+                } else {
+                    // Surface Interaction or No Interaction (miss)
+                    traceRayEXT(
+                        TLAS,
+                        gl_RayFlagsOpaqueEXT,
+                        0xFF, 
+                        0, 0, 0,
+                        p_pathTrace.origin, 
+                        RAY_T_MIN,
+                        p_pathTrace.direction, 
+                        t_hit + FLT_EPSILON,
+                        PathTracePayloadLocation
+                    );        
+                }          
+            }  
+
+            // Apply Russian Roulette Termination
+            if (p_pathTrace.depth >= RR_MIN_DEPTH) {
+                // Calculate the Russian Roulette probability based on the max component of the throughput
+                // to ensure that the path is terminated with a probability proportional to its contribution.
+                float russianRouletteProbability = min(maxComponent(p_pathTrace.throughput), 0.95);
+
+                if (randomFloat(p_pathTrace.seed) > russianRouletteProbability) {
+                    // if we need to terminate we go to the next sample
+                    setFlag(p_pathTrace, FLAG_DONE);
+                    break;
+                }
+
+                // Otherwise, we continue the path tracing with a reduced throughput
+                p_pathTrace.throughput /= russianRouletteProbability;
+            }
+        }
+        
+        // we add the sample radiance to the final color
+        finalColor += p_pathTrace.radiance;  
+    }
+
+    // then we average the final color by the number of samples
+    finalColor /= samplesPerPixel;
+
+    /* Now accumulation is done inside denoising shaders
+    if (ubo.accumulationEnabled) {
+        vec3 previousColor = imageLoad(outputImage, ivec2(gl_LaunchIDEXT.xy)).rgb;          
+        float weight = 1.0 / float(ubo.ptAccumulationCount + 1);
+        finalColor = mix(previousColor, finalColor, weight);
+    } */
+
+    finalColor = saturate(finalColor);
+
+    if (isnan(finalColor.r) || isnan(finalColor.g) || isnan(finalColor.b) ||
+        isinf(finalColor.r) || isinf(finalColor.g) || isinf(finalColor.b)) {
+        finalColor = vec3(1.0, 0.0, 1.0); // Magenta for error
+    }
+    
+    imageStore(outputImage, ivec2(gl_LaunchIDEXT.xy), vec4(finalColor, 1.0));
+}

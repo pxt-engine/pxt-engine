@@ -9,7 +9,7 @@
 #define INT_MAX 2147483647
 #define INT_MIN -2147483648
 
-#define UINT_MAX = 4294967295
+#define UINT_MAX 4294967295
 #define INV_UINT_MAX 2.3283064365386963e-10 // 1/UINT_MAX
 
 #define FLT_MAX 3.402823466e+38
@@ -42,8 +42,11 @@ float pow2(float x) {
     return x * x;
 }
 
+/**
+ * Computes x^4 using only multiply operations.
+ */
 float pow4(float x) {
-    float x2 = x * x;
+    const float x2 = x * x;
     return x2 * x2;
 }
 
@@ -51,7 +54,7 @@ float pow4(float x) {
  * Computes x^5 using only multiply operations.
  */
 float pow5(float x) {
-    float x2 = x * x;
+    const float x2 = x * x;
     return x2 * x2 * x;
 }
 

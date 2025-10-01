@@ -1,6 +1,16 @@
 #include "graphics/render_systems/raytracing_render_system.hpp"
 
 namespace PXTEngine {
+	struct  alignas(16)RayTracingPushConstantData {
+		uint32_t noiseType = 0;
+		uint32_t blueNoiseTextureCount = 0; // Number of blue noise textures available
+		uint32_t blueNoiseTextureSize = 0;  // Size of each blue noise texture (assumed square)
+		VkBool32 selectSingleTextures = VK_FALSE;  // Whether to select single textures or use
+									    // different blue noise textures every frame
+
+		uint32_t blueNoiseDebugIndex = 0; // Index of the blue noise texture to use in case selectSingleTextures is true
+	};
+
 	RayTracingRenderSystem::RayTracingRenderSystem(
 		Context& context, Shared<DescriptorAllocatorGrowable> descriptorAllocator,
 		TextureRegistry& textureRegistry, MaterialRegistry& materialRegistry,
@@ -19,7 +29,7 @@ namespace PXTEngine {
 		createDescriptorSets();
 		defineShaderGroups();
 		createPipelineLayout(globalSetLayout);
-		createPipeline();
+		createPipeline(false); // TODO: understand why glslLangVaalidator cannot compile this
 		createShaderBindingTable();
 	}
 
@@ -46,6 +56,45 @@ namespace PXTEngine {
 		DescriptorWriter(m_context, *m_storageImageDescriptorSetLayout)
 			.writeImage(0, &descriptorImageInfo)
 			.updateSet(m_storageImageDescriptorSet);
+
+		// Create blue noise indeces descriptor sets
+		// TODO: separate blue noise descriptor set from textures descriptor set
+		retrieveBlueNoiseTextureIndeces();
+
+		m_blueNoiseDescriptorSetLayout = DescriptorSetLayout::Builder(m_context)
+			.addBinding(0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_RAYGEN_BIT_KHR, 1)
+			.build();
+
+		m_descriptorAllocator->allocate(m_blueNoiseDescriptorSetLayout->getDescriptorSetLayout(), m_blueNoiseDescriptorSet);
+
+		VkDeviceSize bufferSize = sizeof(m_blueNoiseTextureIndeces);
+
+		Unique<VulkanBuffer> stagingBuffer = createUnique<VulkanBuffer>(
+			m_context,
+			bufferSize,
+			1,
+			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+		);
+		stagingBuffer->map();
+		stagingBuffer->writeToBuffer(m_blueNoiseTextureIndeces, bufferSize);
+		stagingBuffer->unmap();
+
+		m_blueNoiseIndecesBuffer = createUnique<VulkanBuffer>(
+			m_context,
+			bufferSize,
+			1,
+			VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+		);
+
+		m_context.copyBuffer(stagingBuffer->getBuffer(), m_blueNoiseIndecesBuffer->getBuffer(), bufferSize);
+
+		auto bufferInfo = m_blueNoiseIndecesBuffer->descriptorInfo();
+
+		DescriptorWriter(m_context, *m_blueNoiseDescriptorSetLayout)
+			.writeBuffer(0, &bufferInfo)
+			.updateSet(m_blueNoiseDescriptorSet);
 	}
 
 	void RayTracingRenderSystem::updateSceneImage(Shared<VulkanImage> sceneImage) {
@@ -61,59 +110,8 @@ namespace PXTEngine {
 		m_sceneImage = sceneImage;
 	}
 
-	uint32_t RayTracingRenderSystem::getAndIncrementPathTracingAccumulationFrameCount() {		
-		return m_ptAccumulationFrameCount++;
-	}
-
 	void RayTracingRenderSystem::defineShaderGroups() {
-		// for rgen e miss there can be one shader per group
-		m_shaderGroups = {
-			// General RayGen Group
-			{
-				VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR,
-				{
-					// Shader stages + filepaths
-					// only one shader stage for raygen is permitted
-					{VK_SHADER_STAGE_RAYGEN_BIT_KHR, SPV_SHADERS_PATH + "pathtracing.rgen.spv"}
-				}
-			},
-			// General Miss Group
-			{
-				VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR,
-				{
-					// Shader stages + filepaths
-					// here we can have multiple miss shaders
-					{VK_SHADER_STAGE_MISS_BIT_KHR, SPV_SHADERS_PATH + "pathtracing.rmiss.spv"}
-				}
-			},
-			// Visibility Miss Group
-			{
-				VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR,
-				{
-					// Shader stages + filepaths
-					// here we can have multiple miss shaders
-					{VK_SHADER_STAGE_MISS_BIT_KHR, SPV_SHADERS_PATH + "visibility.rmiss.spv"}
-				}
-			},
-			// Closest Hit Group (Triangle Hit Group)
-			{
-				VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR,
-				{
-					// Shader stages + filepaths
-					// here there can be a chit, ahit or intersection shader (every combination of these)
-					{VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, SPV_SHADERS_PATH + "pathtracing.rchit.spv"}
-				}
-			},
-			// Closest Hit Group (Visibility Hit Group)
-			{
-				VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR,
-				{
-					// Shader stages + filepaths
-					// here there can be a chit, ahit or intersection shader (every combination of these)
-					{VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, SPV_SHADERS_PATH + "visibility.rchit.spv"}
-				}
-			},
-		};
+		m_shaderGroups = SHADER_GROUPS_BASIC;
 	}
 
 	void RayTracingRenderSystem::createPipelineLayout(DescriptorSetLayout& setLayout) {
@@ -125,26 +123,43 @@ namespace PXTEngine {
 			m_materialRegistry.getDescriptorSetLayout(),
 			m_skybox->getDescriptorSetLayout(),
 			m_rtSceneManager.getMeshInstanceDescriptorSetLayout(),
-			m_rtSceneManager.getEmittersDescriptorSetLayout()
+			m_rtSceneManager.getEmittersDescriptorSetLayout(),
+			m_rtSceneManager.getVolumeDescriptorSetLayout(),
+			m_blueNoiseDescriptorSetLayout->getDescriptorSetLayout()
 		};
+
+		VkPushConstantRange pushConstantRange{};
+		pushConstantRange.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
+		pushConstantRange.offset = 0;
+		pushConstantRange.size = sizeof(RayTracingPushConstantData);
 
 		VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
 		pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 		pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(descriptorSetLayouts.size());
 		pipelineLayoutInfo.pSetLayouts = descriptorSetLayouts.data();
-		pipelineLayoutInfo.pushConstantRangeCount = 0; // 0 for now
-		pipelineLayoutInfo.pPushConstantRanges = nullptr; // &pushConstantRange;
+		pipelineLayoutInfo.pushConstantRangeCount = 1; 
+		pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
 
 		if (vkCreatePipelineLayout(m_context.getDevice(), &pipelineLayoutInfo, nullptr, &m_pipelineLayout) != VK_SUCCESS) {
 			throw std::runtime_error("failed to create raytracingRenderSystem pipeline layout!");
 		}
 	}
 
-	void RayTracingRenderSystem::createPipeline() {
+	void RayTracingRenderSystem::createPipeline(bool useCompiledSpirvFiles) {
 		RayTracingPipelineConfigInfo pipelineConfig{};
 		pipelineConfig.shaderGroups = m_shaderGroups;
 		pipelineConfig.pipelineLayout = m_pipelineLayout;
 		pipelineConfig.maxPipelineRayRecursionDepth = 2; // for now
+
+		const std::string baseShaderPath = useCompiledSpirvFiles ? SPV_SHADERS_PATH : SHADERS_PATH + "raytracing/";
+		const std::string filenameSuffix = useCompiledSpirvFiles ? ".spv" : "";
+
+		for (auto& group : pipelineConfig.shaderGroups) {
+			for (auto& stage : group.stages) {
+				stage.second = baseShaderPath + stage.second + filenameSuffix;
+			}
+		}
+
 		m_pipeline = createUnique<Pipeline>(
 			m_context,
 			pipelineConfig
@@ -319,6 +334,14 @@ namespace PXTEngine {
 		m_callableRegion.stride = 0;
 		m_callableRegion.size = 0;
 	}
+
+	void RayTracingRenderSystem::retrieveBlueNoiseTextureIndeces() {
+		std::string blueNoiseFile;
+		for (uint32_t i = 0; i < BLUE_NOISE_TEXTURE_COUNT; ++i) {
+			blueNoiseFile = BLUE_NOISE_FILE + std::to_string(i) + BLUE_NOISE_FILE_EXT;
+			m_blueNoiseTextureIndeces[i] = m_textureRegistry.getIndex(blueNoiseFile);
+		}
+	}
 	
 	void RayTracingRenderSystem::update(FrameInfo& frameInfo) {
 		m_rtSceneManager.createTLAS(frameInfo);
@@ -331,18 +354,22 @@ namespace PXTEngine {
 		);
 	}
 
+
+
 	void RayTracingRenderSystem::render(FrameInfo& frameInfo, Renderer& renderer) {
 		m_pipeline->bind(frameInfo.commandBuffer);
 
-		std::array<VkDescriptorSet, 8> descriptorSets = { 
+		std::array<VkDescriptorSet, 10> descriptorSets = { 
 			frameInfo.globalDescriptorSet, 
-			m_rtSceneManager.getTLASDescriptorSet(), 
+			m_rtSceneManager.getTLASDescriptorSet(frameInfo.frameIndex), 
 			m_textureRegistry.getDescriptorSet(),
 			m_storageImageDescriptorSet,
-			m_materialRegistry.getDescriptorSet(),
+			m_materialRegistry.getDescriptorSet(frameInfo.frameIndex),
 			m_skybox->getDescriptorSet(),
-			m_rtSceneManager.getMeshInstanceDescriptorSet(),
-			m_rtSceneManager.getEmittersDescriptorSet()
+			m_rtSceneManager.getMeshInstanceDescriptorSet(frameInfo.frameIndex),
+			m_rtSceneManager.getEmittersDescriptorSet(frameInfo.frameIndex),
+			m_rtSceneManager.getVolumeDescriptorSet(frameInfo.frameIndex),
+			m_blueNoiseDescriptorSet
 		};
 	
 		vkCmdBindDescriptorSets(
@@ -354,6 +381,23 @@ namespace PXTEngine {
 			descriptorSets.data(),
 			0,
 			nullptr
+		);
+
+		// Push constants for blue noise texture index
+		RayTracingPushConstantData pushConstants;
+		pushConstants.noiseType = m_noiseType;
+		pushConstants.blueNoiseTextureCount = BLUE_NOISE_TEXTURE_COUNT;
+		pushConstants.blueNoiseTextureSize = BLUE_NOISE_TEXTURE_SIZE;
+		pushConstants.selectSingleTextures = m_selectSingleBlueNoiseTextures;
+		pushConstants.blueNoiseDebugIndex = m_blueNoiseDebugIndex;
+
+		vkCmdPushConstants(
+			frameInfo.commandBuffer,
+			m_pipelineLayout,
+			VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR,
+			0,
+			sizeof(RayTracingPushConstantData),
+			&pushConstants
 		);
 
 		vkCmdTraceRaysKHR(
@@ -368,13 +412,32 @@ namespace PXTEngine {
 		);
 	}
 
-	void RayTracingRenderSystem::transitionImageToShaderReadOnlyOptimal(FrameInfo& frameInfo) {
+	void RayTracingRenderSystem::transitionImageToShaderReadOnlyOptimal(FrameInfo& frameInfo, VkPipelineStageFlagBits lastStage) {
 		// transition output image to shader read only layout for imgui
 		m_sceneImage->transitionImageLayout(
 			frameInfo.commandBuffer,
 			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-			VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR,
+			lastStage,
 			VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT
 		);
+	}
+
+	void RayTracingRenderSystem::reloadShaders() {
+		PXT_INFO("Reloading shaders...");
+
+		createPipeline(false);
+		createShaderBindingTable();
+	}
+
+	void RayTracingRenderSystem::updateUi() {
+		ImGui::InputInt("Noise Type (0 -> white, 1 -> blue noise)", reinterpret_cast<int*>(&m_noiseType));
+		if (m_noiseType == 1) {
+			ImGui::Text("Blue Noise is currently only used in jitter\nand still doesn't work properly (most probably)");
+			ImGui::Checkbox("Select Single Blue Noise Textures (for Debug)", reinterpret_cast<bool*>(&m_selectSingleBlueNoiseTextures));
+			if (m_selectSingleBlueNoiseTextures) {
+				std::string inputMessage = "Blue Noise Texture Index (0 to " + std::to_string(BLUE_NOISE_TEXTURE_COUNT - 1) + ")";
+				ImGui::InputInt(inputMessage.c_str(), reinterpret_cast<int*>(&m_blueNoiseDebugIndex));
+			}
+		}
 	}
 }

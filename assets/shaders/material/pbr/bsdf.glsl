@@ -3,13 +3,28 @@
 
 #include "../../common/math.glsl"
 
+#define DEBUG 0
+
+#define IOR_AIR 1.0003
+
 struct SurfaceData {
     mat3 tbn;
+    bool isBackFace;
     vec3 albedo;
-    vec3 reflectance;
     float metalness;
     float roughness;
-    float specularProbability;
+    float ior;
+    float transmission;
+
+    vec3 reflectance;
+
+	float diffuseWeight;
+	float metalWeight;
+	float transmissionWeight;
+
+    float diffuseProbability;
+    float metalProbability;
+    float transmissionProbability;
 };
 
 /**
@@ -26,40 +41,79 @@ float luminance(vec3 color) {
     return dot(color, vec3(0.2126, 0.7152, 0.0722));
 }
 
-/**
- * @brief Calculates the probability of sampling a specular lobe versus a diffuse lobe.
- *
- * This probability is used in hybrid sampling techniques to determine whether
- * to sample the specular or diffuse component of the BRDF. It's based on
- * the relative energy of the specular and diffuse reflections.
- *
- * @param albedo The base color of the material (diffuse component).
- * @param metalness The metalness of the material (0.0 for dielectric, 1.0 for metal).
- * @param reflectance The Fresnel F0 (reflectance at normal incidence) of the material.
- * @return A float representing the probability of choosing the specular path, clamped between 0.0 and 1.0.
- */
-float calculateSpecularProbability(vec3 albedo, float metalness, vec3 reflectance) {
-    const float weightSpecular = luminance(reflectance);
-    const float weightDiffuse = lerp(luminance(albedo), 0.0, metalness);
-
-    return min(weightSpecular / (weightDiffuse + weightSpecular + FLT_EPSILON), 1.0);
+float schlickWeight(float cosTheta) {
+    float m = clamp(1.0 - cosTheta, 0.0, 1.0);
+    return pow5(m);
 }
 
 /**
- * @brief Calculates the base reflectance (F0) of a material.
+ * @brief Calculates the probability of sampling a specular lobe versus a diffuse lobe or a transmission lobe.
  *
- * For dielectrics, F0 is a fixed value (0.04). For metals, F0 is equal to the albedo color.
- * This function interpolates between these two based on the metalness parameter.
+ * This probability is used in hybrid sampling techniques to determine whether
+ * to sample the specular, diffuse or transmission component of a BSDF. It's based on
+ * the relative energy of the specular and diffuse reflections.
+ *
+ * @param surface A SurfaceData struct containing material properties (reflectance, albedo, metalness, transmission).
+ */
+void calculateProbabilities(inout SurfaceData surface, vec3 outLightDir) {
+    float diffuseWeight = (1.0 - surface.metalness) * (1.0 - surface.transmission);
+    float metalWeight = surface.metalness;
+    float transmissionWeight = (1.0 - surface.metalness) * surface.transmission;
+    float schlick = schlickWeight(outLightDir.z);
+
+	float diffuseProbability = diffuseWeight * luminance(surface.albedo);
+	float metalProbability = metalWeight * luminance(mix(surface.albedo, vec3(1.0), schlick));
+	float transmissionProbability = transmissionWeight;
+
+	const float totalWeight = diffuseProbability + metalProbability + transmissionProbability;
+
+    if (totalWeight > 0.0) {
+		surface.diffuseWeight = diffuseWeight;
+		surface.metalWeight = metalWeight;
+		surface.transmissionWeight = transmissionWeight;
+
+        surface.diffuseProbability = diffuseProbability / totalWeight;
+		surface.metalProbability = metalProbability / totalWeight;
+		surface.transmissionProbability = transmissionProbability / totalWeight;
+    } else {
+        surface.diffuseWeight = 1.0;
+		surface.metalWeight = 0.0;
+		surface.transmissionWeight = 0.0;
+
+		surface.diffuseProbability = 1.0;
+		surface.metalProbability = 0.0;
+		surface.transmissionProbability = 0.0;
+    }
+}
+
+/**
+ * @brief Calculates the base reflectance (F0) of a material, accounting for transmission.
+ *
+ * For opaque dielectrics, F0 is a fixed value (0.04).
+ * For transmissive dielectrics, F0 is calculated from the Index of Refraction (IOR).
+ * For metals, F0 is equal to the albedo color.
+ * This function interpolates between these states based on the metalness and transmission parameters.
  *
  * @param albedo The albedo color of the material.
  * @param metalness The metalness of the material (0.0 for dielectric, 1.0 for metal).
+ * @param transmission The transmission of the material (0.0 for opaque, 1.0 for fully transmissive).
+ * @param ior The Index of Refraction of the material, used for transmissive objects.
  * @return The Fresnel F0 (reflectance at normal incidence) as a vec3 color.
  */
-vec3 calculateReflectance(vec3 albedo, float metalness) {
-    // Default reflectance for dielectrics materials
-    const vec3 F0_dielectric = vec3(0.04);
+vec3 calculateReflectance(vec3 albedo, float metalness, float transmission, float ior) {
+    // Calculate F0 for dielectrics using the Fresnel equation with the given IOR.
+    // This is physically accurate for transmissive materials like glass or water.
+    // Assumes the surrounding medium is air (IOR = 1.0).
+    float f = pow2((1.0 - ior) / (1.0 + ior));
+    vec3 F0_from_ior = vec3(f);
 
-    // Reflectance for metals is equal to the albedo color
+    // For opaque objects (transmission = 0), use the standard dielectric F0 of 0.04.
+    // For transmissive objects (transmission > 0), use the IOR-based calculation.
+    vec3 F0_dielectric = transmission == 0.0 ? vec3(0.04) : F0_from_ior;
+
+    // Metals are opaque (not transmissive) and their F0 is their albedo.
+    // The final F0 is an interpolation between the calculated dielectric F0 and the
+    // metallic F0 (albedo) based on the material's metalness.
     return lerp(F0_dielectric, albedo, metalness);
 }
 
@@ -148,6 +202,22 @@ vec3 F_Schlick(vec3 f0, float HoO) {
     return f0 + (vec3(1.0) - f0) * pow5(1.0 - HoO);
 }
 
+float DielectricFresnel(float cosThetaI, float eta)
+{
+    float sinThetaTSq = eta * eta * (1.0f - cosThetaI * cosThetaI);
+
+    // Total internal reflection
+    if (sinThetaTSq > 1.0)
+        return 1.0;
+
+    float cosThetaT = sqrt(max(1.0 - sinThetaTSq, 0.0));
+
+    float rs = (eta * cosThetaT - cosThetaI) / (eta * cosThetaT + cosThetaI);
+    float rp = (eta * cosThetaI - cosThetaT) / (eta * cosThetaI + cosThetaT);
+
+    return 0.5f * (rs * rs + rp * rp);
+}
+
 /**
  * @brief Calculates the PDF for the GGX Normal Distribution Function.
  *
@@ -195,6 +265,17 @@ vec3 importanceSampleGGX(vec2 r, float roughness) {
     return vec3(cos(phi) * sinTheta, sin(phi) * sinTheta, cosTheta);
 }
 
+vec3 evaluateDiffuse(SurfaceData surface, vec3 outLightDir, vec3 inLightDir, vec3 halfVector, out float pdf) {
+	const float NoI = cosThetaTangent(inLightDir);
+    const float HoO = cosTheta(halfVector, outLightDir);
+
+    const vec3  F = F_Schlick(surface.reflectance, HoO);
+
+    pdf = pdfCosineWeightedHemisphere(NoI);
+
+    return surface.albedo * INV_PI;
+}
+
 /**
  * @brief Evaluates the PBR BRDF (Bidirectional Reflectance Distribution Function).
  *
@@ -203,53 +284,166 @@ vec3 importanceSampleGGX(vec2 r, float roughness) {
  *
  * @param surface A SurfaceData struct containing material properties (normal, albedo, roughness, metalness, reflectance).
  * @param outLightDir The outgoing (view) direction from the surface point.
- * @param inLightDir The incoming light direction towards the surface point.
+ * @param inLightDir The incoming light direction (towards the light).
  * @param halfVector The half-vector between the outgoing and incoming light directions.
  * @return The BRDF value as a vec3 color.
  */
-vec3 evaluateBSDF(SurfaceData surface, vec3 outLightDir, vec3 inLightDir, vec3 halfVector) {
+vec3 evaluateReflectance(SurfaceData surface, vec3 outLightDir, vec3 inLightDir, vec3 halfVector, vec3 F, out float pdf) {
     const float NoH = cosThetaTangent(halfVector);
     const float NoI = cosThetaTangent(inLightDir);
     const float NoO = cosThetaTangent(outLightDir);
 
     const float HoO = cosTheta(halfVector, outLightDir);
+	const float IoH = cosTheta(inLightDir, halfVector);
+
+    // G1 and G2 factor for geometry term
+    const float G1 = G_Schlick_GGX(abs(NoO), surface.roughness);
+    const float G2 = G_Schlick_GGX(abs(NoI), surface.roughness);
 
     const float D = D_GGX(NoH, surface.roughness);
-    const float G = G_Smith(NoO, NoI, surface.roughness);
-    const vec3  F = F_Schlick(surface.reflectance, HoO);
-
-    const vec3 kd = mix(vec3(1.0) - F, vec3(0.0), surface.metalness);
+    const float G = G1 * G2;
+    //const vec3  F = F_Schlick(surface.reflectance, HoO);
 
     const float specularDenominator = 4.0 * NoO * NoI + FLT_EPSILON;
-    const vec3 specular = D * F * G / specularDenominator;
 
-    const vec3 diffuse = surface.albedo * kd * INV_PI;
+    pdf = D * NoH / max(4.0 * IoH, FLT_EPSILON);
 
-    return diffuse + specular;
+#if DEBUG
+    if (gl_LaunchIDEXT.x == 1280 && gl_LaunchIDEXT.y == 720 && gl_InstanceCustomIndexEXT == 0) {
+            debugPrintfEXT("evaluateReflectance: NoO = %f, NoI = %f, HoO = %f, IoH = %f, G1 = %f, G2 = %f, D = %f, F = %f, specularDenominator = %f, pdf = %f\n",
+                NoO, NoI, HoO, IoH, G1, G2, D, F.x, specularDenominator, pdf);
+    }
+#endif
+    return D * F * G / specularDenominator;
 }
 
 /**
- * @brief Calculates the PDF (Probability Density Function) of the chosen BSDF sample.
+ * @brief Evaluates the PBR BTDF (Bidirectional Transmittance Distribution Function).
  *
- * This function returns the probability of sampling a particular incoming light direction
- * for a hybrid diffuse-specular sampling strategy.
- *
- * @param surface A SurfaceData struct containing material properties.
+ * @param surface A SurfaceData struct containing material properties (normal, albedo, roughness, metalness, reflectance).
  * @param outLightDir The outgoing (view) direction from the surface point.
- * @param inLightDir The incoming light direction towards the surface point.
+ * @param inLightDir The incoming light direction (towards the light).
  * @param halfVector The half-vector between the outgoing and incoming light directions.
- * @return The PDF value for the given sampled direction.
+ * @return The BTDF value as a vec3 color.
  */
-float pdfBSDF(SurfaceData surface, vec3 outLightDir, vec3 inLightDir, vec3 halfVector) {
+vec3 evaluateTransmittance(SurfaceData surface, vec3 outLightDir, vec3 inLightDir, vec3 halfVector, vec3 F, out float pdf) {
     const float NoH = cosThetaTangent(halfVector);
     const float NoI = cosThetaTangent(inLightDir);
+    const float NoO = cosThetaTangent(outLightDir);
 
-    const float IoH = dot(inLightDir, halfVector);
+    if (surface.transmission == 1.0 && surface.ior == 1.0) {
+        // If the material is fully transmissive and has an IOR of 1.0 (like air),
+        // we treat it as a perfect transmission with no reflection.
+        pdf = 1.0;
+        return pow(surface.albedo, vec3(0.5));
+    }
 
-    const float specularPdf = pdfD_GGX(NoH, surface.roughness) / max(4.0 * IoH, FLT_EPSILON);
-    const float diffusePdf = pdfCosineWeightedHemisphere(NoI);
+    float HoO = cosTheta(halfVector, outLightDir);
+    float HoI = cosTheta(halfVector, inLightDir);
 
-    return mix(diffusePdf, specularPdf, surface.specularProbability);
+    // if eta is 1.0, the ray is not refracted, but passes through
+    // the object based on transmittance. in this case HoI and HoO
+    // are equal in opposite directions.
+    if (HoI + HoO < FLT_EPSILON) {
+        HoI = abs(HoI);
+        HoO = abs(HoO);
+    }
+    
+    // G1 and G2 factor for geometry term
+    const float G1 = G_Schlick_GGX(abs(NoO), surface.roughness);
+    const float G2 = G_Schlick_GGX(abs(NoI), surface.roughness);
+
+    float eta = surface.isBackFace ? surface.ior / IOR_AIR : IOR_AIR / surface.ior;
+
+    const float D = D_GGX(NoH, surface.roughness);
+    const float G = G1 * G2;
+    //float F = DielectricFresnel(abs(HoO), eta);
+
+    float denom = pow2(HoI + HoO * eta);
+    float eta2 = pow2(eta);
+    float jacobian = abs(HoI) / denom;
+
+    pdf = G1 * max(0.0, abs(HoO)) * D * jacobian / NoO;
+#if DEBUG
+    if (gl_LaunchIDEXT.x == 1280 && gl_LaunchIDEXT.y == 720 && gl_InstanceCustomIndexEXT == 0) {
+            debugPrintfEXT("evaluateTransmittance: NoO = %f, NoI = %f, HoO = %f, HoI = %f, G1 = %f, G2 = %f, D = %f, F = %f, eta = %f, jacobian = %f, pdf = %f\n",
+                NoO, NoI, HoO, HoI, G1, G2, D, F.x, eta, jacobian, pdf);
+    }
+#endif
+    return pow(surface.albedo, vec3(0.5)) * (1.0 - F) * D * G * abs(HoO) * jacobian * eta2 / abs(NoI * NoO);
+}
+
+/**
+ * @brief Evaluates the PBR BSDF (Bidirectional Scattering Distribution Function).
+ *
+ * This function handles both reflection (BRDF) and transmission (BTDF) for a material.
+ * It determines whether to calculate reflection or refraction based on the direction of
+ * the light vectors relative to the surface normal.
+ */
+vec3 evaluateBSDF(SurfaceData surface, vec3 outLightDir, vec3 inLightDir, vec3 halfVector, out float pdf) {
+
+    vec3 totalEval = vec3(0.0);
+    float tempPdf = 0.0;
+    pdf = 0.0;
+
+    float NoO = cosThetaTangent(outLightDir);
+    float NoI = cosThetaTangent(inLightDir);
+    float HoO = abs(cosTheta(halfVector, outLightDir));
+
+    // If NoI and NoO have the same sign, both vectors are in the same hemisphere in respect
+    // to the normal -> Reflection.
+    bool isReflection = NoI * NoO > 0.0;
+
+    if (surface.diffuseProbability > 0.0 && isReflection) {
+        totalEval += evaluateDiffuse(surface, outLightDir, inLightDir, halfVector, tempPdf)* surface.diffuseWeight;
+
+        pdf += tempPdf * surface.diffuseProbability;
+    }
+
+    if (surface.metalProbability > 0.0 && isReflection) {
+        //vec3 F = F_Schlick(surface.reflectance, HoO);
+        
+        vec3 F = mix(surface.albedo, vec3(1.0), schlickWeight(HoO));
+
+        totalEval += evaluateReflectance(surface, outLightDir, inLightDir, halfVector, F, tempPdf)
+            * surface.metalWeight;
+
+        pdf += tempPdf * surface.metalProbability;
+    }
+
+    if (surface.transmissionProbability > 0.0) {
+
+        float eta = surface.isBackFace ? surface.ior / IOR_AIR : IOR_AIR / surface.ior;
+        float F = DielectricFresnel(HoO, eta);
+
+        if (isReflection) {
+            // Reflection case
+            totalEval += evaluateReflectance(surface, outLightDir, inLightDir, halfVector, vec3(F), tempPdf)
+                * surface.transmissionWeight;
+
+            pdf += tempPdf * surface.transmissionProbability * F;
+
+#if DEBUG
+            if (gl_LaunchIDEXT.x == 1280 && gl_LaunchIDEXT.y == 720 && gl_InstanceCustomIndexEXT == 0) {
+                debugPrintfEXT("Reflection: F = %f, pdf = %f, totalEval = %v3f, transmissionProbability: %.2f\n", F, pdf, totalEval, surface.transmissionProbability);
+            }
+#endif
+        } else {
+            // Transmission case
+            totalEval += evaluateTransmittance(surface, outLightDir, inLightDir, halfVector, vec3(F), tempPdf)
+                * surface.transmissionWeight;
+
+			pdf += tempPdf * surface.transmissionProbability * (1.0 - F);
+            
+#if DEBUG
+            if (gl_LaunchIDEXT.x == 1280 && gl_LaunchIDEXT.y == 720 && gl_InstanceCustomIndexEXT == 0) {
+                debugPrintfEXT("Refraction: F = %f, pdf = %f, totalEval = %v3f, transmissionProbability: %.2f\n", F, pdf, totalEval, surface.transmissionProbability);
+            }
+#endif
+        }
+    }
+
+	return totalEval;
 }
 
 /**
@@ -265,38 +459,86 @@ float pdfBSDF(SurfaceData surface, vec3 outLightDir, vec3 inLightDir, vec3 halfV
  * @param inLightDir Output: The sampled incoming light direction.
  * @param pdf Output: The PDF of the sampled direction.
  * @param seed Inout: A seed for the random number generator, updated by the function.
- * @return The evaluated BRDF value for the sampled direction, weighted by cosine and inverse PDF.
+ * @return The evaluated BSDF value for the sampled direction, weighted by cosine and inverse PDF.
+ *
+ * @note implemented looking partially at https://cseweb.ucsd.edu/~tzli/cse272/wi2023/homework1.pdf
  */
-vec3 sampleBSDF(SurfaceData surface, vec3 outLightDir, out vec3 inLightDir, out float pdf, out bool isSpecular, inout uint seed) {
+vec3 sampleBSDF(SurfaceData surface, vec3 outLightDir, out vec3 inLightDir, out float pdf, out bool isSpecular, inout uint seed, vec2 samplingNoise) {
     // Half vector between the outgoing light direction and the incoming light direction
     vec3 halfVector;
 
-    vec3 rand3 = randomVec3(seed);
+    float rand = randomFloat(seed);
 
     isSpecular = false;
 
-    if (rand3.z < surface.specularProbability) {
+    // calculate cdf to sample specular, diffuse or transmission
+    float cdf[2];
+    cdf[0] = surface.metalProbability; // Specular
+    cdf[1] = cdf[0] + surface.transmissionProbability; // Specular + Transmission
+	//cdf[2] = cdf[1] + surface.diffuseProbability; // Specular + Transmission + Diffuse = 1.0
+
+    if (rand < cdf[0]) {
         // Sample specular reflection
-        halfVector = importanceSampleGGX(rand3.xy, surface.roughness);
-        inLightDir = -reflect(outLightDir, halfVector);
+        halfVector = importanceSampleGGX(randomVec2(seed), surface.roughness);
+        inLightDir = reflect(-outLightDir, halfVector);
         isSpecular = true;
-    } else {
+    } else if (rand < cdf[1]) {
+        // Sample specular reflection
+        halfVector = importanceSampleGGX(randomVec2(seed), surface.roughness);
+        float eta = surface.isBackFace ? surface.ior / IOR_AIR : IOR_AIR / surface.ior;
+        float F = DielectricFresnel(abs(dot(outLightDir, halfVector)), eta);
+        
+        // We don't want to generate a new random number because it breaks the
+        // stratification property. We can remap the random number to reuse it.
+        float newRand = (rand - cdf[0]) / (cdf[1] - cdf[0]);
+
+        if (newRand <= F) {
+            // Reflect
+            inLightDir = reflect(-outLightDir, halfVector);
+        } else {
+            // Refract
+            inLightDir = refract(-outLightDir, halfVector, eta);
+        }
+        
+        isSpecular = true;
+    } else { // cdf[2] = 1.0
         // Sample diffuse reflection
-        inLightDir = sampleCosineWeightedHemisphere(rand3.xy);
+        inLightDir = sampleCosineWeightedHemisphere(randomVec2(seed));
         halfVector = normalize(outLightDir + inLightDir);
     }
 
-    const float cosTheta = cosThetaTangent(inLightDir);
+    const float cosTheta = abs(inLightDir.z);
 
-    pdf = pdfBSDF(surface, outLightDir, inLightDir, halfVector);
+    const vec3 bsdf = evaluateBSDF(surface, outLightDir, inLightDir, halfVector, pdf);
 
     if (pdf < FLT_EPSILON) {
-        return vec3(0.0);
+#if DEBUG
+        if (gl_LaunchIDEXT.x == 1280 && gl_LaunchIDEXT.y == 720 && gl_InstanceCustomIndexEXT == 0) {
+            debugPrintfEXT("PDF < FLT_EPSILON: outLightDir = %v3f, inLightDir = %v3f, halfVector = %v3f, pdf = %f, eval = %v3f, cosTheta = %f\n", 
+                outLightDir, inLightDir, halfVector, pdf, bsdf, cosTheta);
+        }
+#endif 
+        return vec3(0.0, 0.0, 0.0);
     }
 
-    const vec3 brdf = evaluateBSDF(surface, outLightDir, inLightDir, halfVector);
+#if DEBUG
+    if (bsdf.x < FLT_EPSILON && bsdf.y < FLT_EPSILON && bsdf.z < FLT_EPSILON) {
+        if (gl_LaunchIDEXT.x == 1280 && gl_LaunchIDEXT.y == 720 && gl_InstanceCustomIndexEXT == 0) {
+            debugPrintfEXT("bsdf < FLT_EPSILON: outLightDir = %v3f, inLightDir = %v3f, halfVector = %v3f, pdf = %f, eval = %v3f, cosTheta = %f\n", 
+                outLightDir, inLightDir, halfVector, pdf, bsdf, cosTheta);
+        }
+        return vec3(0.0, 0.0, 0.0);
+    }
+#endif 
 
-    return brdf * cosTheta / pdf;
+#if DEBUG
+    if (gl_LaunchIDEXT.x == 1280 && gl_LaunchIDEXT.y == 720 && gl_InstanceCustomIndexEXT == 0) {
+        debugPrintfEXT("Sampled BSDF: final value = %v3f, outLightDir = %v3f, inLightDir = %v3f, halfVector = %v3f, pdf = %f, eval = %v3f, cosTheta = %f\n", 
+            bsdf * cosTheta / pdf, outLightDir, inLightDir, halfVector, pdf, bsdf, cosTheta);
+    }
+#endif
+
+    return bsdf * cosTheta / pdf;
 }
 
 #endif

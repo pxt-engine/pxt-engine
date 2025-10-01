@@ -23,6 +23,13 @@ namespace PXTEngine {
          */
         static std::vector<VkVertexInputAttributeDescription> getVertexAttributeDescriptions();
 
+        /**
+         * @brief Retrieves the attribute description for vertex input position.
+         *
+         * @return A vector of VkVertexInputAttributeDescription (only position).
+         */
+        static std::vector<VkVertexInputAttributeDescription> getVertexAttributeDescriptionOnlyPositon();
+
         static Unique<VulkanMesh> create(std::vector<Mesh::Vertex>& vertices, std::vector<uint32_t>& indices);
 
         VulkanMesh(Context& context, std::vector<Mesh::Vertex>& vertices, std::vector<uint32_t>& indices);

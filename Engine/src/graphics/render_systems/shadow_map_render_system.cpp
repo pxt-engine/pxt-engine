@@ -258,6 +258,9 @@ namespace PXTEngine {
         pipelineConfig.renderPass = m_renderPass->getHandle();
         pipelineConfig.pipelineLayout = m_pipelineLayout;
 
+		// get only vertex position
+		pipelineConfig.attributeDescriptions = VulkanMesh::getVertexAttributeDescriptionOnlyPositon();
+
 		const std::string baseShaderPath = useCompiledSpirvFiles ? SPV_SHADERS_PATH : SHADERS_PATH;
 		const std::string filenameSuffix = useCompiledSpirvFiles ? ".spv" : "";
 
@@ -389,6 +392,11 @@ namespace PXTEngine {
 
 	void ShadowMapRenderSystem::updateUi() {
 		updateShadowCubeMapDebugWindow();
+	}
+
+	void ShadowMapRenderSystem::reloadShaders() {
+		PXT_INFO("Reloading shaders...");
+		createPipeline(false);
 	}
 
 	void ShadowMapRenderSystem::updateShadowCubeMapDebugWindow() {

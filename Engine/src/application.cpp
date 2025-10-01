@@ -44,7 +44,9 @@ namespace PXTEngine {
 
 		// create the descriptor sets for the materials
 		m_materialRegistry.setDescriptorAllocator(m_descriptorAllocator);
-		m_materialRegistry.createDescriptorSet();
+		m_materialRegistry.createDescriptorSets();
+		// materials descriptor set will be updated every frame
+        // in the master render system update method
 
 		// create descriptor set for skybox
         if (m_scene.getEnvironment()->getSkybox()) {
@@ -147,17 +149,39 @@ namespace PXTEngine {
             .setAlbedoMap(m_resourceManager.get<Image>(WHITE_PIXEL))
             .setNormalMap(m_resourceManager.get<Image>(NORMAL_PIXEL_LINEAR))
             .setAmbientOcclusionMap(m_resourceManager.get<Image>(WHITE_PIXEL_LINEAR))
-            .setMetallicMap(m_resourceManager.get<Image>(BLACK_PIXEL_LINEAR))
-            .setRoughnessMap(m_resourceManager.get<Image>(GRAY_PIXEL_LINEAR))
-			.setEmissiveMap(m_resourceManager.get<Image>(BLACK_PIXEL_LINEAR))
+			.setMetallic(0.0f)
+			.setRoughness(0.0f)
+            //.setMetallicMap(m_resourceManager.get<Image>(BLACK_PIXEL_LINEAR))
+            //.setRoughnessMap(m_resourceManager.get<Image>(GRAY_PIXEL_LINEAR))
+            .setEmissiveMap(m_resourceManager.get<Image>(WHITE_PIXEL_LINEAR))
+            .setTransmission(0.0f)
+            .setIndexOfRefraction(1.3f)
             .build();
 
         ResourceManager::defaultMaterial = defaultMaterial;
 
 		m_resourceManager.add(defaultMaterial, DEFAULT_MATERIAL);
+
+		// Create blue noise texture resources
+		ImageInfo blueNoiseInfo;
+		blueNoiseInfo.width = BLUE_NOISE_TEXTURE_SIZE;
+		blueNoiseInfo.height = BLUE_NOISE_TEXTURE_SIZE;
+		blueNoiseInfo.channels = 4;
+		blueNoiseInfo.format = RGBA32_LINEAR;
+        blueNoiseInfo.filtering = ImageFiltering::Nearest;
+        blueNoiseInfo.flags = ImageFlags::UnnormalizedCoordinates;
+
+		std::string blueNoiseFile;
+
+		for (uint32_t i = 0; i < BLUE_NOISE_TEXTURE_COUNT; i++) {
+			blueNoiseFile = BLUE_NOISE_FILE + std::to_string(i) + BLUE_NOISE_FILE_EXT;
+			m_resourceManager.get<Image>(blueNoiseFile, &blueNoiseInfo);
+		}
     }
 
     void Application::registerResources() {
+        // TODO: we will eventually redo all resource management, this sucks :)
+
 		// iterate over resource and register images
 		m_resourceManager.foreach([&](const Shared<Resource>& resource) {
             if (resource->getType() == Resource::Type::Image) {
@@ -252,11 +276,12 @@ namespace PXTEngine {
             camera = cameraComponent.camera;
             camera.setViewYXZ(transform.translation, transform.rotation);
 
-			//TODO: camera projection
-            camera.setPerspective(
-                glm::radians(50.f), 
-                m_renderer.getAspectRatio(), 
-                0.1f, 100.f);
+            if (camera.isPerspective()) {
+                camera.setPerspective(m_renderer.getAspectRatio());
+            }
+            else {
+				camera.setOrthographic();
+            }
         }
 	}
 

@@ -18,7 +18,8 @@ namespace PXTEngine {
 			? aliasIt->second    // Retrieve the ID from the alias map.
 			: ResourceId(alias); // Try using the alias as a UUID string.
 
-		if (const auto it = m_resources.find(id); it != m_resources.end()) {
+		const auto it = m_resources.find(id);
+		if (it != m_resources.end()) {
 			return it->second;
 		}
 
@@ -40,6 +41,9 @@ namespace PXTEngine {
 		const ResourceId id = resource->id;
 		m_resources[id] = resource;
 		m_aliases[alias] = id;
+
+		resource->alias = alias;
+
 		return id;
 	}
 

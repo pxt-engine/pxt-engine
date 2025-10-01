@@ -1,0 +1,404 @@
+scene: Unnamed-Scene
+entities:
+  - entity: 01991672-8855-79db-8074-8320c3554b5a
+    NameComponent: Glass sphere
+    MaterialComponent:
+      materialId: 01991672-87c0-7719-831c-009df78161c4
+      material: glass_material1
+      albedoColor: [1, 1, 1, 1]
+      albedoMap: pixel_0xFFFFFFFF_RGBA8_SRGB
+      metallic: 0
+      metallicMap: "null"
+      roughness: 0
+      roughnessMap: "null"
+      normalMap: pixel_0xFFFF8080_RGBA8_LINEAR
+      ambientOcclusionMap: pixel_0xFFFFFFFF_RGBA8_LINEAR
+      emissiveColor: [0, 0, 0, 0]
+      emissiveMap: pixel_0xFFFFFFFF_RGBA8_LINEAR
+      transmission: 1
+      indexOfRefraction: 1.5
+      blinnPhongSpecularIntensity: 0.0
+      blinnPhongSpecularShininess: 1.0
+      tilingFactor: 1
+      tint: [1, 1, 1]
+    TransformComponent:
+      translation: [0, 0, 0]
+      scale: [0.06, 0.06, 0.06]
+      rotation: [0, 0, 0]
+    MeshComponent:
+      meshId: 01991672-87aa-733e-8145-2043dd05d2c3
+      mesh: ../assets/models/sphere.obj
+  - entity: 01991672-8855-72ca-8368-0f98b7324966
+    NameComponent: Emissive sphere
+    MaterialComponent:
+      materialId: 01991672-8855-7fec-819f-ccab31429de3
+      material: emissive_mat
+      albedoColor: [1, 1, 1, 1]
+      albedoMap: pixel_0xFFFFFFFF_RGBA8_SRGB
+      metallic: 1
+      metallicMap: "null"
+      roughness: 1
+      roughnessMap: "null"
+      normalMap: pixel_0xFFFF8080_RGBA8_LINEAR
+      ambientOcclusionMap: pixel_0xFFFFFFFF_RGBA8_LINEAR
+      emissiveColor: [1, 1, 1, 20]
+      emissiveMap: ../assets/textures/white_pixel.png
+      transmission: 0
+      indexOfRefraction: 1.3
+      blinnPhongSpecularIntensity: 0.0
+      blinnPhongSpecularShininess: 1.0
+      tilingFactor: 1
+      tint: [1, 1, 1]
+    TransformComponent:
+      translation: [0, 0, 0.6]
+      scale: [0.02, 0.02, 0.02]
+      rotation: [0, 0, 0]
+    MeshComponent:
+      meshId: 01991672-87aa-733e-8145-2043dd05d2c3
+      mesh: ../assets/models/sphere.obj
+  - entity: 01991672-884f-70c8-81ad-f17024f297ab
+    NameComponent: Volume Cube
+    TransformComponent:
+      translation: [0, 0, 0]
+      scale: [0.5, 0.5, 0.5]
+      rotation: [0, 0, 0]
+    VolumeComponent:
+      absorption: [0.3, 0.3, 0.3, 0.3]
+      scattering: [0.3, 0.3, 0.3, 0.3]
+      phaseFunctionG: 0.5
+      densityTextureId: 4294967295
+      detailTextureId: 4294967295
+    MeshComponent:
+      meshId: 01991672-87bc-77df-8099-44a5b98cbe11
+      mesh: ../assets/models/cube_hd.obj
+  - entity: 01991672-86ee-7847-81c4-18e79852cc57
+    NameComponent: point_light
+    TransformComponent:
+      translation: [0.57735026, 0.5, 0.2]
+      scale: [0.025, 1, 1]
+      rotation: [0, 0, 0]
+    PointLightComponent:
+      lightIntensity: 0.5
+    ColorComponent:
+      color: [1, 1, 1]
+  - entity: 01991672-86ee-73ae-8155-0bf7c39e58ac
+    NameComponent: pencil2
+    MaterialComponent:
+      materialId: 01991672-86e7-7d2f-80dd-ee204a3e2a0d
+      material: pencil_material
+      albedoColor: [1, 1, 1, 1]
+      albedoMap: ../assets/textures//pencil/albedo.png
+      metallic: 1
+      metallicMap: ../assets/textures//pencil/metallic.png
+      roughness: 1
+      roughnessMap: ../assets/textures//pencil/roughness.png
+      normalMap: ../assets/textures//pencil/normal.png
+      ambientOcclusionMap: pixel_0xFFFFFFFF_RGBA8_LINEAR
+      emissiveColor: [0, 0, 0, 0]
+      emissiveMap: pixel_0xFFFFFFFF_RGBA8_LINEAR
+      transmission: 0
+      indexOfRefraction: 1.3
+      blinnPhongSpecularIntensity: 0.0
+      blinnPhongSpecularShininess: 1.0
+      tilingFactor: 1
+      tint: [1, 1, 1]
+    TransformComponent:
+      translation: [0.55, 0.985, 0]
+      scale: [0.1, 0.1, 0.1]
+      rotation: [0, -0.2617994, 0]
+    MeshComponent:
+      meshId: 01991672-86ea-78da-8295-c714e671201d
+      mesh: ../assets/models/pencil.obj
+  - entity: 01991672-86ee-7e2f-81f2-836531108a3a
+    NameComponent: pencil
+    MaterialComponent:
+      materialId: 01991672-86e7-7d2f-80dd-ee204a3e2a0d
+      material: pencil_material
+      albedoColor: [1, 1, 1, 1]
+      albedoMap: ../assets/textures//pencil/albedo.png
+      metallic: 1
+      metallicMap: ../assets/textures//pencil/metallic.png
+      roughness: 1
+      roughnessMap: ../assets/textures//pencil/roughness.png
+      normalMap: ../assets/textures//pencil/normal.png
+      ambientOcclusionMap: pixel_0xFFFFFFFF_RGBA8_LINEAR
+      emissiveColor: [0, 0, 0, 0]
+      emissiveMap: pixel_0xFFFFFFFF_RGBA8_LINEAR
+      transmission: 0
+      indexOfRefraction: 1.3
+      blinnPhongSpecularIntensity: 0.0
+      blinnPhongSpecularShininess: 1.0
+      tilingFactor: 1
+      tint: [1, 1, 1]
+    TransformComponent:
+      translation: [0.65, 0.985, -0.1]
+      scale: [0.1, 0.1, 0.1]
+      rotation: [0, -0.31415927, 0]
+    MeshComponent:
+      meshId: 01991672-86ea-78da-8295-c714e671201d
+      mesh: ../assets/models/pencil.obj
+  - entity: 01991672-7dd8-7259-8270-8aba3acef70e
+    NameComponent: rubik
+    MaterialComponent:
+      materialId: 01991672-7dd8-7dca-8367-bf5438863846
+      material: rubik_material
+      albedoColor: [1, 1, 1, 1]
+      albedoMap: ../assets/textures//rubik/albedo.jpg
+      metallic: 0.45
+      metallicMap: "null"
+      roughness: 1
+      roughnessMap: ../assets/textures//rubik/roughness.jpg
+      normalMap: pixel_0xFFFF8080_RGBA8_LINEAR
+      ambientOcclusionMap: ../assets/textures//rubik/ao.jpg
+      emissiveColor: [0, 0, 0, 0]
+      emissiveMap: pixel_0xFFFFFFFF_RGBA8_LINEAR
+      transmission: 0
+      indexOfRefraction: 1.3
+      blinnPhongSpecularIntensity: 0.0
+      blinnPhongSpecularShininess: 1.0
+      tilingFactor: 1
+      tint: [1, 1, 1]
+    TransformComponent:
+      translation: [-0.75, 0.9, -0.3]
+      scale: [0.1, 0.1, 0.1]
+      rotation: [0, -1.2566371, 0]
+    MeshComponent:
+      meshId: 01991672-7ca3-7909-8229-6fad78f73d7f
+      mesh: ../assets/models/rubik.obj
+  - entity: 01991672-7c0c-7abf-80bf-954430a51368
+    NameComponent: vase2
+    MaterialComponent:
+      materialId: 01991672-7675-7d9b-82f6-33f247297bf4
+      material: glass_material0
+      albedoColor: [1, 1, 1, 1]
+      albedoMap: pixel_0xFFFFFFFF_RGBA8_SRGB
+      metallic: 0
+      metallicMap: "null"
+      roughness: 0
+      roughnessMap: "null"
+      normalMap: pixel_0xFFFF8080_RGBA8_LINEAR
+      ambientOcclusionMap: pixel_0xFFFFFFFF_RGBA8_LINEAR
+      emissiveColor: [0, 0, 0, 0]
+      emissiveMap: pixel_0xFFFFFFFF_RGBA8_LINEAR
+      transmission: 1
+      indexOfRefraction: 1.67
+      blinnPhongSpecularIntensity: 0.0
+      blinnPhongSpecularShininess: 1.0
+      tilingFactor: 1
+      tint: [1, 1, 1]
+    TransformComponent:
+      translation: [-0.65, 0.99, 0.4]
+      scale: [1.8, 1.4, 1.8]
+      rotation: [0, 0, 0]
+    MeshComponent:
+      meshId: 01991672-771f-7b69-80ef-168e825bcf67
+      mesh: ../assets/models/smooth_vase.obj
+  - entity: 01991672-7c0c-79e7-8063-535d483d3f6b
+    NameComponent: teapot
+    MaterialComponent:
+      materialId: 01991672-787c-768c-83ea-6f7e347c3cbe
+      material: metallic_material
+      albedoColor: [1, 1, 1, 1]
+      albedoMap: pixel_0xFFFFFFFF_RGBA8_SRGB
+      metallic: 1
+      metallicMap: ../assets/textures//gold/metallic.png
+      roughness: 1
+      roughnessMap: ../assets/textures//gold/roughness.png
+      normalMap: ../assets/textures//gold/normal.png
+      ambientOcclusionMap: pixel_0xFFFFFFFF_RGBA8_LINEAR
+      emissiveColor: [0, 0, 0, 0]
+      emissiveMap: pixel_0xFFFFFFFF_RGBA8_LINEAR
+      transmission: 0
+      indexOfRefraction: 1.3
+      blinnPhongSpecularIntensity: 0.0
+      blinnPhongSpecularShininess: 1.0
+      tilingFactor: 1
+      tint: [0.737, 0.776, 0.8]
+    TransformComponent:
+      translation: [0.5, 1, 0.7]
+      scale: [0.15, 0.15, 0.15]
+      rotation: [3.1415927, -1.9634955, 0]
+    MeshComponent:
+      meshId: 01991672-7791-71cf-806e-4df2369cf48a
+      mesh: ../assets/models/utah_teapot.obj
+  - entity: 01991672-7c0c-78db-82dd-b53a1349307e
+    NameComponent: vase
+    MaterialComponent:
+      materialId: 01991672-7675-7d9b-82f6-33f247297bf4
+      material: glass_material0
+      albedoColor: [1, 1, 1, 1]
+      albedoMap: pixel_0xFFFFFFFF_RGBA8_SRGB
+      metallic: 0
+      metallicMap: "null"
+      roughness: 0
+      roughnessMap: "null"
+      normalMap: pixel_0xFFFF8080_RGBA8_LINEAR
+      ambientOcclusionMap: pixel_0xFFFFFFFF_RGBA8_LINEAR
+      emissiveColor: [0, 0, 0, 0]
+      emissiveMap: pixel_0xFFFFFFFF_RGBA8_LINEAR
+      transmission: 1
+      indexOfRefraction: 1.67
+      blinnPhongSpecularIntensity: 0.0
+      blinnPhongSpecularShininess: 1.0
+      tilingFactor: 1
+      tint: [0.63, 0.84, 0.99]
+    TransformComponent:
+      translation: [-0.75, 0.99, 0.1]
+      scale: [1, 1, 1]
+      rotation: [0, 0.7853982, 0]
+    MeshComponent:
+      meshId: 01991672-771f-7b69-80ef-168e825bcf67
+      mesh: ../assets/models/smooth_vase.obj
+  - entity: 01991672-7675-7b89-8194-7b17cc211cdb
+    NameComponent: Roof
+    MaterialComponent:
+      materialId: 01991672-6ff5-7902-828a-f3e29b9f23ac
+      material: default_material
+      albedoColor: [1, 1, 1, 1]
+      albedoMap: pixel_0xFFFFFFFF_RGBA8_SRGB
+      metallic: 0
+      metallicMap: "null"
+      roughness: 0
+      roughnessMap: "null"
+      normalMap: pixel_0xFFFF8080_RGBA8_LINEAR
+      ambientOcclusionMap: pixel_0xFFFFFFFF_RGBA8_LINEAR
+      emissiveColor: [0, 0, 0, 0]
+      emissiveMap: pixel_0xFFFFFFFF_RGBA8_LINEAR
+      transmission: 0
+      indexOfRefraction: 1.3
+      blinnPhongSpecularIntensity: 0.0
+      blinnPhongSpecularShininess: 1.0
+      tilingFactor: 1
+      tint: [1, 1, 1]
+    TransformComponent:
+      translation: [0, -1, 0]
+      scale: [1, 1, 1]
+      rotation: [3.1415927, 0, 0]
+    MeshComponent:
+      meshId: 01991672-72c8-7009-81b6-c272dd51d259
+      mesh: ../assets/models/quad.obj
+  - entity: 01991672-7675-7b63-80ed-68a8158360c4
+    NameComponent: Front Wall
+    MaterialComponent:
+      materialId: 01991672-6ff5-7902-828a-f3e29b9f23ac
+      material: default_material
+      albedoColor: [1, 1, 1, 1]
+      albedoMap: pixel_0xFFFFFFFF_RGBA8_SRGB
+      metallic: 0
+      metallicMap: "null"
+      roughness: 0
+      roughnessMap: "null"
+      normalMap: pixel_0xFFFF8080_RGBA8_LINEAR
+      ambientOcclusionMap: pixel_0xFFFFFFFF_RGBA8_LINEAR
+      emissiveColor: [0, 0, 0, 0]
+      emissiveMap: pixel_0xFFFFFFFF_RGBA8_LINEAR
+      transmission: 0
+      indexOfRefraction: 1.3
+      blinnPhongSpecularIntensity: 0.0
+      blinnPhongSpecularShininess: 1.0
+      tilingFactor: 1
+      tint: [1, 1, 1]
+    TransformComponent:
+      translation: [0, 0, 1]
+      scale: [1, 1, 1]
+      rotation: [1.5707964, 0, 0]
+    MeshComponent:
+      meshId: 01991672-72c8-7009-81b6-c272dd51d259
+      mesh: ../assets/models/quad.obj
+  - entity: 01991672-7675-7a35-80ae-7f604dbc8117
+    NameComponent: Right Wall
+    MaterialComponent:
+      materialId: 01991672-6ff5-7902-828a-f3e29b9f23ac
+      material: default_material
+      albedoColor: [1, 1, 1, 1]
+      albedoMap: pixel_0xFFFFFFFF_RGBA8_SRGB
+      metallic: 0
+      metallicMap: "null"
+      roughness: 0
+      roughnessMap: "null"
+      normalMap: pixel_0xFFFF8080_RGBA8_LINEAR
+      ambientOcclusionMap: pixel_0xFFFFFFFF_RGBA8_LINEAR
+      emissiveColor: [0, 0, 0, 0]
+      emissiveMap: pixel_0xFFFFFFFF_RGBA8_LINEAR
+      transmission: 0
+      indexOfRefraction: 1.3
+      blinnPhongSpecularIntensity: 0.0
+      blinnPhongSpecularShininess: 1.0
+      tilingFactor: 1
+      tint: [0, 1, 0]
+    TransformComponent:
+      translation: [1, 0, 0]
+      scale: [1, 1, 1]
+      rotation: [0, 0, -1.5707964]
+    MeshComponent:
+      meshId: 01991672-72c8-7009-81b6-c272dd51d259
+      mesh: ../assets/models/quad.obj
+  - entity: 01991672-7675-71dc-83b5-107e7f98a8c2
+    NameComponent: Left Wall
+    MaterialComponent:
+      materialId: 01991672-6ff5-7902-828a-f3e29b9f23ac
+      material: default_material
+      albedoColor: [1, 1, 1, 1]
+      albedoMap: pixel_0xFFFFFFFF_RGBA8_SRGB
+      metallic: 0
+      metallicMap: "null"
+      roughness: 0
+      roughnessMap: "null"
+      normalMap: pixel_0xFFFF8080_RGBA8_LINEAR
+      ambientOcclusionMap: pixel_0xFFFFFFFF_RGBA8_LINEAR
+      emissiveColor: [0, 0, 0, 0]
+      emissiveMap: pixel_0xFFFFFFFF_RGBA8_LINEAR
+      transmission: 0
+      indexOfRefraction: 1.3
+      blinnPhongSpecularIntensity: 0.0
+      blinnPhongSpecularShininess: 1.0
+      tilingFactor: 1
+      tint: [1, 0, 0]
+    TransformComponent:
+      translation: [-1, 0, 0]
+      scale: [1, 1, 1]
+      rotation: [0, 0, 1.5707964]
+    MeshComponent:
+      meshId: 01991672-72c8-7009-81b6-c272dd51d259
+      mesh: ../assets/models/quad.obj
+  - entity: 01991672-7675-7814-8076-a64e6d7bca40
+    NameComponent: Floor
+    MaterialComponent:
+      materialId: 01991672-6ff5-7902-828a-f3e29b9f23ac
+      material: default_material
+      albedoColor: [1, 1, 1, 1]
+      albedoMap: pixel_0xFFFFFFFF_RGBA8_SRGB
+      metallic: 0
+      metallicMap: "null"
+      roughness: 0
+      roughnessMap: "null"
+      normalMap: pixel_0xFFFF8080_RGBA8_LINEAR
+      ambientOcclusionMap: pixel_0xFFFFFFFF_RGBA8_LINEAR
+      emissiveColor: [0, 0, 0, 0]
+      emissiveMap: pixel_0xFFFFFFFF_RGBA8_LINEAR
+      transmission: 0
+      indexOfRefraction: 1.3
+      blinnPhongSpecularIntensity: 0.0
+      blinnPhongSpecularShininess: 1.0
+      tilingFactor: 1
+      tint: [1, 1, 1]
+    TransformComponent:
+      translation: [0, 1, 0]
+      scale: [1, 1, 1]
+      rotation: [0, 0, 0]
+    MeshComponent:
+      meshId: 01991672-72c8-7009-81b6-c272dd51d259
+      mesh: ../assets/models/quad.obj
+  - entity: 01991672-72c1-7829-83f5-a0caaf750839
+    NameComponent: camera
+    TransformComponent:
+      translation: [-0.1, -0.4, -1]
+      scale: [0, 0, 0]
+      rotation: [-0.7853982, 0, 0]
+    CameraComponent:
+      isMainCamera: true
+      isPerspective: true
+      nearPlane: 0.1
+      farPlane: 100
+      fovYDegrees: 50
+      orthoParams: [-1, 1, -1, 1]

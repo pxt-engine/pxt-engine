@@ -1,0 +1,76 @@
+#version 460
+#extension GL_ARB_separate_shader_objects : enable
+
+// Define workgroup size
+layout (local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+layout(push_constant) uniform Push {
+    uint frameCount;
+    uint accumulationCount;
+    float temporalAlpha;
+    uint spatialKernelRadius;
+    float spatialSigmaColor;
+    float spatialSigmaSpace;
+    bool isTemporalEnabled;
+    bool isSpatialEnabled;
+} push;
+
+// Descriptor Set 0: Temporal Filter Pass Bindings
+// Binding 0: The accumulated image from the previous `accumulation.comp` pass.
+// Read as a sampled image.
+layout(set = 0, binding = 0) uniform sampler2D accumulationSampler;
+
+// Binding 1: The history buffer, holding the denoised output from the *previous* frame.
+// Read as a sampled image.
+layout(set = 0, binding = 1) uniform sampler2D historySampler;
+
+// Binding 2: The raw, noisy new frame. Used for motion detection or other guidance.
+// Read as a sampled image.
+layout(set = 0, binding = 2) uniform sampler2D newNoisyFrameSampler;
+
+// Binding 3: A temporary buffer to store the output of the temporal filter.
+// This will be input to the spatial filter. Written to as a storage image.
+layout(set = 0, binding = 3, rgba16f) uniform image2D temporalOutputImage;
+
+void main() {
+    // Get the global invocation ID, which corresponds to the pixel coordinate
+    ivec2 texelCoord = ivec2(gl_GlobalInvocationID.xy);
+
+    // Read the dimensions of the output image
+    ivec2 tempImageSize = imageSize(temporalOutputImage);
+
+    // Boundary check to ensure we don't write out of bounds
+    if (texelCoord.x >= tempImageSize.x || texelCoord.y >= tempImageSize.y) {
+        return;
+    }
+
+    // Fetch the color from the current frame's accumulation buffer
+    vec4 accumulatedColor = texture(accumulationSampler, texelCoord);
+
+    // If temporal filtering is not enabled, we can skip the rest of the processing
+    // If accumulation was also disabled it's not a problem, as the accumulatedColor
+    // then will just be the new frame saved in the accumulation image.
+    if (!push.isTemporalEnabled) {
+        imageStore(temporalOutputImage, texelCoord, accumulatedColor);
+        return;
+    }
+
+    // Handle accumulation based on the frame count
+    if (push.frameCount <= 1) {
+        // First frame: There is no history yet.
+        // The output is simply the current accumulated color.
+        imageStore(temporalOutputImage, texelCoord, accumulatedColor);
+    } else {
+        // Subsequent frames: Blend the current frame with the history.
+        vec4 historyColor = texture(historySampler, texelCoord);
+
+        // Linearly interpolate between the history and the new accumulated color.
+        // 'temporalAlpha' controls the blend factor.
+        // A low alpha trusts the history more, leading to a more stable image.
+        // A high alpha incorporates new information faster, reducing ghosting.
+        vec4 blendedColor = mix(historyColor, accumulatedColor, push.temporalAlpha);
+
+        // Store the result to be used by the spatial filter
+        imageStore(temporalOutputImage, texelCoord, blendedColor);
+    }
+}

@@ -1,25 +1,33 @@
 #include "graphics/render_systems/raytracing_scene_manager_system.hpp"
 
 #include "scene/ecs/component.hpp"
+#include "scene/ecs/entity.hpp"
 
 namespace PXTEngine {
 	RayTracingSceneManagerSystem::RayTracingSceneManagerSystem(Context& context, MaterialRegistry& materialRegistry, 
-		BLASRegistry& blasRegistry, Shared<DescriptorAllocatorGrowable> allocator)
+		BLASRegistry& blasRegistry, TextureRegistry& textureRegistry, Shared<DescriptorAllocatorGrowable> allocator)
 		: m_context(context), 
 		m_materialRegistry(materialRegistry),
 		m_blasRegistry(blasRegistry), 
+		m_textureRegistry(textureRegistry),
 		m_descriptorAllocator(allocator) {
-		createTLASDescriptorSet();
-		createMeshInstanceDescriptorSet();
-		createEmittersDescriptorSet();
+		createTLASDescriptorSets();
+		createMeshInstanceDescriptorSets();
+		createEmittersDescriptorSets();
+		createVolumesDescriptorSets();
 	}
 
 	RayTracingSceneManagerSystem::~RayTracingSceneManagerSystem() {
-		destroyTLAS();
+		for (auto& tlas : m_tlases) {
+			if (tlas != VK_NULL_HANDLE) {
+				vkDestroyAccelerationStructureKHR(m_context.getDevice(), tlas, nullptr);
+			}
+		}
 	}
 
 
 	void RayTracingSceneManagerSystem::createTLAS(FrameInfo& frameInfo) {
+		int frameIndex = frameInfo.frameIndex;
 
 		VkAccelerationStructureKHR newTlas = VK_NULL_HANDLE;
 
@@ -27,13 +35,22 @@ namespace PXTEngine {
 		std::vector<VkAccelerationStructureInstanceKHR> instances;
 	
 		//  Get all BLAS and components from entities that have transform & mesh components 
-		auto view = frameInfo.scene.getEntitiesWith<TransformComponent, MeshComponent, MaterialComponent>();
+		auto view = frameInfo.scene.getEntitiesWith<TransformComponent, MeshComponent>();
 
-		int instanceIndex = 0;
-		for (auto entity : view) {
-			const auto& [transformComponent, meshComponent, materialComponent] = view.get<TransformComponent, MeshComponent, MaterialComponent>(entity);
+		m_emitters.clear();
+		m_volumes.clear();
+		m_meshInstanceData.clear();
+
+		uint32_t instanceIndex = 0;
+		uint32_t volumeIndex = 0; // for now just iterative increase
+		for (auto entityHandle : view) {
+			Entity entity(entityHandle, &frameInfo.scene);
+
+			if (!entity.hasAny<MaterialComponent, VolumeComponent>()) continue;
+
+
+			const auto& [transformComponent, meshComponent] = view.get<TransformComponent, MeshComponent>(entityHandle);
 			
-			auto material = materialComponent.material;
 			auto mesh = meshComponent.mesh;
 
 			Shared<BLAS> blas = m_blasRegistry.getOrCreateBLAS(mesh);
@@ -52,12 +69,66 @@ namespace PXTEngine {
 
 			auto vkMesh = static_pointer_cast<VulkanMesh>(mesh);
 
+			constexpr uint32_t invalidIndex = std::numeric_limits<uint32_t>::max();
+
 			MeshInstanceData meshInstanceData{};
 			meshInstanceData.vertexBufferAddress = vkMesh->getVertexBufferDeviceAddress();
 			meshInstanceData.indexBufferAddress = vkMesh->getIndexBufferDeviceAddress();
-			meshInstanceData.materialIndex = m_materialRegistry.getIndex(material->id);
-			meshInstanceData.textureTintColor = glm::vec4(materialComponent.tint, 1.0f);
-			meshInstanceData.textureTilingFactor = materialComponent.tilingFactor;
+			meshInstanceData.materialIndex = invalidIndex;
+			meshInstanceData.emitterIndex = invalidIndex;
+			meshInstanceData.volumeIndex = invalidIndex;
+		
+			instance.mask = 0xFF;
+
+			// Add material properties to the instance data
+			if (entity.has<MaterialComponent>()) {
+				auto& materialComponent = entity.get<MaterialComponent>();
+
+				meshInstanceData.materialIndex = m_materialRegistry.getIndex(materialComponent.material->id);
+				meshInstanceData.textureTintColor = glm::vec4(materialComponent.tint, 1.0f);
+				meshInstanceData.textureTilingFactor = materialComponent.tilingFactor;
+
+				// register entities with emissive materials
+				if (materialComponent.material->isEmissive()) {
+					meshInstanceData.emitterIndex = static_cast<uint32_t>(m_emitters.size());
+
+					EmitterData emitterData{};
+					emitterData.instanceIndex = instanceIndex;
+					emitterData.numberOfFaces = vkMesh->getIndexCount() / 3;
+					m_emitters.push_back(emitterData);
+				}
+		
+			}
+			
+			// Add volume properties to the instance data
+			if (entity.has<VolumeComponent>()) {
+				VolumeComponent::Volume volume = entity.get<VolumeComponent>().volume;
+				
+				meshInstanceData.volumeIndex = volumeIndex++;
+				
+				uint32_t densityTextureId = invalidIndex;
+				uint32_t detailTextureId = invalidIndex;
+
+				if (volume.densityTexture.get() != nullptr) {
+					densityTextureId = m_textureRegistry.getIndex(volume.densityTexture->id);
+				}
+
+				if (volume.detailTexture.get() != nullptr) {
+					detailTextureId = m_textureRegistry.getIndex(volume.detailTexture->id);
+				}
+
+				m_volumes.push_back(
+					VolumeData{
+						.absorption = volume.absorption,
+						.scattering = volume.scattering,
+						.phaseFunctionG = volume.phaseFunctionG,
+						.densityTextureId = densityTextureId,
+						.detailTextureId = detailTextureId,
+						.instanceIndex = instanceIndex
+					}
+				);
+			}
+			
 
 			// TODO: may be passed as mat4x3 in the shader for memory bandwidth optimization
 			glm::mat4 transform = transformComponent.mat4();
@@ -67,20 +138,10 @@ namespace PXTEngine {
 
 			m_meshInstanceData.push_back(meshInstanceData);
 
-			// register entities with emissive materials
-			if (materialComponent.material->isEmissive()) {
-				EmitterData emitterData{};
-				emitterData.instanceIndex = instanceIndex;
-				emitterData.numberOfFaces = vkMesh->getIndexCount() / 3; 
-				m_emitters.push_back(emitterData);
-			}
-
 
 			// we can get it in the shader via InstanceCustomIndexKHR
 			instance.instanceCustomIndex = instanceIndex++; // Unique index for each instance
 
-
-			instance.mask = 0xFF; // Visible to all rays initially
 			instance.instanceShaderBindingTableRecordOffset = 0; // this is 0 for every instance for now
 			                                                     // it is the offset in the SBT hit region
 			                                                     // (which hit shader the instance should use)
@@ -91,8 +152,9 @@ namespace PXTEngine {
 		}
 
 		//TODO: maybe move from here?
-		updateMeshInstanceDescriptorSet();
-		updateEmittersDescriptorSet();
+		updateMeshInstanceDescriptorSets(frameInfo.frameIndex);
+		updateEmittersDescriptorSets(frameInfo.frameIndex);
+		updateVolumesDescriptorSets(frameInfo.frameIndex);
 
 		// Upload Instance Data 
 		uint32_t instanceCount = static_cast<uint32_t>(instances.size());
@@ -238,16 +300,7 @@ namespace PXTEngine {
 		// Buffers will be deleted after end of this function cause they are Unique.
 
 		// Update descriptor set for TLAS
-		updateTLASDescriptorSet(newTlas);
-
-		// Then destroy old one and assign the new one
-		destroyTLAS();
-
-		// If not done in this order it will give a validation error
-		// because the TLAS is still in use by the descriptor when we destroy it.
-		// TODO: add a list of SWAPCHAIN::MAX_FRAMES_IN_FLIGHT tlases with their descriptor sets
-
-		m_tlas = newTlas;
+		updateTLASDescriptorSets(frameInfo.frameIndex, newTlas);
 	}
 
 	VkTransformMatrixKHR RayTracingSceneManagerSystem::glmToVkTransformMatrix(const glm::mat4& glmMatrix) {
@@ -269,52 +322,63 @@ namespace PXTEngine {
 		return vkMatrix;
 	}
 
-	void RayTracingSceneManagerSystem::createTLASDescriptorSet() {
+	void RayTracingSceneManagerSystem::createTLASDescriptorSets() {
 		// TLAS DESCRIPTOR SET LAYOUT
 		// needed for raytracing pipeline layout
 		m_tlasDescriptorSetLayout = DescriptorSetLayout::Builder(m_context)
 			.addBinding(0, VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR)
 			.build();
 
-		m_descriptorAllocator->allocate(m_tlasDescriptorSetLayout->getDescriptorSetLayout(), m_tlasDescriptorSet);
+		for (int i = 0; i < SwapChain::MAX_FRAMES_IN_FLIGHT; i++) {
+			m_descriptorAllocator->allocate(m_tlasDescriptorSetLayout->getDescriptorSetLayout(), m_tlasDescriptorSets[i]);
+		}
 	}
 
-	void RayTracingSceneManagerSystem::updateTLASDescriptorSet(VkAccelerationStructureKHR& newTlas) {
+	void RayTracingSceneManagerSystem::updateTLASDescriptorSets(int frameIndex, VkAccelerationStructureKHR& newTlas) {
+		// destroy old TLAS if exists
+		if (m_tlases[frameIndex] != VK_NULL_HANDLE) destroyTLAS(frameIndex);
+		
+		m_tlases[frameIndex] = newTlas;
+
 		VkWriteDescriptorSetAccelerationStructureKHR tlasInfo{};
 		tlasInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR;
 		tlasInfo.accelerationStructureCount = 1;
-		tlasInfo.pAccelerationStructures = &newTlas;
+		tlasInfo.pAccelerationStructures = &m_tlases[frameIndex];
 
 		DescriptorWriter(m_context, *m_tlasDescriptorSetLayout)
 			.writeTLAS(0, tlasInfo)
-			.updateSet(m_tlasDescriptorSet);
+			.updateSet(m_tlasDescriptorSets[frameIndex]);
 	}
 
-	void RayTracingSceneManagerSystem::destroyTLAS() {
-		if (m_tlas != VK_NULL_HANDLE) {
-			vkDestroyAccelerationStructureKHR(m_context.getDevice(), m_tlas, nullptr);
-			m_tlas = VK_NULL_HANDLE;
+	void RayTracingSceneManagerSystem::destroyTLAS(int frameIndex) {
+		if (m_tlases[frameIndex] != VK_NULL_HANDLE) {
+			vkDestroyAccelerationStructureKHR(m_context.getDevice(), m_tlases[frameIndex], nullptr);
+			m_tlases[frameIndex] = VK_NULL_HANDLE;
 		}
 	}
 
 
-	void RayTracingSceneManagerSystem::createMeshInstanceDescriptorSet() {
+	void RayTracingSceneManagerSystem::createMeshInstanceDescriptorSets() {
 		m_meshInstanceDescriptorSetLayout = DescriptorSetLayout::Builder(m_context)
-			.addBinding(0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, 1)
+			.addBinding(0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+				VK_SHADER_STAGE_FRAGMENT_BIT |
+				VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR |
+				VK_SHADER_STAGE_RAYGEN_BIT_KHR,
+				1)
 			.build();
 
-		m_descriptorAllocator->allocate(
-			m_meshInstanceDescriptorSetLayout->getDescriptorSetLayout(),
-			m_meshInstanceDescriptorSet
-		);
+		for (int i = 0; i < SwapChain::MAX_FRAMES_IN_FLIGHT; i++) {
+			m_descriptorAllocator->allocate(
+				m_meshInstanceDescriptorSetLayout->getDescriptorSetLayout(),
+				m_meshInstanceDescriptorSets[i]
+			);
+		}
 	}
 
-	void RayTracingSceneManagerSystem::updateMeshInstanceDescriptorSet() {
-		if (m_meshInstanceBuffer != nullptr) {
-			return;
-		}
-
+	void RayTracingSceneManagerSystem::updateMeshInstanceDescriptorSets(int frameIndex) {
 		VkDeviceSize bufferSize = sizeof(MeshInstanceData) * m_meshInstanceData.size();
+
+		if (bufferSize == 0) return;
 
 		Unique<VulkanBuffer> stagingBuffer = createUnique<VulkanBuffer>(
 			m_context,
@@ -327,7 +391,7 @@ namespace PXTEngine {
 		stagingBuffer->writeToBuffer(m_meshInstanceData.data(), bufferSize);
 		stagingBuffer->unmap();
 
-		m_meshInstanceBuffer = createUnique<VulkanBuffer>(
+		m_meshInstanceBuffers[frameIndex] = createUnique<VulkanBuffer>(
 			m_context,
 			bufferSize,
 			1,
@@ -335,30 +399,32 @@ namespace PXTEngine {
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
 		);
 
-		m_context.copyBuffer(stagingBuffer->getBuffer(), m_meshInstanceBuffer->getBuffer(), bufferSize);
+		m_context.copyBuffer(stagingBuffer->getBuffer(), m_meshInstanceBuffers[frameIndex]->getBuffer(), bufferSize);
 
-		auto bufferInfo = m_meshInstanceBuffer->descriptorInfo();
+		auto bufferInfo = m_meshInstanceBuffers[frameIndex]->descriptorInfo();
 
 		DescriptorWriter(m_context, *m_meshInstanceDescriptorSetLayout)
 			.writeBuffer(0, &bufferInfo)
-			.updateSet(m_meshInstanceDescriptorSet);
+			.updateSet(m_meshInstanceDescriptorSets[frameIndex]);
 	}
 
-	void RayTracingSceneManagerSystem::createEmittersDescriptorSet() {
+	void RayTracingSceneManagerSystem::createEmittersDescriptorSets() {
 		m_emittersDescriptorSetLayout = DescriptorSetLayout::Builder(m_context)
-			.addBinding(0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, 1)
+			.addBinding(0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+				VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR |
+				VK_SHADER_STAGE_RAYGEN_BIT_KHR,
+				1)
 			.build();
-		m_descriptorAllocator->allocate(
-			m_emittersDescriptorSetLayout->getDescriptorSetLayout(),
-			m_emittersDescriptorSet
-		);
+
+		for (int i = 0; i < SwapChain::MAX_FRAMES_IN_FLIGHT; i++) {
+			m_descriptorAllocator->allocate(
+				m_emittersDescriptorSetLayout->getDescriptorSetLayout(),
+				m_emittersDescriptorSets[i]
+			);
+		}
 	}
 
-	void RayTracingSceneManagerSystem::updateEmittersDescriptorSet() {
-		if (m_emittersBuffer != nullptr) {
-			return;
-		}
-
+	void RayTracingSceneManagerSystem::updateEmittersDescriptorSets(int frameIndex) {
 		uint32_t emitterCount = static_cast<uint32_t>(m_emitters.size());
 
 		VkDeviceSize emitterDataSize = sizeof(EmitterData) * emitterCount;
@@ -376,7 +442,7 @@ namespace PXTEngine {
 		stagingBuffer->writeToBuffer(m_emitters.data(), emitterDataSize, sizeof(emitterCount));
 		stagingBuffer->unmap();
 
-		m_emittersBuffer = createUnique<VulkanBuffer>(
+		m_emittersBuffers[frameIndex] = createUnique<VulkanBuffer>(
 			m_context,
 			bufferSize,
 			1,
@@ -384,12 +450,58 @@ namespace PXTEngine {
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
 		);
 
-		m_context.copyBuffer(stagingBuffer->getBuffer(), m_emittersBuffer->getBuffer(), bufferSize);
+		m_context.copyBuffer(stagingBuffer->getBuffer(), m_emittersBuffers[frameIndex]->getBuffer(), bufferSize);
 
-		auto bufferInfo = m_emittersBuffer->descriptorInfo();
+		auto bufferInfo = m_emittersBuffers[frameIndex]->descriptorInfo();
 
 		DescriptorWriter(m_context, *m_emittersDescriptorSetLayout)
 			.writeBuffer(0, &bufferInfo)
-			.updateSet(m_emittersDescriptorSet);
+			.updateSet(m_emittersDescriptorSets[frameIndex]);
+	}
+
+	void RayTracingSceneManagerSystem::createVolumesDescriptorSets() {
+		m_volumesDescriptorSetLayout = DescriptorSetLayout::Builder(m_context)
+			.addBinding(0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, 1)
+			.build();
+
+		for (int i = 0; i < SwapChain::MAX_FRAMES_IN_FLIGHT; i++) {
+			m_descriptorAllocator->allocate(
+				m_volumesDescriptorSetLayout->getDescriptorSetLayout(),
+				m_volumesDescriptorSets[i]
+			);
+		}
+	}
+
+	void RayTracingSceneManagerSystem::updateVolumesDescriptorSets(int frameIndex) {
+		VkDeviceSize bufferSize = sizeof(VolumeData) * m_volumes.size();
+
+		if (bufferSize == 0) return;
+
+		Unique<VulkanBuffer> stagingBuffer = createUnique<VulkanBuffer>(
+			m_context,
+			bufferSize,
+			1,
+			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+		);
+
+		stagingBuffer->map();
+		stagingBuffer->writeToBuffer(m_volumes.data(), bufferSize);
+		stagingBuffer->unmap();
+
+		m_volumesBuffers[frameIndex] = createUnique<VulkanBuffer>(
+			m_context,
+			bufferSize,
+			1,
+			VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+		);
+
+		m_context.copyBuffer(stagingBuffer->getBuffer(), m_volumesBuffers[frameIndex]->getBuffer(), bufferSize);
+
+		auto bufferInfo = m_volumesBuffers[frameIndex]->descriptorInfo();
+		DescriptorWriter(m_context, *m_volumesDescriptorSetLayout)
+			.writeBuffer(0, &bufferInfo)
+			.updateSet(m_volumesDescriptorSets[frameIndex]);
 	}
 }

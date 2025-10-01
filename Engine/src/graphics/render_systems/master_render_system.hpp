@@ -16,6 +16,7 @@
 #include "graphics/render_systems/debug_render_system.hpp"
 #include "graphics/render_systems/skybox_render_system.hpp"
 #include "graphics/render_systems/raytracing_render_system.hpp"
+#include "graphics/render_systems/denoiser_render_system.hpp"
 #include "graphics/render_pass.hpp"
 #include "graphics/frame_buffer.hpp"
 
@@ -82,6 +83,7 @@ namespace PXTEngine {
 		Unique<DebugRenderSystem> m_debugRenderSystem = nullptr;
 		Unique<SkyboxRenderSystem> m_skyboxRenderSystem = nullptr;
 		Unique<RayTracingRenderSystem> m_rayTracingRenderSystem = nullptr;
+		Unique<DenoiserRenderSystem> m_denoiserRenderSystem = nullptr;
 
 		Unique<RenderPass> m_offscreenRenderPass;
 		Unique<FrameBuffer> m_offscreenFb;
@@ -98,7 +100,7 @@ namespace PXTEngine {
 
 		bool m_isDebugEnabled = false;
 		bool m_isRaytracingEnabled = true;
-		bool m_isAccumulationEnabled = false;
 		bool m_isReloadShadersButtonPressed = false;
+		bool m_isDenoisingEnabled = true;
 	};
 }

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "core/pch.hpp"
-#include "core/uuid.hpp"               
+#include "core/uuid.hpp"
 #include "resources/types/mesh.hpp"
 #include "resources/types/material.hpp" 
 #include "scene/camera.hpp"       
@@ -44,6 +44,60 @@ namespace PXTEngine
 		// Conversion operators
 		operator glm::vec3& () { return color; }
 		operator const glm::vec3& () const { return color; }
+	};
+
+	struct VolumeComponent {
+		struct Volume {
+			glm::vec4 absorption{0.0f};
+			glm::vec4 scattering{0.0f};
+			// Henyey-Greenstein phase function parameter [-1.0, 1.0].
+			// phaseFunctionG = 0.0 for isotropic scattering
+			// phaseFunctionG > 0.0 for forward scattering
+			// phaseFunctionG < 0.0 for backward scattering
+			float phaseFunctionG = 0;
+			Shared<Image> densityTexture{};
+			Shared<Image> detailTexture{}; // for edge details of the volume
+		};
+
+		Volume volume;
+
+		VolumeComponent() = default;
+		VolumeComponent(const VolumeComponent&) = default;
+		VolumeComponent(const Volume volume) : volume(volume) {}
+
+		struct Builder {
+			Volume volume;
+
+			Builder& setAbsorption(const glm::vec4& absorption) {
+				volume.absorption = absorption;
+				return *this;
+			}
+
+			Builder& setScattering(const glm::vec4& scattering) {
+				volume.scattering = scattering;
+				return *this;
+			}
+
+			Builder& setPhaseFunctionG(float phaseFunctionG) {
+				volume.phaseFunctionG = phaseFunctionG;
+				return *this;
+			}
+
+			Builder& setDensityTexture(Shared<Image> texture) {
+				volume.densityTexture = texture;
+				return *this;
+			}
+
+			Builder& setDetailTexture(Shared<Image> texture) {
+				volume.detailTexture = texture;
+				return *this;
+			}
+
+			VolumeComponent build() {
+				return VolumeComponent(volume);
+			}
+		};
+	
 	};
 
 	struct MaterialComponent {
@@ -190,7 +244,7 @@ namespace PXTEngine
 		bool isMainCamera = true;
 
 		CameraComponent();
-
+		CameraComponent(const Camera& camera) : camera(camera) {}
 		CameraComponent(const CameraComponent&) = default;
 	};
 

@@ -4,6 +4,7 @@ const std::string SPV_SHADERS_PATH = "../out/shaders/";
 const std::string SHADERS_PATH = "../assets/shaders/";
 const std::string MODELS_PATH = "../assets/models/";
 const std::string TEXTURES_PATH = "../assets/textures/";
+const std::string SCENES_PATH = "../assets/scenes/";
 
 const std::string IMGUI_INI_FILEPATH = "../assets/imgui_config/imgui.ini";
 
@@ -15,6 +16,12 @@ const std::string NORMAL_PIXEL_LINEAR = "pixel_0xFFFF8080_RGBA8_LINEAR";
 
 const std::string DEFAULT_MATERIAL = "default_material";
 
+const std::string BLUE_NOISE_PATH = TEXTURES_PATH + "blue_noise/";
+const std::string BLUE_NOISE_FILE = BLUE_NOISE_PATH + "stbn_unitvec2_2Dx1D_128x128x64_";
+const std::string BLUE_NOISE_FILE_EXT = ".png";
+const uint32_t BLUE_NOISE_TEXTURE_COUNT = 64;
+const uint32_t BLUE_NOISE_TEXTURE_SIZE = 128;
+
 namespace CubeFace {
 	constexpr uint32_t RIGHT = 0;
 	constexpr uint32_t LEFT = 1;
@@ -23,3 +30,5 @@ namespace CubeFace {
 	constexpr uint32_t BACK = 4;
 	constexpr uint32_t FRONT = 5;
 }
+
+const int MAX_LIGHTS = 10; // Maximum number of point lights in the scene

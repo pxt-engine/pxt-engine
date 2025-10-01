@@ -1,0 +1,215 @@
+scene: lucy
+entities:
+  - entity: 01996765-3005-793d-8051-33bde31741ba
+    NameComponent: Bunny
+    TransformComponent:
+      translation: [0.7, 0.4, -0.3]
+      scale: [0.1, 0.1, 0.1]
+      rotation: [3.142, 3.142, 0]
+    MaterialComponent:
+      materialId: 01996765-3005-7111-80a8-0e6a9913d15b
+      material: bunny_material
+      albedoColor: [1, 1, 1, 1]
+      albedoMap: pixel_0xFFFFFFFF_RGBA8_SRGB
+      metallic: 0
+      metallicMap: ../assets/textures//gold/metallic.png
+      roughness: 0
+      roughnessMap: ../assets/textures//gold/roughness.png
+      normalMap: ../assets/textures//gold/normal.png
+      ambientOcclusionMap: pixel_0xFFFFFFFF_RGBA8_LINEAR
+      emissiveColor: [0, 0, 0, 0]
+      emissiveMap: pixel_0xFFFFFFFF_RGBA8_LINEAR
+      transmission: 0.076
+      indexOfRefraction: 1.477
+      blinnPhongSpecularIntensity: 0
+      blinnPhongSpecularShininess: 1
+      tilingFactor: 1
+      tint: [0.7459631, 0.9754902, 0.78646785]
+    VolumeComponent:
+      absorption: [0.78431374, 0.78431374, 0.78431374, 0.3]
+      scattering: [0.4166667, 0.4166667, 0.4166667, 0.3]
+      phaseFunctionG: 0.54
+    MeshComponent:
+      meshId: 01996765-2eae-766b-809d-ff3df33dcca3
+      mesh: ../assets/models/lucy.obj
+  - entity: 01996765-2773-7dcf-806a-183900eb118f
+    NameComponent: Emissive sphere
+    TransformComponent:
+      translation: [-0.5, -0.7, -0.4]
+      scale: [0.05, 0.05, 0.05]
+      rotation: [0, 0, 0]
+    MaterialComponent:
+      materialId: 01996765-2773-7a05-80bc-6d6513d34852
+      material: emissive_mat
+      albedoColor: [1, 1, 1, 1]
+      albedoMap: pixel_0xFFFFFFFF_RGBA8_SRGB
+      metallic: 1
+      metallicMap: "null"
+      roughness: 1
+      roughnessMap: "null"
+      normalMap: pixel_0xFFFF8080_RGBA8_LINEAR
+      ambientOcclusionMap: pixel_0xFFFFFFFF_RGBA8_LINEAR
+      emissiveColor: [1, 1, 1, 15]
+      emissiveMap: ../assets/textures/white_pixel.png
+      transmission: 0
+      indexOfRefraction: 1.3
+      blinnPhongSpecularIntensity: 0
+      blinnPhongSpecularShininess: 1
+      tilingFactor: 1
+      tint: [1, 1, 1]
+    MeshComponent:
+      meshId: 01996765-26d7-7299-8164-99ac647e47bc
+      mesh: ../assets/models/sphere.obj
+  - entity: 01996765-261d-7cc9-802a-e2d65c9ae519
+    NameComponent: Roof
+    TransformComponent:
+      translation: [0, -1, 0]
+      scale: [1, 1, 1]
+      rotation: [3.1415927, 0, 0]
+    MaterialComponent:
+      materialId: 01996765-2073-787d-81bb-02b4294c66c5
+      material: default_material
+      albedoColor: [1, 1, 1, 1]
+      albedoMap: pixel_0xFFFFFFFF_RGBA8_SRGB
+      metallic: 0
+      metallicMap: "null"
+      roughness: 0
+      roughnessMap: "null"
+      normalMap: pixel_0xFFFF8080_RGBA8_LINEAR
+      ambientOcclusionMap: pixel_0xFFFFFFFF_RGBA8_LINEAR
+      emissiveColor: [0, 0, 0, 0]
+      emissiveMap: pixel_0xFFFFFFFF_RGBA8_LINEAR
+      transmission: 0
+      indexOfRefraction: 1.3
+      blinnPhongSpecularIntensity: 0
+      blinnPhongSpecularShininess: 1
+      tilingFactor: 1
+      tint: [1, 1, 1]
+    MeshComponent:
+      meshId: 01996765-22cf-700a-81a9-a43095b5ae6f
+      mesh: ../assets/models/quad.obj
+  - entity: 01996765-261d-744c-8271-c841e0ed44f8
+    NameComponent: Front Wall
+    TransformComponent:
+      translation: [0, 0, 1]
+      scale: [1, 1, 1]
+      rotation: [1.5707964, 0, 0]
+    MaterialComponent:
+      materialId: 01996765-2073-787d-81bb-02b4294c66c5
+      material: default_material
+      albedoColor: [1, 1, 1, 1]
+      albedoMap: pixel_0xFFFFFFFF_RGBA8_SRGB
+      metallic: 0
+      metallicMap: "null"
+      roughness: 0
+      roughnessMap: "null"
+      normalMap: pixel_0xFFFF8080_RGBA8_LINEAR
+      ambientOcclusionMap: pixel_0xFFFFFFFF_RGBA8_LINEAR
+      emissiveColor: [0, 0, 0, 0]
+      emissiveMap: pixel_0xFFFFFFFF_RGBA8_LINEAR
+      transmission: 0
+      indexOfRefraction: 1.3
+      blinnPhongSpecularIntensity: 0
+      blinnPhongSpecularShininess: 1
+      tilingFactor: 1
+      tint: [1, 1, 1]
+    MeshComponent:
+      meshId: 01996765-22cf-700a-81a9-a43095b5ae6f
+      mesh: ../assets/models/quad.obj
+  - entity: 01996765-261d-7a93-8039-5f8dc371703c
+    NameComponent: Right Wall
+    TransformComponent:
+      translation: [1, 0, 0]
+      scale: [1, 1, 1]
+      rotation: [0, 0, -1.5707964]
+    MaterialComponent:
+      materialId: 01996765-2073-787d-81bb-02b4294c66c5
+      material: default_material
+      albedoColor: [1, 1, 1, 1]
+      albedoMap: pixel_0xFFFFFFFF_RGBA8_SRGB
+      metallic: 0
+      metallicMap: "null"
+      roughness: 0
+      roughnessMap: "null"
+      normalMap: pixel_0xFFFF8080_RGBA8_LINEAR
+      ambientOcclusionMap: pixel_0xFFFFFFFF_RGBA8_LINEAR
+      emissiveColor: [0, 0, 0, 0]
+      emissiveMap: pixel_0xFFFFFFFF_RGBA8_LINEAR
+      transmission: 0
+      indexOfRefraction: 1.3
+      blinnPhongSpecularIntensity: 0
+      blinnPhongSpecularShininess: 1
+      tilingFactor: 1
+      tint: [0, 1, 0]
+    MeshComponent:
+      meshId: 01996765-22cf-700a-81a9-a43095b5ae6f
+      mesh: ../assets/models/quad.obj
+  - entity: 01996765-261d-78ec-81f6-3e7d1acd88c0
+    NameComponent: Left Wall
+    TransformComponent:
+      translation: [-1, 0, 0]
+      scale: [1, 1, 1]
+      rotation: [0, 0, 1.5707964]
+    MaterialComponent:
+      materialId: 01996765-2073-787d-81bb-02b4294c66c5
+      material: default_material
+      albedoColor: [1, 1, 1, 1]
+      albedoMap: pixel_0xFFFFFFFF_RGBA8_SRGB
+      metallic: 0
+      metallicMap: "null"
+      roughness: 0
+      roughnessMap: "null"
+      normalMap: pixel_0xFFFF8080_RGBA8_LINEAR
+      ambientOcclusionMap: pixel_0xFFFFFFFF_RGBA8_LINEAR
+      emissiveColor: [0, 0, 0, 0]
+      emissiveMap: pixel_0xFFFFFFFF_RGBA8_LINEAR
+      transmission: 0
+      indexOfRefraction: 1.3
+      blinnPhongSpecularIntensity: 0
+      blinnPhongSpecularShininess: 1
+      tilingFactor: 1
+      tint: [1, 0, 0]
+    MeshComponent:
+      meshId: 01996765-22cf-700a-81a9-a43095b5ae6f
+      mesh: ../assets/models/quad.obj
+  - entity: 01996765-261d-7f6a-833a-66b59e2a0fc9
+    NameComponent: Floor
+    TransformComponent:
+      translation: [0, 1, 0]
+      scale: [1, 1, 1]
+      rotation: [0, 0, 0]
+    MaterialComponent:
+      materialId: 01996765-2073-787d-81bb-02b4294c66c5
+      material: default_material
+      albedoColor: [1, 1, 1, 1]
+      albedoMap: pixel_0xFFFFFFFF_RGBA8_SRGB
+      metallic: 0
+      metallicMap: "null"
+      roughness: 0
+      roughnessMap: "null"
+      normalMap: pixel_0xFFFF8080_RGBA8_LINEAR
+      ambientOcclusionMap: pixel_0xFFFFFFFF_RGBA8_LINEAR
+      emissiveColor: [0, 0, 0, 0]
+      emissiveMap: pixel_0xFFFFFFFF_RGBA8_LINEAR
+      transmission: 0
+      indexOfRefraction: 1.3
+      blinnPhongSpecularIntensity: 0
+      blinnPhongSpecularShininess: 1
+      tilingFactor: 1
+      tint: [1, 1, 1]
+    MeshComponent:
+      meshId: 01996765-22cf-700a-81a9-a43095b5ae6f
+      mesh: ../assets/models/quad.obj
+  - entity: 01996765-22c9-7866-8284-c02894c86827
+    NameComponent: camera
+    TransformComponent:
+      translation: [0.10294568, -0.44569057, -1.1678404]
+      scale: [0, 0, 0]
+      rotation: [-0.28500006, 6.198185, 0]
+    CameraComponent:
+      isMainCamera: true
+      isPerspective: true
+      nearPlane: 0.1
+      farPlane: 100
+      fovYDegrees: 50
+      orthoParams: [-1, 1, -1, 1]

@@ -6,6 +6,7 @@
 #include "graphics/descriptors/descriptors.hpp"
 #include "graphics/resources/vk_buffer.hpp"
 #include "graphics/resources/texture_registry.hpp"
+#include "graphics/swap_chain.hpp"
 
 namespace PXTEngine {
 
@@ -25,9 +26,15 @@ namespace PXTEngine {
 		int albedoMapIndex;
 		int normalMapIndex;
 		int ambientOcclusionMapIndex;
+		float metallic;
 		int metallicMapIndex;
+		float roughness;
 		int roughnessMapIndex;
 		int emissiveMapIndex;
+		float transmission;
+		float ior;
+		float blinnPhongSpecularIntensity;
+		float blinnPhongSpecularShininess;
 	};
 
 	/**
@@ -55,7 +62,7 @@ namespace PXTEngine {
 		 *
 		 * @return Index of the added material in the registry.
 		 */
-		uint32_t add(const Shared<Material>& material);
+		uint32_t add(const Shared<Material> material);
 
 		/**
 		 * @brief Retrieves the index of a material by its resource ID.
@@ -67,11 +74,11 @@ namespace PXTEngine {
 		uint32_t getIndex(const ResourceId& id) const;
 
 		/**
-		 * @brief Gets the Vulkan descriptor set used for the materials.
+		 * @brief Gets the Vulkan descriptor set used for the materials in the frame frameIndex.
 		 *
 		 * @return The Vulkan descriptor set.
 		 */
-		VkDescriptorSet getDescriptorSet();
+		VkDescriptorSet getDescriptorSet(int frameIndex);
 
 		/**
 		 * @brief Gets the Vulkan descriptor set layout used for the materials.
@@ -86,7 +93,9 @@ namespace PXTEngine {
 		 * This method prepares the material data for use in shaders by uploading it to GPU memory
 		 * and writing it into a Vulkan descriptor set.
 		 */
-		void createDescriptorSet();
+		void createDescriptorSets();
+
+		void updateDescriptorSet(int frameIndex);
 
 	private:
 		/**
@@ -105,8 +114,8 @@ namespace PXTEngine {
 		std::vector<Shared<Material>> m_materials;
 		std::unordered_map<ResourceId, uint32_t> m_idToIndex;
 
-		Unique<VulkanBuffer> m_materialsGpuBuffer = nullptr;
-		VkDescriptorSet m_materialDescriptorSet = VK_NULL_HANDLE;
+		std::vector<Unique<VulkanBuffer>> m_materialsGpuBuffers{ SwapChain::MAX_FRAMES_IN_FLIGHT };
+		std::vector<VkDescriptorSet> m_materialDescriptorSets{ SwapChain::MAX_FRAMES_IN_FLIGHT };
 		Shared<DescriptorSetLayout> m_materialDescriptorSetLayout = nullptr;
 	};
 }
