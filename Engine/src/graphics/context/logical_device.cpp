@@ -68,13 +68,19 @@ namespace PXTEngine {
         VkPhysicalDeviceRayTracingValidationFeaturesNV rayTracingValidationFeatures{};
 		rayTracingValidationFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_VALIDATION_FEATURES_NV;
 
+		// 2d view of 3d images
+		VkPhysicalDeviceImage2DViewOf3DFeaturesEXT image2DViewOf3DFeatures{};
+		image2DViewOf3DFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_2D_VIEW_OF_3D_FEATURES_EXT;
+		image2DViewOf3DFeatures.image2DViewOf3D = VK_TRUE;
+
         // --- Feature Chaining ---
         // Chain the features in this order 
         // BDA -> Descriptor Indexing -> Accel Struct -> RT Pipeline
         bufferDeviceAddressFeatures.pNext = &indexingFeatures;
         indexingFeatures.pNext = &accelStructFeatures;
         accelStructFeatures.pNext = &rtPipelineFeatures;
-        rtPipelineFeatures.pNext = &rayTracingValidationFeatures;
+        rtPipelineFeatures.pNext = &image2DViewOf3DFeatures;
+        image2DViewOf3DFeatures.pNext = &rayTracingValidationFeatures;
         rayTracingValidationFeatures.pNext = nullptr; // Make sure the last one points to nullptr
 
         // This structure holds the physical device features that are required for the logical device.
@@ -115,11 +121,17 @@ namespace PXTEngine {
             throw std::runtime_error("Required rayTracingPipeline feature is not supported!");
         }
 
+		// Check if 2d view of 3d images is supported
+		if (!image2DViewOf3DFeatures.image2DViewOf3D ||
+			!image2DViewOf3DFeatures.sampler2DViewOf3D) {
+			throw std::runtime_error("Required image2DViewOf3D feature is not supported!");
+		}
+
 		// finally check if the validation layer for raytracing is supported
         if (!rayTracingValidationFeatures.rayTracingValidation) {
             // end the chain before and create the device
 			//std::cout << "Ray tracing validation layer not supported, disabling it." << std::endl;
-            rtPipelineFeatures.pNext = nullptr;
+            image2DViewOf3DFeatures.pNext = nullptr;
         }
 
         VkDeviceCreateInfo createInfo = {};

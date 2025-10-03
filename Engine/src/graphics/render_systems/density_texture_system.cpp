@@ -5,8 +5,7 @@ namespace PXTEngine {
     // Push constants to control noise generation in the shader
     struct DensityPushConstants {
         float noiseFrequency;
-        float worleyWeight;
-        float perlinWeight;
+        float worleyExponent;
     };
 
     DensityTextureRenderSystem::DensityTextureRenderSystem(
@@ -105,7 +104,7 @@ namespace PXTEngine {
         viewInfo.subresourceRange.baseMipLevel = 0;
         viewInfo.subresourceRange.levelCount = 1;
         //define the slice
-        viewInfo.subresourceRange.baseArrayLayer = 0; // which depth slice
+        viewInfo.subresourceRange.baseArrayLayer = m_densitySliceIndex; // which depth slice
         viewInfo.subresourceRange.layerCount = 1;
 
         viewInfo.image = m_densityTexture->getVkImage();
@@ -245,8 +244,7 @@ namespace PXTEngine {
         // Push constants to control the noise
         DensityPushConstants pushConstants{};
         pushConstants.noiseFrequency = m_noiseFrequency; // Higher value = more detail
-        pushConstants.worleyWeight = m_worleyWeight;   // How much the cell-like structure influences the shape
-        pushConstants.perlinWeight = m_perlinWeight;   // How much classic turbulence is applied
+        pushConstants.worleyExponent = m_worleyExponent;   // How much the cell-like structure influences the shape
 
         vkCmdPushConstants(
             commandBuffer,
@@ -284,14 +282,21 @@ namespace PXTEngine {
         m_needsRegeneration = false;
     }
 
+    void DensityTextureRenderSystem::reloadShaders() {
+        PXT_INFO("Reloading shaders...");
+        createPipeline(false);
+    }
+
     void DensityTextureRenderSystem::updateUi() {
         if (ImGui::CollapsingHeader("Volume Noise Settings")) {
             ImGui::Text("Adjust noise parameters and regenerate the volume.");
 
             // Sliders for each parameter
             ImGui::DragFloat("Noise Frequency", &m_noiseFrequency, 0.1f, 0.1f, 32.0f);
-            ImGui::DragFloat("Worley Weight", &m_worleyWeight, 0.05f, 0.0f, 5.0f);
-            ImGui::DragFloat("Perlin Weight", &m_perlinWeight, 0.05f, 0.0f, 2.0f);
+            ImGui::DragFloat("Worley Weight", &m_worleyExponent, 0.05f, 0.0f, 5.0f);
+            if (ImGui::SliderInt("Density Texture Depth Slice", &m_densitySliceIndex, 0, m_densityTextureExtent.depth - 1)) {
+                updateSliceImageViews();
+            }
 
             ImGui::Separator();
 
@@ -309,46 +314,71 @@ namespace PXTEngine {
 
         // we push a style var to remove the viewpoer window padding
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-        ImGui::Begin("Density Texture");
 
-        // we see the size of the window and we make the image fit the window with an aspect ratio
-        ImVec2 windowSize = ImGui::GetContentRegionAvail();
-
-        // Calculate the horizontal and vertical offsets for centering
-        float titleBarSize = ImGui::GetFrameHeight() * 2;
-        float offsetX = (windowSize.x - m_densityTextureExtent.width) * 0.5f;
-        float offsetY = (windowSize.y - m_densityTextureExtent.height + titleBarSize) * 0.5f;
-
-        // Move the cursor to the calculated position
-        // ImGui::SetCursorPos() sets the next drawing position relative to the top-left of the *content region*.
-        ImGui::SetCursorPos(ImVec2(offsetX, offsetY));
+        ImVec2 windowSize = ImVec2(200, 200);
 
         ImGui::Image(noiseTexture, windowSize);
-        ImGui::End();
-        ImGui::PopStyleVar();
 
         // for majorant grid
         ImTextureID majorantTexture = (ImTextureID) m_imGuiMajorantDescriptorSet;
 
-        // we push a style var to remove the viewpoer window padding
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-        ImGui::Begin("Density Majorant Grid Texture");
-
-        // we see the size of the window and we make the image fit the window with an aspect ratio
-        windowSize = ImGui::GetContentRegionAvail();
-
-        // Calculate the horizontal and vertical offsets for centering
-        titleBarSize = ImGui::GetFrameHeight() * 2;
-        offsetX = (windowSize.x - m_densityTextureExtent.width) * 0.5f;
-        offsetY = (windowSize.y - m_densityTextureExtent.height + titleBarSize) * 0.5f;
-
-        // Move the cursor to the calculated position
-        // ImGui::SetCursorPos() sets the next drawing position relative to the top-left of the *content region*.
-        ImGui::SetCursorPos(ImVec2(offsetX, offsetY));
+        windowSize = ImVec2(200,200);
 
         ImGui::Image(majorantTexture, windowSize);
-        ImGui::End();
         ImGui::PopStyleVar();
+    }
+
+    void DensityTextureRenderSystem::updateSliceImageViews() {
+        // create slice image view for imgui
+        VkImageViewCreateInfo viewInfo{};
+        viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D; // interpret as 2D
+        viewInfo.format = VK_FORMAT_R32_SFLOAT; // or whatever your 3D image format is
+        viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        viewInfo.subresourceRange.baseMipLevel = 0;
+        viewInfo.subresourceRange.levelCount = 1;
+        //define the slice
+        viewInfo.subresourceRange.baseArrayLayer = m_densitySliceIndex; // which depth slice
+        viewInfo.subresourceRange.layerCount = 1;
+
+        viewInfo.image = m_densityTexture->getVkImage();
+        VkImageView densitySliceImageView = m_context.createImageView(viewInfo);
+
+        viewInfo.image = m_majorantGrid->getVkImage();
+		viewInfo.subresourceRange.baseArrayLayer = m_densitySliceIndex / m_majorantGridExtent.depth; // for majorant grid
+        VkImageView majorantGridSliceImageView = m_context.createImageView(viewInfo);
+
+        if (m_densitySliceImageView != VK_NULL_HANDLE && m_majorantGridSliceImageView != VK_NULL_HANDLE) {
+            // we need to wait for the device to finish
+            vkDeviceWaitIdle(m_context.getDevice());
+
+            // then update the descriptor sets for imgui
+            VkDescriptorImageInfo densityImageInfo = m_densityTexture->getImageInfo();
+            densityImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            VkDescriptorImageInfo majorantImageInfo = m_majorantGrid->getImageInfo();
+            majorantImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+            densityImageInfo.imageView = densitySliceImageView;
+
+            DescriptorWriter(m_context, *m_imGuiDescriptorSetLayout)
+                .writeImage(0, &densityImageInfo)
+                .updateSet(m_imGuiDensityDescriptorSet);
+
+            // MAJORANT GRID TEXTURE IMGUI
+            majorantImageInfo.imageView = majorantGridSliceImageView;
+
+            DescriptorWriter(m_context, *m_imGuiDescriptorSetLayout)
+                .writeImage(0, &majorantImageInfo)
+                .updateSet(m_imGuiMajorantDescriptorSet);
+
+            // then destroy the old ones
+            vkDestroyImageView(m_context.getDevice(), m_densitySliceImageView, nullptr);
+            vkDestroyImageView(m_context.getDevice(), m_majorantGridSliceImageView, nullptr);
+        }
+
+        // then assign the new ones regardless
+        m_densitySliceImageView = densitySliceImageView;
+        m_majorantGridSliceImageView = majorantGridSliceImageView;
     }
 
 }

@@ -143,6 +143,8 @@ namespace PXTEngine {
             VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
 			// debuging extension
 			VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME,
+			// 2d view compatible extension (for viewing 3d texture slices in imgui)
+			VK_EXT_IMAGE_2D_VIEW_OF_3D_EXTENSION_NAME
         };
 
 	private:

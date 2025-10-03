@@ -356,6 +356,7 @@ namespace PXTEngine {
 			m_pointLightSystem->reloadShaders();
 			m_shadowMapRenderSystem->reloadShaders();
 		}
+		m_densityTextureSystem->reloadShaders();
 
 		PXT_INFO("Shaders reloaded successfully.");
 	}

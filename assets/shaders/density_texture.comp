@@ -1,8 +1,6 @@
 #version 460
 
-// The local workgroup size. This should match the ratio between the density texture
-// and the majorant grid. For example, if density is 256^3 and majorant is 32^3,
-// the local size should be 8x8x8 (256/32 = 8).
+// Local workgroup size (e.g., 8x8x8 for a 8:1 density/majorant ratio).
 layout (local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
 
 // Binding 0: Output high-resolution density texture
@@ -11,112 +9,113 @@ layout (binding = 0, r32f) uniform image3D u_densityTexture;
 // Binding 1: Output low-resolution majorant grid
 layout (binding = 1, r32f) uniform image3D u_majorantGrid;
 
+// Control parameters
 layout (push_constant) uniform PushConstants {
-    float noiseFrequency;
-    float worleyWeight;
-    float perlinWeight;
+    float noiseFrequency; // Domain period (D)
+    float worleyExponent;
 } u_pushConstants;
 
-// Shared memory for finding the maximum density within the workgroup
+// Shared memory for parallel reduction to find max density within the workgroup.
 shared float s_localDensities[gl_WorkGroupSize.x * gl_WorkGroupSize.y * gl_WorkGroupSize.z];
 
-// --- Noise Functions (Simplified for clarity) ---
-// In a real application, you might use higher-quality noise implementations.
+// --- Noise Functions ---
 
-// 3D hash function
+// 3D hash function for generating pseudo-random point offsets [0, 1].
 vec3 hash33(vec3 p) {
     p = vec3(dot(p, vec3(127.1, 311.7, 74.7)),
-             dot(p, vec3(269.5, 183.3, 246.1)),
-             dot(p, vec3(113.5, 271.9, 124.6)));
-    return -1.0 + 2.0 * fract(sin(p) * 43758.5453123);
+              dot(p, vec3(269.5, 183.3, 246.1)),
+              dot(p, vec3(113.5, 271.9, 124.6)));
+    // Maps input to [0, 1] range.
+    return fract(sin(p) * 43758.5453123);
 }
 
-// 3D Perlin noise
-float perlinNoise(vec3 p) {
-    vec3 i = floor(p);
-    vec3 f = fract(p);
-    f = f * f * (3.0 - 2.0 * f);
+// Tileable 3D Worley noise (F1 distance).
+float worleyNoise(vec3 p, float period) {
+    // We search for the minimum squared distance (minSqrDst)
+    float min_sqr_dist = 100.0 * 100.0; 
+    vec3 cellId = floor(p);
 
-    float val = mix(
-        mix(
-            mix(dot(hash33(i + vec3(0,0,0)), f - vec3(0,0,0)),
-                dot(hash33(i + vec3(1,0,0)), f - vec3(1,0,0)), f.x),
-            mix(dot(hash33(i + vec3(0,1,0)), f - vec3(0,1,0)),
-                dot(hash33(i + vec3(1,1,0)), f - vec3(1,1,0)), f.x),
-            f.y),
-        mix(
-            mix(dot(hash33(i + vec3(0,0,1)), f - vec3(0,0,1)),
-                dot(hash33(i + vec3(1,0,1)), f - vec3(1,0,1)), f.x),
-            mix(dot(hash33(i + vec3(0,1,1)), f - vec3(0,1,1)),
-                dot(hash33(i + vec3(1,1,1)), f - vec3(1,1,1)), f.x),
-            f.y),
-        f.z);
-    return val;
-}
-
-// 3D Worley noise (Voronoi) - F1
-float worleyNoise(vec3 p) {
-    float min_dist = 100.0;
-    vec3 i = floor(p);
-
+    // Search the 3x3x3 neighborhood of cells
     for (int z = -1; z <= 1; z++) {
         for (int y = -1; y <= 1; y++) {
             for (int x = -1; x <= 1; x++) {
-                vec3 neighbor = vec3(float(x), float(y), float(z));
-                vec3 point_pos = i + neighbor + hash33(i + neighbor); // Random point in cell
-                min_dist = min(min_dist, length(p - point_pos));
+                vec3 neighborCellOffset = vec3(float(x), float(y), float(z));
+                vec3 neighborCellId = cellId + neighborCellOffset;
+                
+                // --- Tiling Fix: Make the cell ID periodic for hashing ---
+                // This step ensures that the feature point pattern repeats every 'period' units.
+                // It is equivalent to the cell wrapping/modulo in your reference code.
+                vec3 periodicCellId = mod(neighborCellId, period);
+                
+                // mod can return negative results for negative inputs, so correct it.
+                // Since the period is expected to be positive (noiseFrequency), this wraps the ID to [0, period).
+                if (periodicCellId.x < 0.0) periodicCellId.x += period;
+                if (periodicCellId.y < 0.0) periodicCellId.y += period;
+                if (periodicCellId.z < 0.0) periodicCellId.z += period;
+                
+                // Generate a pseudo-random point offset using the periodic cell ID.
+                vec3 featurePointOffset = hash33(periodicCellId);
+
+                // The feature point is located at the UNWRAPPED cell origin + the periodic offset.
+                // This is the point in the infinite grid that belongs to the periodic pattern.
+                vec3 unwrappedFeaturePoint = neighborCellId + featurePointOffset;
+                
+                // Calculate the standard Euclidean squared distance.
+                vec3 sampleOffset = p - unwrappedFeaturePoint;
+                float sqr_dist = dot(sampleOffset, sampleOffset);
+                
+                // Update minimum squared distance
+                min_sqr_dist = min(min_sqr_dist, sqr_dist);
             }
         }
     }
-    return min_dist;
+    // Return the final distance (square root of the minimum squared distance)
+    return sqrt(min_sqr_dist); 
 }
 
 void main() {
     ivec3 texelCoord = ivec3(gl_GlobalInvocationID);
     ivec3 densityTextureSize = imageSize(u_densityTexture);
 
-    // Check bounds to avoid writing outside the image
+    // Bounds check
     if (any(greaterThanEqual(texelCoord, densityTextureSize))) {
         return;
     }
 
-    // --- 1. Calculate Density ---
-    // Normalize coordinates to [0, 1] for noise functions
+    // Calculate Density
+    // Scale UVW coordinates to the noise domain [0, D]
     vec3 uvw = vec3(texelCoord) / vec3(densityTextureSize);
     vec3 p = uvw * u_pushConstants.noiseFrequency;
 
-    // Combine noises: Perlin noise modulated by the inverse of Worley noise.
-    // This creates turbulent structures that conform to a cellular pattern.
-    float perlin = (perlinNoise(p) + 1.0) * 0.5; // Remap Perlin to [0, 1]
-    float worley = clamp(1.0 - worleyNoise(p), 0.0, 1.0);
+    // Calculate raw Worley distance
+    float worleyDist = worleyNoise(p, u_pushConstants.noiseFrequency);
+    
+    // Invert the distance (1.0 - dist) and clamp to [0, 1]
+    float invertedWorley = clamp(1.0 - worleyDist, 0.0, 1.0);
 
-    float finalDensity = u_pushConstants.perlinWeight * perlin * pow(worley, u_pushConstants.worleyWeight);
-
-    // Write final density to the high-resolution texture
+    // Apply exponent for final density shape
+    float finalDensity = pow(invertedWorley, u_pushConstants.worleyExponent);
+    
+    // Write density to the high-resolution texture
     imageStore(u_densityTexture, texelCoord, vec4(finalDensity));
 
-    // --- 2. Store Local Density for Majorant Calculation ---
-    // Flatten 3D local ID to a 1D index for shared memory array
+    // Calculate and Store Majorant (Max Density in Workgroup)
     uint localIndex = gl_LocalInvocationIndex;
     s_localDensities[localIndex] = finalDensity;
 
-    // --- 3. Parallel Reduction to Find Maximum ---
-    // Synchronize to ensure all invocations have written to shared memory
+    // Synchronize all writes to shared memory.
     barrier();
-    memoryBarrierShared();
 
-    // Iteratively reduce the data in the shared array to find the maximum value
+    // Parallel reduction to find the maximum density
     uint reductionSize = gl_WorkGroupSize.x * gl_WorkGroupSize.y * gl_WorkGroupSize.z;
     for (uint i = reductionSize / 2; i > 0; i >>= 1) {
         if (localIndex < i) {
             s_localDensities[localIndex] = max(s_localDensities[localIndex], s_localDensities[localIndex + i]);
         }
         barrier();
-        memoryBarrierShared();
     }
     
-    // The first invocation in the workgroup now holds the maximum value (the majorant)
-    // and writes it to the coarse majorant grid.
+    // Only the first invocation writes the majorant value.
     if (localIndex == 0) {
         float majorant = s_localDensities[0];
         ivec3 majorantCoord = ivec3(gl_WorkGroupID);
