@@ -291,7 +291,7 @@ int main() {
 
 	PXTEngine::Logger::init();
 
-    try {
+   
 
         auto app = PXTEngine::initApplication();
 
@@ -299,10 +299,7 @@ int main() {
         app->run();
 
         delete app;
-    } catch (const std::exception& e) {
-		PXT_ERROR("Application crashed: {}", e.what());
-        return EXIT_FAILURE;
-    }
+    
 
     return EXIT_SUCCESS;
 }

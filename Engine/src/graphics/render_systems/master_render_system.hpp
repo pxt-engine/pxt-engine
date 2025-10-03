@@ -17,6 +17,7 @@
 #include "graphics/render_systems/skybox_render_system.hpp"
 #include "graphics/render_systems/raytracing_render_system.hpp"
 #include "graphics/render_systems/denoiser_render_system.hpp"
+#include "graphics/render_systems/density_texture_system.hpp"
 #include "graphics/render_pass.hpp"
 #include "graphics/frame_buffer.hpp"
 
@@ -84,6 +85,7 @@ namespace PXTEngine {
 		Unique<SkyboxRenderSystem> m_skyboxRenderSystem = nullptr;
 		Unique<RayTracingRenderSystem> m_rayTracingRenderSystem = nullptr;
 		Unique<DenoiserRenderSystem> m_denoiserRenderSystem = nullptr;
+		Unique<DensityTextureRenderSystem> m_densityTextureSystem = nullptr;
 
 		Unique<RenderPass> m_offscreenRenderPass;
 		Unique<FrameBuffer> m_offscreenFb;

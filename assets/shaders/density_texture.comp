@@ -1,0 +1,125 @@
+#version 460
+
+// The local workgroup size. This should match the ratio between the density texture
+// and the majorant grid. For example, if density is 256^3 and majorant is 32^3,
+// the local size should be 8x8x8 (256/32 = 8).
+layout (local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
+
+// Binding 0: Output high-resolution density texture
+layout (binding = 0, r32f) uniform image3D u_densityTexture;
+
+// Binding 1: Output low-resolution majorant grid
+layout (binding = 1, r32f) uniform image3D u_majorantGrid;
+
+layout (push_constant) uniform PushConstants {
+    float noiseFrequency;
+    float worleyWeight;
+    float perlinWeight;
+} u_pushConstants;
+
+// Shared memory for finding the maximum density within the workgroup
+shared float s_localDensities[gl_WorkGroupSize.x * gl_WorkGroupSize.y * gl_WorkGroupSize.z];
+
+// --- Noise Functions (Simplified for clarity) ---
+// In a real application, you might use higher-quality noise implementations.
+
+// 3D hash function
+vec3 hash33(vec3 p) {
+    p = vec3(dot(p, vec3(127.1, 311.7, 74.7)),
+             dot(p, vec3(269.5, 183.3, 246.1)),
+             dot(p, vec3(113.5, 271.9, 124.6)));
+    return -1.0 + 2.0 * fract(sin(p) * 43758.5453123);
+}
+
+// 3D Perlin noise
+float perlinNoise(vec3 p) {
+    vec3 i = floor(p);
+    vec3 f = fract(p);
+    f = f * f * (3.0 - 2.0 * f);
+
+    float val = mix(
+        mix(
+            mix(dot(hash33(i + vec3(0,0,0)), f - vec3(0,0,0)),
+                dot(hash33(i + vec3(1,0,0)), f - vec3(1,0,0)), f.x),
+            mix(dot(hash33(i + vec3(0,1,0)), f - vec3(0,1,0)),
+                dot(hash33(i + vec3(1,1,0)), f - vec3(1,1,0)), f.x),
+            f.y),
+        mix(
+            mix(dot(hash33(i + vec3(0,0,1)), f - vec3(0,0,1)),
+                dot(hash33(i + vec3(1,0,1)), f - vec3(1,0,1)), f.x),
+            mix(dot(hash33(i + vec3(0,1,1)), f - vec3(0,1,1)),
+                dot(hash33(i + vec3(1,1,1)), f - vec3(1,1,1)), f.x),
+            f.y),
+        f.z);
+    return val;
+}
+
+// 3D Worley noise (Voronoi) - F1
+float worleyNoise(vec3 p) {
+    float min_dist = 100.0;
+    vec3 i = floor(p);
+
+    for (int z = -1; z <= 1; z++) {
+        for (int y = -1; y <= 1; y++) {
+            for (int x = -1; x <= 1; x++) {
+                vec3 neighbor = vec3(float(x), float(y), float(z));
+                vec3 point_pos = i + neighbor + hash33(i + neighbor); // Random point in cell
+                min_dist = min(min_dist, length(p - point_pos));
+            }
+        }
+    }
+    return min_dist;
+}
+
+void main() {
+    ivec3 texelCoord = ivec3(gl_GlobalInvocationID);
+    ivec3 densityTextureSize = imageSize(u_densityTexture);
+
+    // Check bounds to avoid writing outside the image
+    if (any(greaterThanEqual(texelCoord, densityTextureSize))) {
+        return;
+    }
+
+    // --- 1. Calculate Density ---
+    // Normalize coordinates to [0, 1] for noise functions
+    vec3 uvw = vec3(texelCoord) / vec3(densityTextureSize);
+    vec3 p = uvw * u_pushConstants.noiseFrequency;
+
+    // Combine noises: Perlin noise modulated by the inverse of Worley noise.
+    // This creates turbulent structures that conform to a cellular pattern.
+    float perlin = (perlinNoise(p) + 1.0) * 0.5; // Remap Perlin to [0, 1]
+    float worley = clamp(1.0 - worleyNoise(p), 0.0, 1.0);
+
+    float finalDensity = u_pushConstants.perlinWeight * perlin * pow(worley, u_pushConstants.worleyWeight);
+
+    // Write final density to the high-resolution texture
+    imageStore(u_densityTexture, texelCoord, vec4(finalDensity));
+
+    // --- 2. Store Local Density for Majorant Calculation ---
+    // Flatten 3D local ID to a 1D index for shared memory array
+    uint localIndex = gl_LocalInvocationIndex;
+    s_localDensities[localIndex] = finalDensity;
+
+    // --- 3. Parallel Reduction to Find Maximum ---
+    // Synchronize to ensure all invocations have written to shared memory
+    barrier();
+    memoryBarrierShared();
+
+    // Iteratively reduce the data in the shared array to find the maximum value
+    uint reductionSize = gl_WorkGroupSize.x * gl_WorkGroupSize.y * gl_WorkGroupSize.z;
+    for (uint i = reductionSize / 2; i > 0; i >>= 1) {
+        if (localIndex < i) {
+            s_localDensities[localIndex] = max(s_localDensities[localIndex], s_localDensities[localIndex + i]);
+        }
+        barrier();
+        memoryBarrierShared();
+    }
+    
+    // The first invocation in the workgroup now holds the maximum value (the majorant)
+    // and writes it to the coarse majorant grid.
+    if (localIndex == 0) {
+        float majorant = s_localDensities[0];
+        ivec3 majorantCoord = ivec3(gl_WorkGroupID);
+        imageStore(u_majorantGrid, majorantCoord, vec4(majorant));
+    }
+}

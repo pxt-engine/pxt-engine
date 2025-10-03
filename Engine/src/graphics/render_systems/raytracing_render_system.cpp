@@ -111,7 +111,7 @@ namespace PXTEngine {
 	}
 
 	void RayTracingRenderSystem::defineShaderGroups() {
-		m_shaderGroups = SHADER_GROUPS_BASIC;
+		m_shaderGroups = SHADER_GROUPS_VOL_PT;
 	}
 
 	void RayTracingRenderSystem::createPipelineLayout(DescriptorSetLayout& setLayout) {
@@ -126,6 +126,7 @@ namespace PXTEngine {
 			m_rtSceneManager.getEmittersDescriptorSetLayout(),
 			m_rtSceneManager.getVolumeDescriptorSetLayout(),
 			m_blueNoiseDescriptorSetLayout->getDescriptorSetLayout()
+			//passa descritpor set layout del density texture
 		};
 
 		VkPushConstantRange pushConstantRange{};
@@ -370,6 +371,7 @@ namespace PXTEngine {
 			m_rtSceneManager.getEmittersDescriptorSet(frameInfo.frameIndex),
 			m_rtSceneManager.getVolumeDescriptorSet(frameInfo.frameIndex),
 			m_blueNoiseDescriptorSet
+			//passa descritpor set layout del density texture
 		};
 	
 		vkCmdBindDescriptorSets(

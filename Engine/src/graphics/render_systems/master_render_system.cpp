@@ -330,6 +330,13 @@ namespace PXTEngine {
 			m_descriptorAllocator,
 			m_renderer.getSwapChainExtent()
 		);
+
+		m_densityTextureSystem = createUnique<DensityTextureRenderSystem>(
+			m_context,
+			m_descriptorAllocator,
+			VkExtent3D{256, 256, 256},
+			VkExtent3D{ 32, 32, 32 }
+		);
 	}
 
 	void MasterRenderSystem::reloadShaders() {
@@ -400,6 +407,10 @@ namespace PXTEngine {
 	void MasterRenderSystem::doRenderPasses(FrameInfo& frameInfo) {
 		// begin new frame imgui
 		m_uiRenderSystem->beginBuildingUi(frameInfo.scene);
+
+		if (m_densityTextureSystem->needsRegeneration()) {
+			m_densityTextureSystem->generate(frameInfo.commandBuffer);
+		}
 
 		// render to offscreen main render pass
 		if (m_isRaytracingEnabled) {
@@ -577,6 +588,7 @@ namespace PXTEngine {
 		if (m_isDebugEnabled) {
 			ImGui::Text("Debug Renderer is enabled");
 			m_debugRenderSystem->updateUi();
+			m_densityTextureSystem->updateUi();
 		}
 		else {
 			ImGui::Text("Debug Renderer is disabled");

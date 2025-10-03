@@ -196,6 +196,69 @@ void directLighting(vec3 worldPosition) {
     p_pathTrace.radiance += contribution * p_pathTrace.throughput * weight;
 }
 
+/**
+ * Converts a world-space position to a 3D texture coordinate (UVW) for a given volume.
+ * Assumes the volume's local geometry is a unit cube from -0.5 to +0.5 on all axes.
+ *
+ * @param worldPosition The point in world space to transform.
+ * @param volumeIndex   The index of the volume we are currently inside.
+ * @return              The 3D texture coordinate in the range [0, 1].
+ */
+vec3 getWorldToVolumeUVW(vec3 worldPosition, uint volumeInstance) {
+    // Fetch the volume's world-to-object transformation matrix
+    MeshInstanceDescription instance = meshInstances.i[volumeInstance];
+    mat4 worldToObject = instance.worldToObject;
+
+    // 1. Transform the world position into the volume's local (object) space.
+    // We use a vec4 with w=1.0 for a point transformation.
+    vec4 localPosition = worldToObject * vec4(worldPosition, 1.0);
+
+    // 2. Convert local position (from [-0.5, 0.5]) to UVW texture coords (from [0, 1]).
+    // This is a simple shift.
+    vec3 uvw = localPosition.xyz + 0.5;
+
+    // Optional: Clamp to ensure we don't sample outside the texture due to floating point error.
+    return clamp(uvw, 0.0, 1.0);
+}
+
+/**
+ * Samples a 2D texture using tri-planar mapping to simulate a 3D texture.
+ *
+ * @param localUVW      The local 3D coordinate within the volume, in the [0, 1] range.
+ * @param textureId     The bindless texture ID of the 2D texture to sample.
+ * @param blendSharpness A value to control the tightness of the blend between projections. Higher values mean sharper transitions.
+ * @return              The sampled and blended density value.
+ */
+float sampleDensityTriPlanar(vec3 localUVW, uint textureId, float blendSharpness) {
+    // Get 2D coordinates for each of the three planar projections (XY, XZ, YZ)
+    vec2 uv_xy = localUVW.xy;
+    vec2 uv_xz = localUVW.xz;
+    vec2 uv_yz = localUVW.yz;
+
+    // Sample the 2D texture from each of the three directions
+    float density_xy = texture(textures[textureId], uv_xy).r;
+    float density_xz = texture(textures[textureId], uv_xz).r;
+    float density_yz = texture(textures[textureId], uv_yz).r;
+
+    // Calculate the blend weights.
+    // We base the weights on the direction from the center of the cube (0.5, 0.5, 0.5).
+    // The direction with the largest component will have the highest weight.
+    vec3 weights = abs(localUVW - 0.5); // Direction vector from the center
+
+    // Sharpen the blend by raising the weights to a power. This reduces blurry overlap.
+    weights = pow(weights, vec3(blendSharpness));
+
+    // Normalize the weights so they sum to 1, preventing energy loss/gain.
+    // Adding a tiny epsilon avoids division by zero if weights are all zero.
+    weights /= (weights.x + weights.y + weights.z + 0.00001);
+
+    // 4. Perform the weighted blend of the three samples
+    float finalDensity = density_xy * weights.z +   // XY plane is weighted by the Z direction
+                         density_xz * weights.y +   // XZ plane is weighted by the Y direction
+                         density_yz * weights.x;    // YZ plane is weighted by the X direction
+
+    return finalDensity;
+}
 
 void main()
 {
@@ -300,10 +363,30 @@ void main()
                     // Advance ray to the interaction point (origin + direction * t_medium)
                     p_pathTrace.origin += p_pathTrace.direction * t_medium;
 
+                    float density = 1.0; // Homogeneous medium density
+
+                    if (currentVolume.densityTextureId != UINT_MAX) {
+                        vec3 uvw = getWorldToVolumeUVW(p_pathTrace.origin, currentVolume.instanceIndex);
+
+                        float triplanarBlendSharpness = 5.0;
+                        
+                        density = sampleDensityTriPlanar(
+                            uvw, 
+                            currentVolume.densityTextureId, 
+                            triplanarBlendSharpness
+                        );
+                    }
+
+                    //density = randomFloat(seed) / 2.0;
+                    
+                    vec3 current_sigma_a = sigma_a * density;
+                    vec3 current_sigma_s = sigma_s * density;
+                    vec3 current_sigma_t = current_sigma_a + current_sigma_s;
+
                     // Assuming homogeneous for now - if heterogeneous:
                     // - we have to obtain the current sigma_t of the medium at pointX 
                     // - we then check if maxComponent(current_sigma_t(pointX)) / sigma_t_maj(pointX)
-                    vec3 current_sigma_t = sigma_t;
+                    //vec3 current_sigma_t = sigma_t;           
 
                     // Use Woodcock tracking (null-scattering) to decide if it's a real event.
                     // For heterogeneous media, you'd sample density at the new origin.
@@ -314,7 +397,8 @@ void main()
                         // emissive volumes are not present. Directly simulates the amount of light
                         // scattered by the medium at the point of interaction.
                         // https://graphics.pixar.com/library/ProductionVolumeRendering/paper.pdf (Section 2.1.1)
-                        vec3 scatteringAlbedo = sigma_s / current_sigma_t;
+                       
+                        vec3 scatteringAlbedo = current_sigma_s / sigma_t_maj;
 
                         // Sample new direction using phase function
                         vec3 newDirection = sampleHenyeyGreenstein(p_pathTrace.direction, phaseFunctionG, p_pathTrace.seed);
@@ -326,7 +410,7 @@ void main()
                         p_pathTrace.pdf = evalHenyeyGreenstein(cosTheta, phaseFunctionG); 
 
                         // NEE for volumes
-                        directLighting(p_pathTrace.origin);
+                        //directLighting(p_pathTrace.origin);
                         
                         // TODO: separate scattering and absorption -> easier emissive volumes integration
                         p_pathTrace.throughput *= scatteringAlbedo;
