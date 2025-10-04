@@ -15,14 +15,16 @@ namespace PXTEngine {
 		Context& context, Shared<DescriptorAllocatorGrowable> descriptorAllocator,
 		TextureRegistry& textureRegistry, MaterialRegistry& materialRegistry,
 		BLASRegistry& blasRegistry, Shared<Environment> environment,
-		DescriptorSetLayout& globalSetLayout, Shared<VulkanImage> sceneImage)
+		DescriptorSetLayout& globalSetLayout, Shared<VulkanImage> sceneImage,
+		DensityTextureRenderSystem& densityTextureSystem)
 		: m_context(context),
 		m_textureRegistry(textureRegistry),
 		m_materialRegistry(materialRegistry),
 		m_blasRegistry(blasRegistry),
 		m_environment(environment),
 		m_descriptorAllocator(descriptorAllocator),
-		m_sceneImage(sceneImage)
+		m_sceneImage(sceneImage),
+		m_densityTextureSystem(densityTextureSystem)
 	{
 		m_skybox = std::static_pointer_cast<VulkanSkybox>(m_environment->getSkybox());
 
@@ -125,8 +127,8 @@ namespace PXTEngine {
 			m_rtSceneManager.getMeshInstanceDescriptorSetLayout(),
 			m_rtSceneManager.getEmittersDescriptorSetLayout(),
 			m_rtSceneManager.getVolumeDescriptorSetLayout(),
-			m_blueNoiseDescriptorSetLayout->getDescriptorSetLayout()
-			//passa descritpor set layout del density texture
+			m_blueNoiseDescriptorSetLayout->getDescriptorSetLayout(),
+			m_densityTextureSystem.getSamplingDensitySetLayout()->getDescriptorSetLayout()
 		};
 
 		VkPushConstantRange pushConstantRange{};
@@ -360,7 +362,7 @@ namespace PXTEngine {
 	void RayTracingRenderSystem::render(FrameInfo& frameInfo, Renderer& renderer) {
 		m_pipeline->bind(frameInfo.commandBuffer);
 
-		std::array<VkDescriptorSet, 10> descriptorSets = { 
+		std::array<VkDescriptorSet, 11> descriptorSets = { 
 			frameInfo.globalDescriptorSet, 
 			m_rtSceneManager.getTLASDescriptorSet(frameInfo.frameIndex), 
 			m_textureRegistry.getDescriptorSet(),
@@ -370,8 +372,8 @@ namespace PXTEngine {
 			m_rtSceneManager.getMeshInstanceDescriptorSet(frameInfo.frameIndex),
 			m_rtSceneManager.getEmittersDescriptorSet(frameInfo.frameIndex),
 			m_rtSceneManager.getVolumeDescriptorSet(frameInfo.frameIndex),
-			m_blueNoiseDescriptorSet
-			//passa descritpor set layout del density texture
+			m_blueNoiseDescriptorSet,
+			m_densityTextureSystem.getSamplingDensitySet()
 		};
 	
 		vkCmdBindDescriptorSets(

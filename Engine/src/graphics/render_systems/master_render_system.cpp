@@ -314,17 +314,6 @@ namespace PXTEngine {
 			m_offscreenRenderPass->getHandle()
 		);
 
-		m_rayTracingRenderSystem = createUnique<RayTracingRenderSystem>(
-			m_context,
-			m_descriptorAllocator,
-			m_textureRegistry,
-			m_materialRegistry,
-			m_blasRegistry,
-			m_environment,
-			*m_globalSetLayout,
-			m_sceneImage
-		);
-
 		m_denoiserRenderSystem = createUnique<DenoiserRenderSystem>(
 			m_context,
 			m_descriptorAllocator,
@@ -336,6 +325,18 @@ namespace PXTEngine {
 			m_descriptorAllocator,
 			VkExtent3D{256, 256, 256},
 			VkExtent3D{ 32, 32, 32 }
+		);
+
+		m_rayTracingRenderSystem = createUnique<RayTracingRenderSystem>(
+			m_context,
+			m_descriptorAllocator,
+			m_textureRegistry,
+			m_materialRegistry,
+			m_blasRegistry,
+			m_environment,
+			*m_globalSetLayout,
+			m_sceneImage,
+			*m_densityTextureSystem
 		);
 	}
 

@@ -267,7 +267,7 @@ public:
 #if 0
         Scene& scene = getScene();
         SceneSerializer serializer(&scene, &getResourceManager());
-        serializer.deserialize(SCENES_PATH + "cube_vol.pxtscene");
+        serializer.deserialize(SCENES_PATH + "volsas.pxtscene");
         
         // TODO: add scripts to scene serialize
         Entity camera = scene.getMainCameraEntity();
@@ -283,7 +283,7 @@ public:
 #endif
         prepareEnvironment();
         createCameraEntity();
-        createFloor();
+        //createFloor();
         //createTeapotAndVases();
         //createRubikCube();
         //createLamp();
@@ -343,14 +343,14 @@ public:
         rm.add(emissiveMat, "emissive_mat");
 
         auto emissiveSphere = getScene().createEntity("Emissive sphere")
-            .add<TransformComponent>(glm::vec3{ 0.0f, -0.45f, 0.6f }, glm::vec3{ 0.05f }, glm::vec3{ 0.0f, 0.0f, 0.0f })
+            .add<TransformComponent>(glm::vec3{ 0.0f, -0.45f, 0.6f }, glm::vec3{ 0.5f }, glm::vec3{ 0.0f, 0.0f, 0.0f })
             .add<MeshComponent>(sphereModel)
             .add<MaterialComponent>(MaterialComponent::Builder()
                 .setMaterial(emissiveMat)
                 .build());
 
 
-        auto bunny = rm.get<Mesh>(MODELS_PATH + "cube_hd.obj");
+        auto bunny = rm.get<Mesh>(MODELS_PATH + "dragon.obj");
         /*auto bunnyMaterial = Material::Builder()
             .setAlbedoMap(rm.get<Image>(MODELS_PATH + "bunny/terracotta.jpg", &albedoInfo))
             //.setAlbedoMap(rm.get<Image>(TEXTURES_PATH + "granite/albedo.png", &albedoInfo))
@@ -375,11 +375,11 @@ public:
                 .build());*/
 
         Entity entity = getScene().createEntity("Bunny")
-            .add<TransformComponent>(glm::vec3{ 0.5f, 0.4f, 0.5f }, glm::vec3{ 2.5f, 2.5f, 2.5f }, glm::vec3{ glm::pi<float>(), 0.0f, 0.0f })
+            .add<TransformComponent>(glm::vec3{ 0.0f }, glm::vec3{ 1.0f, 1.0f, 1.0f }, glm::vec3{ 0.0f, 0.0f, 0.0f })
             .add<MeshComponent>(bunny)
             .add<VolumeComponent>(VolumeComponent::Builder()
-                .setAbsorption(glm::vec4{ 0.3f })
-                .setScattering(glm::vec4{ 0.3f })
+                .setAbsorption(glm::vec4{ 0.1f })
+                .setScattering(glm::vec4{ 0.9f })
                 .setPhaseFunctionG(0.5f)
                 .setDensityTexture(rm.get<Image>(TEXTURES_PATH + "/noise/perlin_worley.png"))
                 .build());

@@ -234,7 +234,7 @@ namespace PXTEngine {
 
 		auto environment = m_scene->getEnvironment();
 
-		environment->setAmbientLight({ 1.0, 1.0, 1.0, 0.1f });
+		environment->setAmbientLight({ 1.0, 1.0, 1.0, 0.0f });
 		environment->setSkybox(skyboxTextures);
 		// ----------------
 
