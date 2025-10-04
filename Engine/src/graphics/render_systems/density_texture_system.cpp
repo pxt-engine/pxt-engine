@@ -111,6 +111,7 @@ namespace PXTEngine {
         m_densitySliceImageView = m_context.createImageView(viewInfo);
 
         viewInfo.image = m_majorantGrid->getVkImage();
+        viewInfo.subresourceRange.baseArrayLayer = m_densitySliceIndex / m_majorantGridExtent.depth; // for majorant grid
         m_majorantGridSliceImageView = m_context.createImageView(viewInfo);
     }
 
