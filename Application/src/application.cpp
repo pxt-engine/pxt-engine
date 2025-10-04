@@ -375,7 +375,7 @@ public:
                 .build());*/
 
         Entity entity = getScene().createEntity("Bunny")
-            .add<TransformComponent>(glm::vec3{ 0.0f }, glm::vec3{ 1.0f, 1.0f, 1.0f }, glm::vec3{ 0.0f, 0.0f, 0.0f })
+            .add<TransformComponent>(glm::vec3{ 0.0f }, glm::vec3{ 3.0f, 3.0f, 3.0f }, glm::vec3{ 0.0f, 0.0f, glm::pi<float>()})
             .add<MeshComponent>(bunny)
             .add<VolumeComponent>(VolumeComponent::Builder()
                 .setAbsorption(glm::vec4{ 0.1f })
