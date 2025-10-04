@@ -65,8 +65,8 @@ namespace PXTEngine {
         VkPipelineLayout m_pipelineLayout;
         Unique<Pipeline> m_pipeline;
 
-        float m_noiseFrequency = 16.0f;
-        float m_worleyExponent = 2.5f;
+        float m_noiseFrequency = 4.0f;
+        float m_worleyExponent = 2.0f;
 		int m_densitySliceIndex = 0; // For viewing a specific slice in the UI
         bool m_needsRegeneration = true;
 

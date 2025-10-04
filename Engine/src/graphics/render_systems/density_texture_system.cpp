@@ -291,8 +291,11 @@ namespace PXTEngine {
         if (ImGui::CollapsingHeader("Volume Noise Settings")) {
             ImGui::Text("Adjust noise parameters and regenerate the volume.");
 
-            // Sliders for each parameter
-            ImGui::DragFloat("Noise Frequency", &m_noiseFrequency, 0.1f, 0.1f, 32.0f);
+            
+            // We want the frequency to have integer values so the texture can tile correctly
+            //
+            ImGui::DragFloat("Noise Frequency", &m_noiseFrequency, 1.0f, 0.0f, 32.0f, "%.0f");
+
             ImGui::DragFloat("Worley Weight", &m_worleyExponent, 0.05f, 0.0f, 5.0f);
             if (ImGui::SliderInt("Density Texture Depth Slice", &m_densitySliceIndex, 0, m_densityTextureExtent.depth - 1)) {
                 updateSliceImageViews();
