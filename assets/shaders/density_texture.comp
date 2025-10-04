@@ -9,12 +9,18 @@ layout (binding = 0, r32f) uniform image3D u_densityTexture;
 // Binding 1: Output low-resolution majorant grid
 layout (binding = 1, r32f) uniform image3D u_majorantGrid;
 
-// Control parameters
-layout (push_constant) uniform PushConstants {
-    float noiseFrequency; // Domain period (D)
+
+layout(push_constant) uniform PushConstants {
+    // Controls the scale of the noise. A higher value means more cells and smaller features.
+    // This value also defines the period for tiling.
+    float noiseFrequency;
+
+    // Controls the falloff of the noise.
+    // A value of 1.0 gives a linear falloff (cones).
+    // A value of 2.0 gives a quadratic falloff (smoother).
+    // Higher values create sharper, smaller features.
     float worleyExponent;
 } u_pushConstants;
-
 // Shared memory for parallel reduction to find max density within the workgroup.
 shared float s_localDensities[gl_WorkGroupSize.x * gl_WorkGroupSize.y * gl_WorkGroupSize.z];
 
@@ -30,47 +36,47 @@ vec3 hash33(vec3 p) {
 }
 
 // Tileable 3D Worley noise (F1 distance).
-float worleyNoise(vec3 p, float period) {
-    // We search for the minimum squared distance (minSqrDst)
-    float min_sqr_dist = 100.0 * 100.0; 
-    vec3 cellId = floor(p);
+float worleyNoise(vec3 p, float frequency) {
+    // Separate the point 'p' into its integer (cell) and fractional (position within cell) parts.
+    vec3 i = floor(p);
+    vec3 f = fract(p);
 
-    // Search the 3x3x3 neighborhood of cells
+    // Initialize the minimum distance to a large value.
+    // We will search for the feature point closest to 'p'.
+    float minDistanceSq = 100.0;
+
+    // Iterate through a 3x3x3 cube of neighboring cells (27 cells total),
+    // including the cell 'p' is currently in.
     for (int z = -1; z <= 1; z++) {
         for (int y = -1; y <= 1; y++) {
             for (int x = -1; x <= 1; x++) {
-                vec3 neighborCellOffset = vec3(float(x), float(y), float(z));
-                vec3 neighborCellId = cellId + neighborCellOffset;
-                
-                // --- Tiling Fix: Make the cell ID periodic for hashing ---
-                // This step ensures that the feature point pattern repeats every 'period' units.
-                // It is equivalent to the cell wrapping/modulo in your reference code.
-                vec3 periodicCellId = mod(neighborCellId, period);
-                
-                // mod can return negative results for negative inputs, so correct it.
-                // Since the period is expected to be positive (noiseFrequency), this wraps the ID to [0, period).
-                if (periodicCellId.x < 0.0) periodicCellId.x += period;
-                if (periodicCellId.y < 0.0) periodicCellId.y += period;
-                if (periodicCellId.z < 0.0) periodicCellId.z += period;
-                
-                // Generate a pseudo-random point offset using the periodic cell ID.
-                vec3 featurePointOffset = hash33(periodicCellId);
+                // Get the integer coordinate of the neighboring cell.
+                vec3 neighborCell = i + vec3(x, y, z);
 
-                // The feature point is located at the UNWRAPPED cell origin + the periodic offset.
-                // This is the point in the infinite grid that belongs to the periodic pattern.
-                vec3 unwrappedFeaturePoint = neighborCellId + featurePointOffset;
-                
-                // Calculate the standard Euclidean squared distance.
-                vec3 sampleOffset = p - unwrappedFeaturePoint;
-                float sqr_dist = dot(sampleOffset, sampleOffset);
-                
-                // Update minimum squared distance
-                min_sqr_dist = min(min_sqr_dist, sqr_dist);
+                // --- TILING LOGIC ---
+                // Wrap the neighbor cell's coordinates around the noise frequency.
+                // This ensures that when we query a cell outside the [0, frequency] range,
+                // it wraps around to the other side, creating a seamless, repeating pattern.
+                vec3 periodicCell = mod(neighborCell, frequency);
+
+                // Get the position of the feature point within the periodic cell.
+                // The hash function provides a consistent, pseudo-random offset.
+                vec3 pointOffset = hash33(periodicCell);
+
+                // Calculate the squared distance from our sample point 'p' to the feature point.
+                // We work in the local coordinate space of the central cell 'i' for a slight optimization.
+                // The vector is (neighboring_point - sample_point)
+                vec3 vecToPoint = vec3(x, y, z) + pointOffset - f;
+                float distSq = dot(vecToPoint, vecToPoint);
+
+                // If this point is closer than any we've seen so far, update the minimum distance.
+                minDistanceSq = min(minDistanceSq, distSq);
             }
         }
     }
-    // Return the final distance (square root of the minimum squared distance)
-    return sqrt(min_sqr_dist); 
+
+    // After checking all 27 cells, take the square root to get the true Euclidean distance.
+    return sqrt(minDistanceSq);
 }
 
 void main() {
