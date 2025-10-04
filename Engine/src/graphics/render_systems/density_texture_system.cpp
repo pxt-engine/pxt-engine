@@ -246,6 +246,9 @@ namespace PXTEngine {
             m_majorantGridExtent.depth
         );
 
+		// TODO: create a second dispatch to find the max density over all cells
+		// findMaxDensity(commandBuffer);
+
         // TODO: move this into a separate function with the ability to specify
         // which stage to wait for (dstStage), could be RT or FRAGMENT depending on
         // RT enabled or not.
