@@ -31,7 +31,7 @@ namespace PXTEngine {
         const Shared<DescriptorSetLayout> getSamplingDensitySetLayout() const { return m_samplingDescriptorSetLayout; }
 
         bool needsRegeneration() const { return m_needsRegeneration; }
-        void updateSliceImageViews();
+        
         void reloadShaders();
 
         void updateUi();
@@ -42,6 +42,9 @@ namespace PXTEngine {
         void createDescriptorSets();
         void createPipelineLayout();
         void createPipeline(bool useCompiledSpirvFiles = true);
+
+        void createSliceImageViews(VkImageView* densitySliceImageView, VkImageView* majorantSliceImageView);
+        void updateSliceImageViews();
 
         Context& m_context;
         Shared<DescriptorAllocatorGrowable> m_descriptorAllocator;
@@ -65,7 +68,7 @@ namespace PXTEngine {
         VkPipelineLayout m_pipelineLayout;
         Unique<Pipeline> m_pipeline;
 
-        float m_noiseFrequency = 4.0f;
+        int m_noiseFrequency = 3;
         float m_worleyExponent = 2.0f;
 		int m_densitySliceIndex = 0; // For viewing a specific slice in the UI
         bool m_needsRegeneration = true;

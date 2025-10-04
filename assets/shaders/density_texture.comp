@@ -1,5 +1,7 @@
 #version 460
 
+#extension GL_EXT_debug_printf : enable
+
 // Local workgroup size (e.g., 8x8x8 for a 8:1 density/majorant ratio).
 layout (local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
 
@@ -41,6 +43,11 @@ float worleyNoise(vec3 p, float frequency) {
     vec3 i = floor(p);
     vec3 f = fract(p);
 
+    // convert frequency to nearest int for modulo operations
+    // ivec3s are used later also because of floating points
+    // numbers errors with modulo operator etc.
+    int freq = int(frequency + 0.5);
+
     // Initialize the minimum distance to a large value.
     // We will search for the feature point closest to 'p'.
     float minDistanceSq = 100.0;
@@ -51,13 +58,14 @@ float worleyNoise(vec3 p, float frequency) {
         for (int y = -1; y <= 1; y++) {
             for (int x = -1; x <= 1; x++) {
                 // Get the integer coordinate of the neighboring cell.
-                vec3 neighborCell = i + vec3(x, y, z);
+                ivec3 neighborCellI = ivec3(i) + ivec3(x, y, z);
 
                 // --- TILING LOGIC ---
                 // Wrap the neighbor cell's coordinates around the noise frequency.
                 // This ensures that when we query a cell outside the [0, frequency] range,
                 // it wraps around to the other side, creating a seamless, repeating pattern.
-                vec3 periodicCell = mod(neighborCell, frequency);
+                ivec3 periodicI = (neighborCellI % freq);
+                vec3 periodicCell = vec3(periodicI);
 
                 // Get the position of the feature point within the periodic cell.
                 // The hash function provides a consistent, pseudo-random offset.

@@ -95,24 +95,7 @@ namespace PXTEngine {
 		m_densityTexture->createSampler(samplerInfo);
 		m_majorantGrid->createSampler(samplerInfo);
 
-        // create slice image view for imgui
-        VkImageViewCreateInfo viewInfo{};
-        viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-        viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D; // interpret as 2D
-        viewInfo.format = VK_FORMAT_R32_SFLOAT; // or whatever your 3D image format is
-        viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        viewInfo.subresourceRange.baseMipLevel = 0;
-        viewInfo.subresourceRange.levelCount = 1;
-        //define the slice
-        viewInfo.subresourceRange.baseArrayLayer = m_densitySliceIndex; // which depth slice
-        viewInfo.subresourceRange.layerCount = 1;
-
-        viewInfo.image = m_densityTexture->getVkImage();
-        m_densitySliceImageView = m_context.createImageView(viewInfo);
-
-        viewInfo.image = m_majorantGrid->getVkImage();
-        viewInfo.subresourceRange.baseArrayLayer = m_densitySliceIndex / m_majorantGridExtent.depth; // for majorant grid
-        m_majorantGridSliceImageView = m_context.createImageView(viewInfo);
+        createSliceImageViews(&m_densitySliceImageView, &m_majorantGridSliceImageView);
     }
 
     void DensityTextureRenderSystem::createDescriptorSets() {
@@ -244,7 +227,7 @@ namespace PXTEngine {
 
         // Push constants to control the noise
         DensityPushConstants pushConstants{};
-        pushConstants.noiseFrequency = m_noiseFrequency; // Higher value = more detail
+        pushConstants.noiseFrequency = static_cast<float>(m_noiseFrequency); // Higher value = more detail
         pushConstants.worleyExponent = m_worleyExponent;   // How much the cell-like structure influences the shape
 
         vkCmdPushConstants(
@@ -292,12 +275,14 @@ namespace PXTEngine {
         if (ImGui::CollapsingHeader("Volume Noise Settings")) {
             ImGui::Text("Adjust noise parameters and regenerate the volume.");
 
-            
-            // We want the frequency to have integer values so the texture can tile correctly
-            //
-            ImGui::DragFloat("Noise Frequency", &m_noiseFrequency, 1.0f, 0.0f, 32.0f, "%.0f");
+            if (ImGui::SliderInt("Noise Frequency", &m_noiseFrequency, 0, 32)) {
+                m_needsRegeneration = true;
+            }
 
-            ImGui::DragFloat("Worley Weight", &m_worleyExponent, 0.05f, 0.0f, 5.0f);
+            if (ImGui::DragFloat("Worley Weight", &m_worleyExponent, 0.05f, 0.0f, 5.0f)) {
+				m_needsRegeneration = true;
+            }
+
             if (ImGui::SliderInt("Density Texture Depth Slice", &m_densitySliceIndex, 0, m_densityTextureExtent.depth - 1)) {
                 updateSliceImageViews();
             }
@@ -314,25 +299,26 @@ namespace PXTEngine {
     }
 
     void DensityTextureRenderSystem::showNoiseTextures() {
-        ImTextureID noiseTexture = (ImTextureID) m_imGuiDensityDescriptorSet;
-
-        // we push a style var to remove the viewpoer window padding
+        // Remove window padding so images butt up against window edges
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
 
-        ImVec2 windowSize = ImVec2(200, 200);
+        ImVec2 windowSize(200, 200);
 
+		// Density Texture
+        ImTextureID noiseTexture = (ImTextureID)m_imGuiDensityDescriptorSet;
         ImGui::Image(noiseTexture, windowSize);
 
-        // for majorant grid
-        ImTextureID majorantTexture = (ImTextureID) m_imGuiMajorantDescriptorSet;
+        // Move to the same line (to the right of the previous image)
+        ImGui::SameLine();
 
-        windowSize = ImVec2(200,200);
-
+		// Majorant Grid Texture
+        ImTextureID majorantTexture = (ImTextureID)m_imGuiMajorantDescriptorSet;
         ImGui::Image(majorantTexture, windowSize);
+
         ImGui::PopStyleVar();
     }
 
-    void DensityTextureRenderSystem::updateSliceImageViews() {
+    void DensityTextureRenderSystem::createSliceImageViews(VkImageView* densitySliceImageView, VkImageView* majorantSliceImageView) {
         // create slice image view for imgui
         VkImageViewCreateInfo viewInfo{};
         viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -346,11 +332,17 @@ namespace PXTEngine {
         viewInfo.subresourceRange.layerCount = 1;
 
         viewInfo.image = m_densityTexture->getVkImage();
-        VkImageView densitySliceImageView = m_context.createImageView(viewInfo);
+        *densitySliceImageView = m_context.createImageView(viewInfo);
 
         viewInfo.image = m_majorantGrid->getVkImage();
-		viewInfo.subresourceRange.baseArrayLayer = m_densitySliceIndex / m_majorantGridExtent.depth; // for majorant grid
-        VkImageView majorantGridSliceImageView = m_context.createImageView(viewInfo);
+        viewInfo.subresourceRange.baseArrayLayer = m_densitySliceIndex / m_majorantGridExtent.depth; // for majorant grid
+        *majorantSliceImageView = m_context.createImageView(viewInfo);
+    }
+
+    void DensityTextureRenderSystem::updateSliceImageViews() {
+        // create slice image view for imgui
+		VkImageView densitySliceImageView, majorantGridSliceImageView;
+		createSliceImageViews(&densitySliceImageView, &majorantGridSliceImageView);
 
         if (m_densitySliceImageView != VK_NULL_HANDLE && m_majorantGridSliceImageView != VK_NULL_HANDLE) {
             // we need to wait for the device to finish
@@ -384,5 +376,4 @@ namespace PXTEngine {
         m_densitySliceImageView = densitySliceImageView;
         m_majorantGridSliceImageView = majorantGridSliceImageView;
     }
-
 }
