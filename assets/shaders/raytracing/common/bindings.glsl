@@ -35,7 +35,7 @@ layout(set = 9, binding = 0, std430) readonly buffer blueNoiseSSBO {
 
 layout(set = 10, binding = 0) uniform sampler3D densityTexture3D;
 layout(set = 10, binding = 1) uniform sampler3D majorantTexture3D;
-layout(set = 10, binding = 2, std430) buffer GlobalMajorantBuffer {
+layout(set = 10, binding = 2, std430) buffer GlobalMajorantSSBO {
     float globalMajorant;
 };
 

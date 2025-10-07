@@ -307,8 +307,7 @@ void main()
                 vec3 sigma_a = currentVolume.absorption.rgb;
                 vec3 sigma_s = currentVolume.scattering.rgb;
                 vec3 sigma_t = sigma_a + sigma_s;
-                float sigma_t_maj = maxComponent(sigma_t);
-                sigma_t_maj = 1.0; // change with * maxdensity on the line above
+                float sigma_t_maj = maxComponent(sigma_t) * globalMajorant;
 
                 float phaseFunctionG = currentVolume.phaseFunctionG;
 

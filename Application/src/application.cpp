@@ -264,10 +264,10 @@ public:
     }
 
     void loadScene() override {
-#if 0
+#if 1
         Scene& scene = getScene();
         SceneSerializer serializer(&scene, &getResourceManager());
-        serializer.deserialize(SCENES_PATH + "volsas.pxtscene");
+        serializer.deserialize(SCENES_PATH + "nuv.pxtscene");
         
         // TODO: add scripts to scene serialize
         Entity camera = scene.getMainCameraEntity();

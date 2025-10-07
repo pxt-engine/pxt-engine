@@ -10,7 +10,7 @@ layout(set = 0, binding = 1, r32f) uniform readonly image3D u_majorantGrid;
 
 // Buffer to store the final maximum value.
 // Use an SSBO instead of an image for direct float atomic support.
-layout(set = 0, binding = 2, std430) buffer GlobalMajorantBuffer {
+layout(set = 0, binding = 2, std430) buffer GlobalMajorantSSBO {
     float globalMajorant;
 };
 
