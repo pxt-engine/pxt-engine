@@ -8,6 +8,11 @@ namespace PXTEngine {
         float worleyExponent;
     };
 
+    // buffer holdig the majorant max
+	struct GlobalMajorantBuffer {
+		float globalMajorant = 0.0f;
+	};
+
     DensityTextureRenderSystem::DensityTextureRenderSystem(
         Context& context,
         Shared<DescriptorAllocatorGrowable> descriptorAllocator,
@@ -25,13 +30,19 @@ namespace PXTEngine {
         PXT_ASSERT(m_densityTextureExtent.depth % m_majorantGridExtent.depth == 0, "Depth mismatch");
 
         createImages();
+        createGlobalMajorantBuffer();
         createDescriptorSets();
-        createPipelineLayout();
-        createPipeline();
+
+        createGenerationPipelineLayout();
+        createGenerationPipeline();
+
+		createGlobalMajorantPipelineLayout();
+		createGlobalMajorantPipeline();
     }
 
     DensityTextureRenderSystem::~DensityTextureRenderSystem() {
-        vkDestroyPipelineLayout(m_context.getDevice(), m_pipelineLayout, nullptr);
+        vkDestroyPipelineLayout(m_context.getDevice(), m_generationPipelineLayout, nullptr);
+		vkDestroyPipelineLayout(m_context.getDevice(), m_globalMajorantPipelineLayout, nullptr);
 
         vkDestroyImageView(m_context.getDevice(), m_densitySliceImageView, nullptr);
         vkDestroyImageView(m_context.getDevice(), m_majorantGridSliceImageView, nullptr);
@@ -98,10 +109,28 @@ namespace PXTEngine {
         createSliceImageViews(&m_densitySliceImageView, &m_majorantGridSliceImageView);
     }
 
+    void DensityTextureRenderSystem::createGlobalMajorantBuffer() {
+		GlobalMajorantBuffer globalMajorantData{};
+		globalMajorantData.globalMajorant = 0.0f;
+        
+        m_globalMajorantBuffer = createUnique<VulkanBuffer>(
+			m_context,
+			sizeof(GlobalMajorantBuffer),
+            1,
+			VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT // we need to see it from the cpu
+		);
+
+		m_globalMajorantBuffer->map();
+		m_globalMajorantBuffer->writeToBuffer(&globalMajorantData);
+		m_globalMajorantBuffer->unmap();
+    }
+
     void DensityTextureRenderSystem::createDescriptorSets() {
         m_descriptorSetLayout = DescriptorSetLayout::Builder(m_context)
             .addBinding(0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_COMPUTE_BIT) // Density Texture Output
 			.addBinding(1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_COMPUTE_BIT) // Majorant Grid Output
+			.addBinding(2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT) // Global Majorant Buffer
             .build();
 
         m_descriptorAllocator->allocate(m_descriptorSetLayout->getDescriptorSetLayout(), m_descriptorSet);
@@ -109,6 +138,7 @@ namespace PXTEngine {
         // Update descriptor set immediately since the images don't change
         VkDescriptorImageInfo densityImageInfo = m_densityTexture->getImageInfo(false);
         VkDescriptorImageInfo majorantImageInfo = m_majorantGrid->getImageInfo(false);
+		VkDescriptorBufferInfo globalMajorantBufferInfo = m_globalMajorantBuffer->descriptorInfo();
 
         // TODO: manage this automatically, with the method provided by VulkanImage abstraction
         densityImageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
@@ -117,16 +147,19 @@ namespace PXTEngine {
         DescriptorWriter(m_context, *m_descriptorSetLayout)
             .writeImage(0, &densityImageInfo)
             .writeImage(1, &majorantImageInfo)
+			.writeBuffer(2, &globalMajorantBufferInfo)
             .updateSet(m_descriptorSet);
 
 		// Create descriptor sets for sampling the generated textures in shaders
 		m_samplingDescriptorSetLayout = DescriptorSetLayout::Builder(m_context)
 			.addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT |
               VK_SHADER_STAGE_RAYGEN_BIT_KHR | 
-              VK_SHADER_STAGE_RAYGEN_BIT_KHR)
+              VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR)
             .addBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT |
                 VK_SHADER_STAGE_RAYGEN_BIT_KHR |
-                VK_SHADER_STAGE_RAYGEN_BIT_KHR)
+                VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR)
+            .addBinding(2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_RAYGEN_BIT_KHR |
+                VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR)
 			.build();
 
 		m_descriptorAllocator->allocate(m_samplingDescriptorSetLayout->getDescriptorSetLayout(), m_samplingDescriptorSet);
@@ -141,6 +174,7 @@ namespace PXTEngine {
 		DescriptorWriter(m_context, *m_samplingDescriptorSetLayout)
 			.writeImage(0, &densityImageInfo)
             .writeImage(1, &majorantImageInfo)
+			.writeBuffer(2, &globalMajorantBufferInfo)
 			.updateSet(m_samplingDescriptorSet);
 
         // Create descriptor sets for sampling the generated textures within ImGui
@@ -167,7 +201,7 @@ namespace PXTEngine {
             .updateSet(m_imGuiMajorantDescriptorSet);
     }
 
-    void DensityTextureRenderSystem::createPipelineLayout() {
+    void DensityTextureRenderSystem::createGenerationPipelineLayout() {
         VkPushConstantRange pushConstantRange{};
         pushConstantRange.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
         pushConstantRange.offset = 0;
@@ -182,22 +216,50 @@ namespace PXTEngine {
         pipelineLayoutInfo.pushConstantRangeCount = 1;
         pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
 
-        if (vkCreatePipelineLayout(m_context.getDevice(), &pipelineLayoutInfo, nullptr, &m_pipelineLayout) != VK_SUCCESS) {
+        if (vkCreatePipelineLayout(m_context.getDevice(), &pipelineLayoutInfo, nullptr, &m_generationPipelineLayout) != VK_SUCCESS) {
             throw std::runtime_error("failed to create density texture pipeline layout!");
         }
     }
 
-    void DensityTextureRenderSystem::createPipeline(bool useCompiledSpirvFiles) {
-        PXT_ASSERT(m_pipelineLayout != nullptr, "Cannot create pipeline before pipeline layout");
+    void DensityTextureRenderSystem::createGenerationPipeline(bool useCompiledSpirvFiles) {
+        PXT_ASSERT(m_generationPipelineLayout != nullptr, "Cannot create pipeline before pipeline layout");
 
         ComputePipelineConfigInfo pipelineConfig{};
-        pipelineConfig.pipelineLayout = m_pipelineLayout;
+        pipelineConfig.pipelineLayout = m_generationPipelineLayout;
 
         const std::string baseShaderPath = useCompiledSpirvFiles ? SPV_SHADERS_PATH : SHADERS_PATH;
         const std::string filenameSuffix = useCompiledSpirvFiles ? ".spv" : "";
-        std::string shaderFilePath = baseShaderPath + m_shaderPath + filenameSuffix;
+        std::string shaderFilePath = baseShaderPath + m_generationShaderPath + filenameSuffix;
 
-        m_pipeline = createUnique<Pipeline>(m_context, shaderFilePath, pipelineConfig);
+        m_generationPipeline = createUnique<Pipeline>(m_context, shaderFilePath, pipelineConfig);
+    }
+
+    void DensityTextureRenderSystem::createGlobalMajorantPipelineLayout() {
+        std::vector<VkDescriptorSetLayout> descriptorSetLayouts{ m_descriptorSetLayout->getDescriptorSetLayout() };
+
+        VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+        pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+        pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(descriptorSetLayouts.size());
+        pipelineLayoutInfo.pSetLayouts = descriptorSetLayouts.data();
+        pipelineLayoutInfo.pushConstantRangeCount = 0;
+        pipelineLayoutInfo.pPushConstantRanges = nullptr;
+
+        if (vkCreatePipelineLayout(m_context.getDevice(), &pipelineLayoutInfo, nullptr, &m_globalMajorantPipelineLayout) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create global majorant pipeline layout!");
+        }
+    }
+
+    void DensityTextureRenderSystem::createGlobalMajorantPipeline(bool useCompiledSpirvFiles) {
+        PXT_ASSERT(m_globalMajorantPipelineLayout != nullptr, "Cannot create global majorant pipeline before pipeline layout");
+
+        ComputePipelineConfigInfo pipelineConfig{};
+        pipelineConfig.pipelineLayout = m_globalMajorantPipelineLayout;
+
+        const std::string baseShaderPath = useCompiledSpirvFiles ? SPV_SHADERS_PATH : SHADERS_PATH;
+        const std::string filenameSuffix = useCompiledSpirvFiles ? ".spv" : "";
+        std::string shaderFilePath = baseShaderPath + m_globalMajorantShaderPath + filenameSuffix;
+
+        m_globalMajorantPipeline = createUnique<Pipeline>(m_context, shaderFilePath, pipelineConfig);
     }
 
     void DensityTextureRenderSystem::generate(VkCommandBuffer commandBuffer) {
@@ -216,11 +278,11 @@ namespace PXTEngine {
         );
 
         // Bind pipeline and descriptor sets
-        m_pipeline->bind(commandBuffer);
+        m_generationPipeline->bind(commandBuffer);
         vkCmdBindDescriptorSets(
             commandBuffer,
             VK_PIPELINE_BIND_POINT_COMPUTE,
-            m_pipelineLayout,
+            m_generationPipelineLayout,
             0, 1, &m_descriptorSet,
             0, nullptr
         );
@@ -232,7 +294,7 @@ namespace PXTEngine {
 
         vkCmdPushConstants(
             commandBuffer,
-            m_pipelineLayout,
+            m_generationPipelineLayout,
             VK_SHADER_STAGE_COMPUTE_BIT,
             0, sizeof(DensityPushConstants),
             &pushConstants
@@ -246,8 +308,7 @@ namespace PXTEngine {
             m_majorantGridExtent.depth
         );
 
-		// TODO: create a second dispatch to find the max density over all cells
-		// findMaxDensity(commandBuffer);
+		findMaxDensity(commandBuffer);
 
         // TODO: move this into a separate function with the ability to specify
         // which stage to wait for (dstStage), could be RT or FRAGMENT depending on
@@ -269,14 +330,60 @@ namespace PXTEngine {
         m_needsRegeneration = false;
     }
 
+    void DensityTextureRenderSystem::findMaxDensity(VkCommandBuffer commandBuffer) {
+        // Bind pipeline and descriptor sets
+        m_globalMajorantPipeline->bind(commandBuffer);
+        vkCmdBindDescriptorSets(
+            commandBuffer,
+            VK_PIPELINE_BIND_POINT_COMPUTE,
+            m_globalMajorantPipelineLayout,
+            0, 1, &m_descriptorSet,
+            0, nullptr
+        );
+
+        // Dispatch compute shaders. One workgroup per majorant grid cell.
+        vkCmdDispatch(
+            commandBuffer,
+            m_majorantGridExtent.width,
+            m_majorantGridExtent.height,
+            m_majorantGridExtent.depth
+        );
+
+        // memory barrier
+        VkMemoryBarrier memoryBarrier = {};
+        memoryBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+        // Source: What the GPU did before the barrier
+        memoryBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT; // The shader wrote to the buffer
+        // Destination: What the CPU will do after the barrier
+        memoryBarrier.dstAccessMask = VK_ACCESS_HOST_READ_BIT;    // The host will read the buffer
+
+        // Record the barrier command
+        vkCmdPipelineBarrier(
+            commandBuffer,
+            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, // Stage where writing happened
+            VK_PIPELINE_STAGE_HOST_BIT,           // Stage where reading will happen
+            0,
+            1, &memoryBarrier,
+            0, nullptr,
+            0, nullptr
+        );
+    }
+
     void DensityTextureRenderSystem::reloadShaders() {
         PXT_INFO("Reloading shaders...");
-        createPipeline(false);
+        createGenerationPipeline(false);
+    }
+
+    void DensityTextureRenderSystem::postFrameUpdate() {
+		// read back the global majorant value
+        m_globalMajorantBuffer->map();
+        m_globalMajorant = *((float*)m_globalMajorantBuffer->getMappedMemory());
+        m_globalMajorantBuffer->unmap();
     }
 
     void DensityTextureRenderSystem::updateUi() {
         if (ImGui::CollapsingHeader("Volume Noise Settings")) {
-            ImGui::Text("Adjust noise parameters and regenerate the volume.");
+            ImGui::Text("Global majorant value: %.2f", m_globalMajorant);
 
             if (ImGui::SliderInt("Noise Frequency", &m_noiseFrequency, 0, 32)) {
                 m_needsRegeneration = true;

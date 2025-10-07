@@ -1,7 +1,5 @@
 #version 460
 
-#extension GL_EXT_debug_printf : enable
-
 // Local workgroup size (e.g., 8x8x8 for a 8:1 density/majorant ratio).
 layout (local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
 

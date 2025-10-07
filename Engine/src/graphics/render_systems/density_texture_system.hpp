@@ -6,6 +6,7 @@
 #include "graphics/descriptors/descriptors.hpp"
 #include "graphics/resources/texture_registry.hpp"
 #include "graphics/resources/vk_image.hpp"
+#include <graphics/resources/vk_buffer.hpp>
 
 namespace PXTEngine {
 
@@ -33,18 +34,26 @@ namespace PXTEngine {
         bool needsRegeneration() const { return m_needsRegeneration; }
         
         void reloadShaders();
+        void postFrameUpdate();
 
         void updateUi();
         void showNoiseTextures();
 
     private:
         void createImages();
+		void createGlobalMajorantBuffer();
         void createDescriptorSets();
-        void createPipelineLayout();
-        void createPipeline(bool useCompiledSpirvFiles = true);
+
+        void createGenerationPipelineLayout();
+        void createGenerationPipeline(bool useCompiledSpirvFiles = true);
+
+        void createGlobalMajorantPipelineLayout();
+        void createGlobalMajorantPipeline(bool useCompiledSpirvFiles = true);
 
         void createSliceImageViews(VkImageView* densitySliceImageView, VkImageView* majorantSliceImageView);
         void updateSliceImageViews();
+
+        void findMaxDensity(VkCommandBuffer commandBuffer);
 
         Context& m_context;
         Shared<DescriptorAllocatorGrowable> m_descriptorAllocator;
@@ -65,15 +74,22 @@ namespace PXTEngine {
         VkDescriptorSet m_imGuiDensityDescriptorSet = VK_NULL_HANDLE;
         VkDescriptorSet m_descriptorSet = VK_NULL_HANDLE;
 
-        VkPipelineLayout m_pipelineLayout;
-        Unique<Pipeline> m_pipeline;
+        VkPipelineLayout m_generationPipelineLayout;
+        Unique<Pipeline> m_generationPipeline;
+        VkPipelineLayout m_globalMajorantPipelineLayout;
+        Unique<Pipeline> m_globalMajorantPipeline;
+
+		Unique<VulkanBuffer> m_globalMajorantBuffer;
+
+		float m_globalMajorant = 0.0f;
 
         int m_noiseFrequency = 3;
         float m_worleyExponent = 2.0f;
 		int m_densitySliceIndex = 0; // For viewing a specific slice in the UI
         bool m_needsRegeneration = true;
 
-        const std::string m_shaderPath = "density_texture.comp";
+        const std::string m_generationShaderPath = "density_texture.comp";
+		const std::string m_globalMajorantShaderPath = "global_majorant.comp";
     };
 
 }

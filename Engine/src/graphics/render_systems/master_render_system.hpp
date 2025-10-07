@@ -45,6 +45,7 @@ namespace PXTEngine {
 
 		void onUpdate(FrameInfo& frameInfo, GlobalUbo& ubo);
 		void doRenderPasses(FrameInfo& frameInfo);
+		void postFrameUpdate(FrameInfo& frameInfo);
 
 	private:
 		void recreateViewportResources();

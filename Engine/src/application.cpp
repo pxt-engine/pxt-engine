@@ -246,6 +246,9 @@ namespace PXTEngine {
 				m_masterRenderSystem->doRenderPasses(frameInfo);
 
                 m_renderer.endFrame();
+
+                // TODO: i dont like this
+				m_masterRenderSystem->postFrameUpdate(frameInfo);
             }
 
             // tracy end frame mark

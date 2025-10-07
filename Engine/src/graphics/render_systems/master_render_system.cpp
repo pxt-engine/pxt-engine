@@ -476,6 +476,10 @@ namespace PXTEngine {
 		m_renderer.endSwapChainRenderPass(frameInfo.commandBuffer);
 	}
 
+	void MasterRenderSystem::postFrameUpdate(FrameInfo& frameInfo) {
+		m_densityTextureSystem->postFrameUpdate();
+	}
+
 	void MasterRenderSystem::createDescriptorSetsImGui() {
 		// DESCRIPTOR SET FOR IMGUI VIEWPORT
 		m_sceneDescriptorSetLayout = DescriptorSetLayout::Builder(m_context)
