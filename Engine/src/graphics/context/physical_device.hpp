@@ -144,14 +144,7 @@ namespace PXTEngine {
 			// debuging extension
 			VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME,
 			// 2d view compatible extension (for viewing 3d texture slices in imgui)
-			VK_EXT_IMAGE_2D_VIEW_OF_3D_EXTENSION_NAME,
-			// this is needed atomic float 2 extension
-			// to do atomic min/max operations on float in the shader.
-            // this extension is inside the vulkan core, we just need 
-			// to enable it explicitly
-            VK_EXT_SHADER_ATOMIC_FLOAT_EXTENSION_NAME,
-			// shader atomic float 2 extension
-            VK_EXT_SHADER_ATOMIC_FLOAT_2_EXTENSION_NAME
+			VK_EXT_IMAGE_2D_VIEW_OF_3D_EXTENSION_NAME
         };
 
 	private:

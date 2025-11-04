@@ -34,7 +34,7 @@ namespace PXTEngine {
         bool needsRegeneration() const { return m_needsRegeneration; }
         
         void reloadShaders();
-        void postFrameUpdate();
+        void postFrameUpdate(VkFence frameFence);
 
         void updateUi();
         void showNoiseTextures();
@@ -42,6 +42,7 @@ namespace PXTEngine {
     private:
         void createImages();
 		void createGlobalMajorantBuffer();
+        void resetGlobalMajorantBuffer();
         void createDescriptorSets();
 
         void createGenerationPipelineLayout();
@@ -87,6 +88,7 @@ namespace PXTEngine {
         float m_worleyExponent = 2.0f;
 		int m_densitySliceIndex = 0; // For viewing a specific slice in the UI
         bool m_needsRegeneration = true;
+		bool m_hasRigeneratedThisFrame = false;
 
         const std::string m_generationShaderPath = "density_texture.comp";
 		const std::string m_globalMajorantShaderPath = "global_majorant.comp";

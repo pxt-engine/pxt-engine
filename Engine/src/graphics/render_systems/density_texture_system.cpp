@@ -10,7 +10,7 @@ namespace PXTEngine {
 
     // buffer holdig the majorant max
 	struct GlobalMajorantBuffer {
-		float globalMajorant = 0.0f;
+		uint32_t globalMajorantFloatBits = 0;
 	};
 
     DensityTextureRenderSystem::DensityTextureRenderSystem(
@@ -111,7 +111,7 @@ namespace PXTEngine {
 
     void DensityTextureRenderSystem::createGlobalMajorantBuffer() {
 		GlobalMajorantBuffer globalMajorantData{};
-		globalMajorantData.globalMajorant = 0.0f;
+		globalMajorantData.globalMajorantFloatBits = 0;
         
         m_globalMajorantBuffer = createUnique<VulkanBuffer>(
 			m_context,
@@ -124,6 +124,15 @@ namespace PXTEngine {
 		m_globalMajorantBuffer->map();
 		m_globalMajorantBuffer->writeToBuffer(&globalMajorantData);
 		m_globalMajorantBuffer->unmap();
+    }
+
+    void DensityTextureRenderSystem::resetGlobalMajorantBuffer() {
+        GlobalMajorantBuffer globalMajorantData{};
+        globalMajorantData.globalMajorantFloatBits = 0;
+
+        m_globalMajorantBuffer->map();
+        m_globalMajorantBuffer->writeToBuffer(&globalMajorantData);
+        m_globalMajorantBuffer->unmap();
     }
 
     void DensityTextureRenderSystem::createDescriptorSets() {
@@ -328,9 +337,13 @@ namespace PXTEngine {
         );
 
         m_needsRegeneration = false;
+		m_hasRigeneratedThisFrame = true;
     }
 
     void DensityTextureRenderSystem::findMaxDensity(VkCommandBuffer commandBuffer) {
+		// reset to zero before finding max
+        resetGlobalMajorantBuffer();
+
         // Bind pipeline and descriptor sets
         m_globalMajorantPipeline->bind(commandBuffer);
         vkCmdBindDescriptorSets(
@@ -374,11 +387,21 @@ namespace PXTEngine {
         createGenerationPipeline(false);
     }
 
-    void DensityTextureRenderSystem::postFrameUpdate() {
+    void DensityTextureRenderSystem::postFrameUpdate(VkFence frameFence) {
+        if (!m_hasRigeneratedThisFrame) return;
+
+		// synchronize with the frame fence to ensure the GPU has finished
+        vkWaitForFences(m_context.getDevice(), 1, &frameFence, VK_TRUE, UINT64_MAX);
+
 		// read back the global majorant value
         m_globalMajorantBuffer->map();
-        m_globalMajorant = *((float*)m_globalMajorantBuffer->getMappedMemory());
+        uint32_t globalMajorantFloatBits = *((uint32_t*)m_globalMajorantBuffer->getMappedMemory());
+        // we need to reinterpret the bits as flaot (see the density shader code)
+        m_globalMajorant = std::bit_cast<float>(globalMajorantFloatBits);
+
         m_globalMajorantBuffer->unmap();
+
+		m_hasRigeneratedThisFrame = false;
     }
 
     void DensityTextureRenderSystem::updateUi() {

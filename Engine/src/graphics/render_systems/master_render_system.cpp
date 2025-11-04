@@ -477,7 +477,7 @@ namespace PXTEngine {
 	}
 
 	void MasterRenderSystem::postFrameUpdate(FrameInfo& frameInfo) {
-		m_densityTextureSystem->postFrameUpdate();
+		m_densityTextureSystem->postFrameUpdate(frameInfo.frameFence);
 	}
 
 	void MasterRenderSystem::createDescriptorSetsImGui() {

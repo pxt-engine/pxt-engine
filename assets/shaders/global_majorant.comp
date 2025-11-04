@@ -1,6 +1,6 @@
 #version 460 core
-// Required for atomicMax on floats in an SSBO
-#extension GL_EXT_shader_atomic_float2 : require
+
+#extension GL_EXT_debug_printf : enable
 
 // Local workgroup size
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
@@ -11,13 +11,22 @@ layout(set = 0, binding = 1, r32f) uniform readonly image3D u_majorantGrid;
 // Buffer to store the final maximum value.
 // Use an SSBO instead of an image for direct float atomic support.
 layout(set = 0, binding = 2, std430) buffer GlobalMajorantSSBO {
-    float globalMajorant;
+    uint globalMajorantFloatBits;
 };
 
 #define WORKGROUP_SIZE (gl_WorkGroupSize.x * gl_WorkGroupSize.y * gl_WorkGroupSize.z)
 
 // Shared memory for the reduction within the workgroup
 shared float s_workgroupMax[WORKGROUP_SIZE];
+
+// reinterpret float bits as uint
+uint floatToUint(float f) {
+    return floatBitsToUint(f);
+}
+
+float uintToFloat(uint u) {
+    return uintBitsToFloat(u);
+}
 
 void main() {
     ivec3 global_id = ivec3(gl_GlobalInvocationID);
@@ -49,6 +58,10 @@ void main() {
     // Only the first thread of each workgroup writes its result.
     if (local_idx == 0) {
         float local_max = s_workgroupMax[0];
-        atomicMax(globalMajorant, local_max);
+
+        // here we do the atomic max on integers and then convert them
+        // to float on the host
+        uint valueBits = floatToUint(value);
+        atomicMax(globalMajorantFloatBits, valueBits);
     }
 }
