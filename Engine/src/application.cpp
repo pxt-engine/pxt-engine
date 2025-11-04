@@ -231,7 +231,12 @@ namespace PXTEngine {
                     commandBuffer,
                     camera,
                     m_globalDescriptorSets[frameIndex],
-                    m_scene
+					m_scene,
+                    m_renderer.getSwapChainCurrentFrameFence(),                                   // Frame fence
+                    m_renderer.getSwapChainImageAvailableSemaphore(),                             // Wait semaphore
+                    m_renderer.getSwapChainRenderFinishedSemaphore(
+                        m_renderer.getSwapChainCurrentImageIndex()
+                    ),
                 };
 
                 GlobalUbo ubo{};

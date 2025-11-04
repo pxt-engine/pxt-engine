@@ -32,6 +32,11 @@ namespace PXTEngine {
         SwapChain(Context& context, VkExtent2D windowExtent, Shared<SwapChain> previous);
         ~SwapChain();
 
+        VkFence getInFlightFence(uint32_t frameIndex) const;
+        VkFence getCurrentFrameFence() const;
+        VkSemaphore getImageAvailableSemaphore() const;
+        VkSemaphore getRenderFinishedSemaphore(uint32_t imageIndex) const;
+
         SwapChain(const SwapChain&) = delete;
         SwapChain& operator=(const SwapChain&) = delete;
 
