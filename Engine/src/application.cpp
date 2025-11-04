@@ -299,7 +299,7 @@ int main() {
 
 	PXTEngine::Logger::init();
 
-   
+   // TODO: what is happening here? indentation? missing try catch?
 
         auto app = PXTEngine::initApplication();
 
