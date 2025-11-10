@@ -11,6 +11,8 @@ layout (binding = 1, r32f) uniform image3D u_majorantGrid;
 
 
 layout(push_constant) uniform PushConstants {
+    vec4 fbmWeights;
+
     // Controls the scale of the noise. A higher value means more cells and smaller features.
     // This value also defines the period for tiling.
     float noiseFrequency;
@@ -97,10 +99,15 @@ void main() {
     // Calculate Density
     // Scale UVW coordinates to the noise domain [0, D]
     vec3 uvw = vec3(texelCoord) / vec3(densityTextureSize);
-    vec3 p = uvw * u_pushConstants.noiseFrequency;
 
-    // Calculate raw Worley distance
-    float worleyDist = worleyNoise(p, u_pushConstants.noiseFrequency);
+    float frequency = u_pushConstants.noiseFrequency;
+
+    float worleyDist = 0.0;
+
+    for (int i = 0; i < 3; i++) {
+        worleyDist += worleyNoise(uvw * frequency, frequency) * u_pushConstants.fbmWeights[i];
+        frequency *= 2.0;
+    }
     
     // Invert the distance (1.0 - dist) and clamp to [0, 1]
     float invertedWorley = clamp(1.0 - worleyDist, 0.0, 1.0);
