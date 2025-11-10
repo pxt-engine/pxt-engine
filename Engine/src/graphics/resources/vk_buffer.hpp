@@ -198,6 +198,8 @@ namespace PXTEngine {
 
         VkDeviceAddress getDeviceAddress() const;
 
+		void* getMappedMemory() { return m_mapped; }
+
         private:
         /**
          * @brief Calculates the aligned instance size.

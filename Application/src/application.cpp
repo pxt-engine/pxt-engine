@@ -22,17 +22,17 @@ public:
 
         auto environment = getScene().getEnvironment();
 
-        environment->setAmbientLight({ 1.0, 1.0, 1.0, 0.1f });
+        environment->setAmbientLight({ 1.0, 1.0, 1.0, 0.0f });
         environment->setSkybox(skyboxTextures);
     }
 
     void createCameraEntity() {
         Entity camera = getScene().createEntity("camera")
-            .add<TransformComponent>(glm::vec3{ -0.1f, -0.4f, -1.0f }, glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3{ -glm::pi<float>() / 4, 0.0f, 0.0f })
+            .add<TransformComponent>(glm::vec3{ 0.0f, -0.0f, -3.25f }, glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3{ 0.0f, 0.0f, 0.0f })
             .add<CameraComponent>();
 
         camera.addAndGet<ScriptComponent>().bind<CameraController>();
-	}
+    }
 
     Entity createPointLightEntity(const float intensity = 1.0f,
                             const float radius = 0.1f,
@@ -264,9 +264,10 @@ public:
     }
 
     void loadScene() override {
+#if 1
         Scene& scene = getScene();
         SceneSerializer serializer(&scene, &getResourceManager());
-        serializer.deserialize(SCENES_PATH + "sneakyVase.pxtscene");
+        serializer.deserialize(SCENES_PATH + "nuv.pxtscene");
         
         // TODO: add scripts to scene serialize
         Entity camera = scene.getMainCameraEntity();
@@ -279,16 +280,16 @@ public:
         }
 
         return;
-
-		prepareEnvironment();
+#endif
+        prepareEnvironment();
         createCameraEntity();
-        createFloor();
-        createTeapotAndVases();
-        createRubikCube();
+        //createFloor();
+        //createTeapotAndVases();
+        //createRubikCube();
         //createLamp();
-		//createRoofLight();
-        createPencilAndPen();
-        createLights();
+        //createRoofLight();
+        //createPencilAndPen();
+        //createLights();
 
         auto& rm = getResourceManager();
 
@@ -296,12 +297,12 @@ public:
         albedoInfo.format = RGBA8_SRGB;
 
         // create first volume
-		auto sphereModel = rm.get<Mesh>(MODELS_PATH + "sphere.obj");
+        auto sphereModel = rm.get<Mesh>(MODELS_PATH + "sphere.obj");
         auto cubeModel = rm.get<Mesh>(MODELS_PATH + "cube_hd.obj");
-        
+
         auto glassMaterial = Material::Builder()
             .setRoughness(0.0)
-			.setMetallic(0.0f)
+            .setMetallic(0.0f)
             .setTransmission(1.0f)
             .setIndexOfRefraction(1.5f)
             .build();
@@ -325,36 +326,31 @@ public:
             .build();
         rm.add(jadeMaterial, "jadeMaterial");
 
-        auto volumeCubeEntity = getScene().createEntity("Volume Cube")
+        /*auto volumeCubeEntity = getScene().createEntity("Volume Cube")
             .add<TransformComponent>(glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3{ 0.5f }, glm::vec3{ 0.0f, 0.0f, 0.0f })
             .add<MeshComponent>(cubeModel)
             .add<VolumeComponent>(VolumeComponent::Builder()
                 .setAbsorption(glm::vec4{ 0.3f })
                 .setScattering(glm::vec4{ 0.3f })
                 .setPhaseFunctionG(0.5f)
-                .build());
- 
+                .setDensityTexture(rm.get<Image>(TEXTURES_PATH + "noise/perlin_worley.png"))
+                .build());*/
+
         auto emissiveMat = Material::Builder()
             .setEmissiveMap(rm.get<Image>(TEXTURES_PATH + "white_pixel.png"))
-            .setEmissiveColor(glm::vec4{ 1.0f, 1.0f, 1.0f, 20.0f })
+            .setEmissiveColor(glm::vec4{ 1.0f, 1.0f, 1.0f, 15.0f })
             .build();
         rm.add(emissiveMat, "emissive_mat");
 
         auto emissiveSphere = getScene().createEntity("Emissive sphere")
-            .add<TransformComponent>(glm::vec3{ 0.0f, 0.0f, 0.6f }, glm::vec3{ 0.02f }, glm::vec3{ 0.0f, 0.0f, 0.0f })
+            .add<TransformComponent>(glm::vec3{ 0.0f, -0.45f, 0.6f }, glm::vec3{ 0.5f }, glm::vec3{ 0.0f, 0.0f, 0.0f })
             .add<MeshComponent>(sphereModel)
             .add<MaterialComponent>(MaterialComponent::Builder()
                 .setMaterial(emissiveMat)
                 .build());
 
-        auto glassSphere = getScene().createEntity("Glass sphere")
-            .add<TransformComponent>(glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3{ 0.06f }, glm::vec3{ 0.0f, 0.0f, 0.0f })
-            .add<MeshComponent>(sphereModel)
-            .add<MaterialComponent>(MaterialComponent::Builder()
-                .setMaterial(glassMaterial)
-                .build());
 
-        auto bunny = rm.get<Mesh>(MODELS_PATH + "bunny/bunny.obj");
+        auto bunny = rm.get<Mesh>(MODELS_PATH + "dragon.obj");
         /*auto bunnyMaterial = Material::Builder()
             .setAlbedoMap(rm.get<Image>(MODELS_PATH + "bunny/terracotta.jpg", &albedoInfo))
             //.setAlbedoMap(rm.get<Image>(TEXTURES_PATH + "granite/albedo.png", &albedoInfo))
@@ -368,28 +364,25 @@ public:
             .setMetallicMap(rm.get<Image>(TEXTURES_PATH + "/gold/metallic.png"))
             .setNormalMap(rm.get<Image>(TEXTURES_PATH + "/gold/normal.png"))
             .build();
-		rm.add(bunnyMaterial, "bunny_material");
-        
+        rm.add(bunnyMaterial, "bunny_material");
+
         /*Entity entity = getScene().createEntity("glass cube")
             .add<TransformComponent>(glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3{ 0.1f }, glm::vec3{ 0.0f, glm::pi<float>() / 4, 0.0f })
             .add<MeshComponent>(cubeModel)
             .add<MaterialComponent>(MaterialComponent::Builder()
                 .setMaterial(glassMaterial)
-				.setTint(glm::vec4(1.0f, 0.0f, 0.0f, 1.0f))
+                .setTint(glm::vec4(1.0f, 0.0f, 0.0f, 1.0f))
                 .build());*/
 
-        /*Entity entity = getScene().createEntity("Bunny")
-            .add<TransformComponent>(glm::vec3{ 0.0f, 1.0f, 0.0f }, glm::vec3{ 2.5f, 2.5f, 2.5f }, glm::vec3{ glm::pi<float>(), 0.0f, 0.0f })
+        Entity entity = getScene().createEntity("Bunny")
+            .add<TransformComponent>(glm::vec3{ 0.0f }, glm::vec3{ 3.0f, 3.0f, 3.0f }, glm::vec3{ 0.0f, 0.0f, glm::pi<float>()})
             .add<MeshComponent>(bunny)
             .add<VolumeComponent>(VolumeComponent::Builder()
-                .setAbsorption(glm::vec4{ 1.00f, 0.33f, 0.5f, 1.0f })
-                .setScattering(glm::vec4{ 3.25f, 1.0f, 1.75f, 1.0f })
-                .setPhaseFunctionG(0.85f)
-                .build())
-            .add<MaterialComponent>(MaterialComponent::Builder()
-                .setMaterial(jadeMaterial)
-                .setTint(glm::vec4(0.0f, 0.66f, 0.42f, 1.0f))
-                .build());*/
+                .setAbsorption(glm::vec4{ 0.1f })
+                .setScattering(glm::vec4{ 0.9f })
+                .setPhaseFunctionG(0.5f)
+                .setDensityTexture(rm.get<Image>(TEXTURES_PATH + "/noise/perlin_worley.png"))
+                .build());
     }
 
     

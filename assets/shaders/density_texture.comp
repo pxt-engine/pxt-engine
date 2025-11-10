@@ -1,0 +1,136 @@
+#version 460
+
+// Local workgroup size (e.g., 8x8x8 for a 8:1 density/majorant ratio).
+layout (local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
+
+// Binding 0: Output high-resolution density texture
+layout (binding = 0, r32f) uniform image3D u_densityTexture;
+
+// Binding 1: Output low-resolution majorant grid
+layout (binding = 1, r32f) uniform image3D u_majorantGrid;
+
+
+layout(push_constant) uniform PushConstants {
+    // Controls the scale of the noise. A higher value means more cells and smaller features.
+    // This value also defines the period for tiling.
+    float noiseFrequency;
+
+    // Controls the falloff of the noise.
+    // A value of 1.0 gives a linear falloff (cones).
+    // A value of 2.0 gives a quadratic falloff (smoother).
+    // Higher values create sharper, smaller features.
+    float worleyExponent;
+} u_pushConstants;
+// Shared memory for parallel reduction to find max density within the workgroup.
+shared float s_localDensities[gl_WorkGroupSize.x * gl_WorkGroupSize.y * gl_WorkGroupSize.z];
+
+// --- Noise Functions ---
+
+// 3D hash function for generating pseudo-random point offsets [0, 1].
+vec3 hash33(vec3 p) {
+    p = vec3(dot(p, vec3(127.1, 311.7, 74.7)),
+              dot(p, vec3(269.5, 183.3, 246.1)),
+              dot(p, vec3(113.5, 271.9, 124.6)));
+    // Maps input to [0, 1] range.
+    return fract(sin(p) * 43758.5453123);
+}
+
+// Tileable 3D Worley noise (F1 distance).
+float worleyNoise(vec3 p, float frequency) {
+    // Separate the point 'p' into its integer (cell) and fractional (position within cell) parts.
+    vec3 i = floor(p);
+    vec3 f = fract(p);
+
+    // convert frequency to nearest int for modulo operations
+    // ivec3s are used later also because of floating points
+    // numbers errors with modulo operator etc.
+    int freq = int(frequency + 0.5);
+
+    // Initialize the minimum distance to a large value.
+    // We will search for the feature point closest to 'p'.
+    float minDistanceSq = 100.0;
+
+    // Iterate through a 3x3x3 cube of neighboring cells (27 cells total),
+    // including the cell 'p' is currently in.
+    for (int z = -1; z <= 1; z++) {
+        for (int y = -1; y <= 1; y++) {
+            for (int x = -1; x <= 1; x++) {
+                // Get the integer coordinate of the neighboring cell.
+                ivec3 neighborCellI = ivec3(i) + ivec3(x, y, z);
+
+                // --- TILING LOGIC ---
+                // Wrap the neighbor cell's coordinates around the noise frequency.
+                // This ensures that when we query a cell outside the [0, frequency] range,
+                // it wraps around to the other side, creating a seamless, repeating pattern.
+                ivec3 periodicI = (neighborCellI % freq);
+                vec3 periodicCell = vec3(periodicI);
+
+                // Get the position of the feature point within the periodic cell.
+                // The hash function provides a consistent, pseudo-random offset.
+                vec3 pointOffset = hash33(periodicCell);
+
+                // Calculate the squared distance from our sample point 'p' to the feature point.
+                // We work in the local coordinate space of the central cell 'i' for a slight optimization.
+                // The vector is (neighboring_point - sample_point)
+                vec3 vecToPoint = vec3(x, y, z) + pointOffset - f;
+                float distSq = dot(vecToPoint, vecToPoint);
+
+                // If this point is closer than any we've seen so far, update the minimum distance.
+                minDistanceSq = min(minDistanceSq, distSq);
+            }
+        }
+    }
+
+    // After checking all 27 cells, take the square root to get the true Euclidean distance.
+    return sqrt(minDistanceSq);
+}
+
+void main() {
+    ivec3 texelCoord = ivec3(gl_GlobalInvocationID);
+    ivec3 densityTextureSize = imageSize(u_densityTexture);
+
+    // Bounds check
+    if (any(greaterThanEqual(texelCoord, densityTextureSize))) {
+        return;
+    }
+
+    // Calculate Density
+    // Scale UVW coordinates to the noise domain [0, D]
+    vec3 uvw = vec3(texelCoord) / vec3(densityTextureSize);
+    vec3 p = uvw * u_pushConstants.noiseFrequency;
+
+    // Calculate raw Worley distance
+    float worleyDist = worleyNoise(p, u_pushConstants.noiseFrequency);
+    
+    // Invert the distance (1.0 - dist) and clamp to [0, 1]
+    float invertedWorley = clamp(1.0 - worleyDist, 0.0, 1.0);
+
+    // Apply exponent for final density shape
+    float finalDensity = pow(invertedWorley, u_pushConstants.worleyExponent);
+    
+    // Write density to the high-resolution texture
+    imageStore(u_densityTexture, texelCoord, vec4(finalDensity));
+
+    // Calculate and Store Majorant (Max Density in Workgroup)
+    uint localIndex = gl_LocalInvocationIndex;
+    s_localDensities[localIndex] = finalDensity;
+
+    // Synchronize all writes to shared memory.
+    barrier();
+
+    // Parallel reduction to find the maximum density
+    uint reductionSize = gl_WorkGroupSize.x * gl_WorkGroupSize.y * gl_WorkGroupSize.z;
+    for (uint i = reductionSize / 2; i > 0; i >>= 1) {
+        if (localIndex < i) {
+            s_localDensities[localIndex] = max(s_localDensities[localIndex], s_localDensities[localIndex + i]);
+        }
+        barrier();
+    }
+    
+    // Only the first invocation writes the majorant value.
+    if (localIndex == 0) {
+        float majorant = s_localDensities[0];
+        ivec3 majorantCoord = ivec3(gl_WorkGroupID);
+        imageStore(u_majorantGrid, majorantCoord, vec4(majorant));
+    }
+}

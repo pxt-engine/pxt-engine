@@ -231,7 +231,12 @@ namespace PXTEngine {
                     commandBuffer,
                     camera,
                     m_globalDescriptorSets[frameIndex],
-                    m_scene
+					m_scene,
+                    m_renderer.getSwapChainCurrentFrameFence(),                                   // Frame fence
+                    m_renderer.getSwapChainImageAvailableSemaphore(),                             // Wait semaphore
+                    m_renderer.getSwapChainRenderFinishedSemaphore(
+                        m_renderer.getSwapChainCurrentImageIndex()
+                    ),
                 };
 
                 GlobalUbo ubo{};
@@ -246,6 +251,9 @@ namespace PXTEngine {
 				m_masterRenderSystem->doRenderPasses(frameInfo);
 
                 m_renderer.endFrame();
+
+                // TODO: i dont like this
+				m_masterRenderSystem->postFrameUpdate(frameInfo);
             }
 
             // tracy end frame mark
@@ -291,7 +299,7 @@ int main() {
 
 	PXTEngine::Logger::init();
 
-    try {
+   // TODO: what is happening here? indentation? missing try catch?
 
         auto app = PXTEngine::initApplication();
 
@@ -299,10 +307,7 @@ int main() {
         app->run();
 
         delete app;
-    } catch (const std::exception& e) {
-		PXT_ERROR("Application crashed: {}", e.what());
-        return EXIT_FAILURE;
-    }
+    
 
     return EXIT_SUCCESS;
 }

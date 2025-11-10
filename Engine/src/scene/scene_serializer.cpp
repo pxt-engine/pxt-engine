@@ -62,6 +62,7 @@ namespace PXTEngine {
 			out << YAML::Key << "scattering" << YAML::Value << YAML::Flow << YAML::BeginSeq
 				<< c.volume.scattering.r << c.volume.scattering.g << c.volume.scattering.b << c.volume.scattering.a << YAML::EndSeq;
 			out << YAML::Key << "phaseFunctionG" << YAML::Value << c.volume.phaseFunctionG;
+			// TODO: volume textures
 			//out << YAML::Key << "densityTextureId" << YAML::Value << c.volume.densityTextureId;
 			//out << YAML::Key << "detailTextureId" << YAML::Value << c.volume.detailTextureId;
 			out << YAML::EndMap;
@@ -233,7 +234,7 @@ namespace PXTEngine {
 
 		auto environment = m_scene->getEnvironment();
 
-		environment->setAmbientLight({ 1.0, 1.0, 1.0, 0.1f });
+		environment->setAmbientLight({ 1.0, 1.0, 1.0, 0.0f });
 		environment->setSkybox(skyboxTextures);
 		// ----------------
 

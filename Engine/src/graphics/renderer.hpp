@@ -42,6 +42,15 @@ namespace PXTEngine {
          */
         VkRenderPass getSwapChainRenderPass() const { return m_swapChain->getRenderPass(); }
 
+        VkFence getSwapChainInFlightFence(uint32_t frameIndex) const { return m_swapChain->getInFlightFence(frameIndex); }
+		VkFence getSwapChainCurrentFrameFence() const { return m_swapChain->getCurrentFrameFence(); }
+		VkSemaphore getSwapChainImageAvailableSemaphore() const { return m_swapChain->getImageAvailableSemaphore(); }
+		VkSemaphore getSwapChainRenderFinishedSemaphore(uint32_t imageIndex) const {
+			return m_swapChain->getRenderFinishedSemaphore(imageIndex);
+		}
+
+		uint32_t getSwapChainCurrentImageIndex() const { return m_currentImageIndex; }
+
         /**
          * @brief Gets the aspect ratio (width/height) of the swap chain extent.
          * 

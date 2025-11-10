@@ -35,11 +35,12 @@ namespace PXTEngine {
 		vkFreeMemory(m_context.getDevice(), m_imageMemory, nullptr);
 	}
 
-	VulkanImage& VulkanImage::createImageView(const VkImageViewCreateInfo& viewInfo) {
+	VulkanImage& VulkanImage::createImageView(VkImageViewCreateInfo& viewInfo) {
 		if (m_imageView != VK_NULL_HANDLE) {
 			vkDestroyImageView(m_context.getDevice(), m_imageView, nullptr);
 		}
 
+		viewInfo.image = m_vkImage;
 		m_imageView = m_context.createImageView(viewInfo);
 
 		return *this;

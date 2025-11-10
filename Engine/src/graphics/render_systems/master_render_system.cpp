@@ -314,6 +314,19 @@ namespace PXTEngine {
 			m_offscreenRenderPass->getHandle()
 		);
 
+		m_denoiserRenderSystem = createUnique<DenoiserRenderSystem>(
+			m_context,
+			m_descriptorAllocator,
+			m_renderer.getSwapChainExtent()
+		);
+
+		m_densityTextureSystem = createUnique<DensityTextureRenderSystem>(
+			m_context,
+			m_descriptorAllocator,
+			VkExtent3D{256, 256, 256},
+			VkExtent3D{ 32, 32, 32 }
+		);
+
 		m_rayTracingRenderSystem = createUnique<RayTracingRenderSystem>(
 			m_context,
 			m_descriptorAllocator,
@@ -322,13 +335,8 @@ namespace PXTEngine {
 			m_blasRegistry,
 			m_environment,
 			*m_globalSetLayout,
-			m_sceneImage
-		);
-
-		m_denoiserRenderSystem = createUnique<DenoiserRenderSystem>(
-			m_context,
-			m_descriptorAllocator,
-			m_renderer.getSwapChainExtent()
+			m_sceneImage,
+			*m_densityTextureSystem
 		);
 	}
 
@@ -349,6 +357,7 @@ namespace PXTEngine {
 			m_pointLightSystem->reloadShaders();
 			m_shadowMapRenderSystem->reloadShaders();
 		}
+		m_densityTextureSystem->reloadShaders();
 
 		PXT_INFO("Shaders reloaded successfully.");
 	}
@@ -400,6 +409,10 @@ namespace PXTEngine {
 	void MasterRenderSystem::doRenderPasses(FrameInfo& frameInfo) {
 		// begin new frame imgui
 		m_uiRenderSystem->beginBuildingUi(frameInfo.scene);
+
+		if (m_densityTextureSystem->needsRegeneration()) {
+			m_densityTextureSystem->generate(frameInfo.commandBuffer);
+		}
 
 		// render to offscreen main render pass
 		if (m_isRaytracingEnabled) {
@@ -461,6 +474,10 @@ namespace PXTEngine {
 		m_uiRenderSystem->render(frameInfo);
 
 		m_renderer.endSwapChainRenderPass(frameInfo.commandBuffer);
+	}
+
+	void MasterRenderSystem::postFrameUpdate(FrameInfo& frameInfo) {
+		m_densityTextureSystem->postFrameUpdate(frameInfo.frameFence);
 	}
 
 	void MasterRenderSystem::createDescriptorSetsImGui() {
@@ -577,6 +594,7 @@ namespace PXTEngine {
 		if (m_isDebugEnabled) {
 			ImGui::Text("Debug Renderer is enabled");
 			m_debugRenderSystem->updateUi();
+			m_densityTextureSystem->updateUi();
 		}
 		else {
 			ImGui::Text("Debug Renderer is disabled");

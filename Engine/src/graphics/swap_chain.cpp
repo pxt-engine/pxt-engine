@@ -61,6 +61,29 @@ namespace PXTEngine {
         }
     }
 
+    VkFence SwapChain::getInFlightFence(uint32_t frameIndex) const {
+        // Assert to ensure the index is valid for MAX_FRAMES_IN_FLIGHT
+        PXT_ASSERT(frameIndex < MAX_FRAMES_IN_FLIGHT, "Fence index out of bounds");
+        return m_inFlightFences[frameIndex];
+    }
+
+    VkFence SwapChain::getCurrentFrameFence() const {
+        // This returns the fence for the frame currently being processed (m_currentFrame).
+        // This is the fence that submitCommandBuffers will signal when the GPU work is done.
+        return m_inFlightFences[m_currentFrame];
+    }
+
+    VkSemaphore SwapChain::getImageAvailableSemaphore() const {
+        // The image available semaphore is also tied to the MAX_FRAMES_IN_FLIGHT index.
+        return m_imageAvailableSemaphores[m_currentFrame];
+    }
+
+    VkSemaphore SwapChain::getRenderFinishedSemaphore(uint32_t imageIndex) const {
+        // The render finished semaphore is tied to the specific image index acquired.
+        PXT_ASSERT(imageIndex < m_swapChainImages.size(), "Semaphore index out of bounds");
+        return m_renderFinishedSemaphores[imageIndex];
+    }
+
     VkResult SwapChain::acquireNextImage(uint32_t *imageIndex) {
         vkWaitForFences(m_context.getDevice(), 1, &m_inFlightFences[m_currentFrame], VK_TRUE,
                         std::numeric_limits<uint64_t>::max());

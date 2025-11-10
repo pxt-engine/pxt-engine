@@ -175,11 +175,16 @@ namespace PXTEngine
 		if (!fileStream.is_open())
 			PXT_FATAL("Could not open file.");
 
-		const size_t size = fileStream.tellg();
+		std::streamsize size = fileStream.tellg();
+		if (size <= 0)
+			throw std::runtime_error("Failed to determine file size: " + std::string(fileName));
+
 		fileStream.seekg(0, std::ios::beg);
+
 		std::vector<char> data(size);
-		fileStream.read(data.data(), size);
-		fileStream.close();
+		if (!fileStream.read(data.data(), size))
+			throw std::runtime_error("Failed to read file: " + std::string(fileName));
+
 		return data;
 	}
 

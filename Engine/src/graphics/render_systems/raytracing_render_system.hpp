@@ -9,6 +9,7 @@
 #include "graphics/resources/material_registry.hpp"
 #include "graphics/resources/vk_skybox.hpp"
 #include "graphics/render_systems/raytracing_scene_manager_system.hpp"
+#include "graphics/render_systems/density_texture_system.hpp"
 #include "graphics/renderer.hpp"
 #include "scene/scene.hpp"
 #include "scene/environment.hpp"
@@ -17,7 +18,7 @@ namespace PXTEngine {
 
     class RayTracingRenderSystem {
     public:
-        RayTracingRenderSystem(Context& context, Shared<DescriptorAllocatorGrowable> descriptorAllocator, TextureRegistry& textureRegistry, MaterialRegistry& materialRegistry, BLASRegistry& blasRegistry, Shared<Environment> environment, DescriptorSetLayout& globalSetLayout, Shared<VulkanImage> sceneImage);
+        RayTracingRenderSystem(Context& context, Shared<DescriptorAllocatorGrowable> descriptorAllocator, TextureRegistry& textureRegistry, MaterialRegistry& materialRegistry, BLASRegistry& blasRegistry, Shared<Environment> environment, DescriptorSetLayout& globalSetLayout, Shared<VulkanImage> sceneImage, DensityTextureRenderSystem& densityTextureSystem);
         ~RayTracingRenderSystem();
 
         RayTracingRenderSystem(const RayTracingRenderSystem&) = delete;
@@ -51,6 +52,7 @@ namespace PXTEngine {
         Shared<DescriptorAllocatorGrowable> m_descriptorAllocator = nullptr;
         
         RayTracingSceneManagerSystem m_rtSceneManager{m_context, m_materialRegistry, m_blasRegistry, m_textureRegistry, m_descriptorAllocator};
+		DensityTextureRenderSystem& m_densityTextureSystem;
 
         Unique<Pipeline> m_pipeline;
         VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;

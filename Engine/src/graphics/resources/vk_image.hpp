@@ -126,7 +126,7 @@ namespace PXTEngine {
 		const VkImageLayout getCurrentLayout() const { return m_currentLayout; }
 		void setImageLayout(const VkImageLayout newLayout) { m_currentLayout = newLayout; }
 
-		VulkanImage& createImageView(const VkImageViewCreateInfo& viewInfo);
+		VulkanImage& createImageView(VkImageViewCreateInfo& viewInfo);
 		VulkanImage& createSampler(const VkSamplerCreateInfo& samplerInfo);
 
 		/**

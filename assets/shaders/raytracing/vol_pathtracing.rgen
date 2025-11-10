@@ -196,6 +196,30 @@ void directLighting(vec3 worldPosition) {
     p_pathTrace.radiance += contribution * p_pathTrace.throughput * weight;
 }
 
+/**
+ * Converts a world-space position to a 3D texture coordinate (UVW) for a given volume.
+ * Assumes the volume's local geometry is a unit cube from -0.5 to +0.5 on all axes.
+ *
+ * @param worldPosition The point in world space to transform.
+ * @param volumeIndex   The index of the volume we are currently inside.
+ * @return              The 3D texture coordinate in the range [0, 1].
+ */
+vec3 getWorldToVolumeUVW(vec3 worldPosition, uint volumeInstance) {
+    // Fetch the volume's world-to-object transformation matrix
+    MeshInstanceDescription instance = meshInstances.i[volumeInstance];
+    mat4 worldToObject = instance.worldToObject;
+
+    // 1. Transform the world position into the volume's local (object) space.
+    // We use a vec4 with w=1.0 for a point transformation.
+    vec4 localPosition = worldToObject * vec4(worldPosition, 1.0);
+
+    // 2. Convert local position (from [-0.5, 0.5]) to UVW texture coords (from [0, 1]).
+    // This is a simple shift.
+    vec3 uvw = localPosition.xyz + 0.5;
+
+    // Optional: Clamp to ensure we don't sample outside the texture due to floating point error.
+    return uvw;
+}
 
 void main()
 {
@@ -278,10 +302,12 @@ void main()
                 // Sample the current medium
                 Volume currentVolume = volumes.volumes[p_pathTrace.mediumIndex];
 
+                // Assume homogeneous
+                float density = 1.0; // Homogeneous medium density
                 vec3 sigma_a = currentVolume.absorption.rgb;
                 vec3 sigma_s = currentVolume.scattering.rgb;
                 vec3 sigma_t = sigma_a + sigma_s;
-                float sigma_t_maj = maxComponent(sigma_t);
+                float sigma_t_maj = maxComponent(sigma_t) * globalMajorant;
 
                 float phaseFunctionG = currentVolume.phaseFunctionG;
 
@@ -299,22 +325,27 @@ void main()
 
                     // Advance ray to the interaction point (origin + direction * t_medium)
                     p_pathTrace.origin += p_pathTrace.direction * t_medium;
+                    
+                    // TODO: check if each volume has a texture, if not -> leave it homosexual
+                    //if (currentVolume.densityTextureId != UINT_MAX) {
+                        density = texture(densityTexture3D, p_pathTrace.origin).r;
 
-                    // Assuming homogeneous for now - if heterogeneous:
-                    // - we have to obtain the current sigma_t of the medium at pointX 
-                    // - we then check if maxComponent(current_sigma_t(pointX)) / sigma_t_maj(pointX)
-                    vec3 current_sigma_t = sigma_t;
+                        sigma_a *= density;
+                        sigma_s *= density;
+                        sigma_t = sigma_a + sigma_s;
+                        sigma_t_maj = texture(majorantTexture3D, p_pathTrace.origin).r;
+                    //}
 
                     // Use Woodcock tracking (null-scattering) to decide if it's a real event.
                     // For heterogeneous media, you'd sample density at the new origin.
-                    if (maxComponent(current_sigma_t) / sigma_t_maj > randomFloat(p_pathTrace.seed)) {
+                    if (maxComponent(sigma_t) / sigma_t_maj > randomFloat(p_pathTrace.seed)) {
                         // It's a "real" scattering event.
 
                         // Single Scattering Albedo. It is a common way to do Delta Tracking when
                         // emissive volumes are not present. Directly simulates the amount of light
                         // scattered by the medium at the point of interaction.
                         // https://graphics.pixar.com/library/ProductionVolumeRendering/paper.pdf (Section 2.1.1)
-                        vec3 scatteringAlbedo = sigma_s / current_sigma_t;
+                        vec3 scatteringAlbedo = sigma_s / sigma_t;
 
                         // Sample new direction using phase function
                         vec3 newDirection = sampleHenyeyGreenstein(p_pathTrace.direction, phaseFunctionG, p_pathTrace.seed);
@@ -326,7 +357,7 @@ void main()
                         p_pathTrace.pdf = evalHenyeyGreenstein(cosTheta, phaseFunctionG); 
 
                         // NEE for volumes
-                        directLighting(p_pathTrace.origin);
+                        //directLighting(p_pathTrace.origin);
                         
                         // TODO: separate scattering and absorption -> easier emissive volumes integration
                         p_pathTrace.throughput *= scatteringAlbedo;

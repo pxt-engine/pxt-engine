@@ -1,0 +1,67 @@
+#version 460 core
+
+#extension GL_EXT_debug_printf : enable
+
+// Local workgroup size
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
+
+// Input 3D grid
+layout(set = 0, binding = 1, r32f) uniform readonly image3D u_majorantGrid;
+
+// Buffer to store the final maximum value.
+// Use an SSBO instead of an image for direct float atomic support.
+layout(set = 0, binding = 2, std430) buffer GlobalMajorantSSBO {
+    uint globalMajorantFloatBits;
+};
+
+#define WORKGROUP_SIZE (gl_WorkGroupSize.x * gl_WorkGroupSize.y * gl_WorkGroupSize.z)
+
+// Shared memory for the reduction within the workgroup
+shared float s_workgroupMax[WORKGROUP_SIZE];
+
+// reinterpret float bits as uint
+uint floatToUint(float f) {
+    return floatBitsToUint(f);
+}
+
+float uintToFloat(uint u) {
+    return uintBitsToFloat(u);
+}
+
+void main() {
+    ivec3 global_id = ivec3(gl_GlobalInvocationID);
+    ivec3 grid_size = imageSize(u_majorantGrid);
+    uint local_idx  = gl_LocalInvocationIndex;
+
+    // Load data into shared memory
+    // Load 0.0 for threads that are outside the image bounds.
+    float value = 0.0;
+    if (all(lessThan(global_id, grid_size))) {
+        value = imageLoad(u_majorantGrid, global_id).r;
+    }
+    s_workgroupMax[local_idx] = value;
+
+    // Synchronize to ensure all data is loaded before reduction
+    barrier();
+
+    // Perform parallel reduction in shared memory
+    // Each pass halves the number of values to check.
+    for (uint offset = WORKGROUP_SIZE / 2; offset > 0; offset >>= 1) {
+        if (local_idx < offset) {
+            s_workgroupMax[local_idx] = max(s_workgroupMax[local_idx], s_workgroupMax[local_idx + offset]);
+        }
+        // Synchronize after each reduction step
+        barrier();
+    }
+
+    // Atomically update the global maximum
+    // Only the first thread of each workgroup writes its result.
+    if (local_idx == 0) {
+        float local_max = s_workgroupMax[0];
+
+        // here we do the atomic max on integers and then convert them
+        // to float on the host
+        uint valueBits = floatToUint(value);
+        atomicMax(globalMajorantFloatBits, valueBits);
+    }
+}

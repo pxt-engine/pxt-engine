@@ -1,0 +1,56 @@
+scene: nuv
+entities:
+  - entity: 0199af89-f6f2-7397-8112-4e63c81615ef
+    NameComponent: Bunny
+    TransformComponent:
+      translation: [0, 0, 0]
+      scale: [1, 1, 1]
+      rotation: [0, 0, 0]
+    VolumeComponent:
+      absorption: [0.1, 0.1, 0.1, 0.1]
+      scattering: [0.9, 0.9, 0.9, 0.9]
+      phaseFunctionG: 0.5
+    MeshComponent:
+      meshId: 0199af89-f5dd-7c25-808e-5602640552e2
+      mesh: ../assets/models/cube_hd.obj
+  - entity: 0199af89-f64c-71bb-8152-b481fcfb9c4f
+    NameComponent: Emissive sphere
+    TransformComponent:
+      translation: [-1.01, -1.14, -2.08]
+      scale: [0.5, 0.5, 0.5]
+      rotation: [0, 0, 0]
+    MaterialComponent:
+      materialId: 0199af89-f64c-7335-808c-7e20632e6385
+      material: emissive_mat
+      albedoColor: [1, 1, 1, 1]
+      albedoMap: pixel_0xFFFFFFFF_RGBA8_SRGB
+      metallic: 1
+      metallicMap: "null"
+      roughness: 1
+      roughnessMap: "null"
+      normalMap: pixel_0xFFFF8080_RGBA8_LINEAR
+      ambientOcclusionMap: pixel_0xFFFFFFFF_RGBA8_LINEAR
+      emissiveColor: [1, 1, 1, 19.972]
+      emissiveMap: ../assets/textures/white_pixel.png
+      transmission: 0
+      indexOfRefraction: 1.3
+      blinnPhongSpecularIntensity: 0
+      blinnPhongSpecularShininess: 1
+      tilingFactor: 1
+      tint: [1, 1, 1]
+    MeshComponent:
+      meshId: 0199af89-f5ce-7b10-81a4-1ebaa7a0a60d
+      mesh: ../assets/models/sphere.obj
+  - entity: 0199af89-f51f-7a22-8349-26041bd12eb6
+    NameComponent: camera
+    TransformComponent:
+      translation: [1.6252607, 0, -3.1355205]
+      scale: [0, 0, 0]
+      rotation: [-0.017500002, 5.6856794, 0]
+    CameraComponent:
+      isMainCamera: true
+      isPerspective: true
+      nearPlane: 0.1
+      farPlane: 100
+      fovYDegrees: 50
+      orthoParams: [-1, 1, -1, 1]

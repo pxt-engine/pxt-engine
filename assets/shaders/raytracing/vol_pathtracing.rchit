@@ -159,9 +159,9 @@ void main() {
         // Add the light's emission to the total radiance if:
         // 1. It's the first hit (the camera sees the light directly).
         // 2. The ray that hit the light came from a reflection / refarction bounce.
-        if (p_pathTrace.depth == 0) {
+        //if (p_pathTrace.depth == 0) {
             p_pathTrace.radiance += emission * p_pathTrace.throughput;
-        } 
+        /*} 
         // we use the previous bounce BSDF pdf to do MIS
         else if (hasFlag(p_pathTrace, FLAG_SPECULAR)) {
             vec3 prevBouncePos = p_pathTrace.origin - p_pathTrace.direction * p_pathTrace.hitDistance;
@@ -177,7 +177,7 @@ void main() {
             }
 
             p_pathTrace.radiance += emission * p_pathTrace.throughput * misWeight;
-        }
+        }*/
         
         // The path ends at the light source.
         setFlag(p_pathTrace, FLAG_DONE);
@@ -195,7 +195,7 @@ void main() {
     // Calculate the probabilities for the surface properties for the bsdf
     calculateProbabilities(surface, outgoingLightDirection);
 
-    directLighting(surface, worldPosition, outgoingLightDirection);
+    //directLighting(surface, worldPosition, outgoingLightDirection);
 
     indirectLighting(surface, outgoingLightDirection, incomingLightDirection);    
 
