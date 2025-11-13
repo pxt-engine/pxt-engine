@@ -1,7 +1,9 @@
 #pragma once
 
 #include "core/pch.hpp"
+#include "core/layer/layer.hpp"
 #include "graphics/swap_chain.hpp"
+#include "graphics/renderer.hpp"
 #include "graphics/context/context.hpp"
 #include "graphics/frame_info.hpp"
 #include "graphics/descriptors/descriptors.hpp"
@@ -15,16 +17,16 @@ namespace PXTEngine {
 		std::function<void(Entity)> drawer;
 	};
 
-	class UiRenderSystem {
+	class UiRenderLayer : public Layer {
 	public:
-		UiRenderSystem(Context& context, VkRenderPass renderPass);
-		~UiRenderSystem();
+		UiRenderLayer(Context& context, VkRenderPass renderPass);
+		~UiRenderLayer();
 
-		UiRenderSystem(const UiRenderSystem&) = delete;
-		UiRenderSystem& operator=(const UiRenderSystem&) = delete;
+		UiRenderLayer(const UiRenderLayer&) = delete;
+		UiRenderLayer& operator=(const UiRenderLayer&) = delete;
 
-		void beginBuildingUi(Scene& scene);
-		void render(FrameInfo& frameInfo);
+		void beginFrame(Scene& scene, Renderer& renderer, FrameInfo& frameInfo);
+		void render(FrameInfo& frameInfo, Renderer& renderer);
 
 	private:
 		void initImGui(VkRenderPass& renderPass);

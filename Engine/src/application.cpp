@@ -7,7 +7,6 @@
 #include "scene/ecs/component.hpp"
 #include "scene/ecs/entity.hpp"
 #include "scene/camera.hpp"
-#include "graphics/render_systems/master_render_system.hpp"
 #include "graphics/resources/texture2d.hpp"
 
 #include "tracy/Tracy.hpp"
@@ -54,8 +53,8 @@ namespace PXTEngine {
             skybox->createDescriptorSet(m_descriptorAllocator);
         }
 
-		// create the render systems
-        m_masterRenderSystem = createUnique<MasterRenderSystem>(
+		// create the render layer
+        auto renderLayer = createUnique<RenderLayer>(
             m_context,
             m_renderer,
             m_descriptorAllocator,
@@ -65,6 +64,16 @@ namespace PXTEngine {
             m_globalSetLayout,
             m_scene.getEnvironment()
         );
+
+		// we store a non-owning pointer to the render layer for
+        // later operations in the main loop
+		m_renderLayerPtr = pushLayer<RenderLayer>(std::move(renderLayer));
+
+        // same here for imGui
+		m_uiRenderLayerPtr = pushOverlay<UiRenderLayer>(
+			m_context,
+			m_renderer.getSwapChainRenderPass()
+		);
 
         m_window.setEventCallback([this]<typename E>(E&& event) {
             onEvent(std::forward<E>(event));
@@ -243,17 +252,22 @@ namespace PXTEngine {
                 ubo.ambientLightColor = m_scene.getEnvironment()->getAmbientLight();
                 ubo.frameCount = frameCount++;
 
-				m_masterRenderSystem->onUpdate(frameInfo, ubo);
+                m_layerStack.onUpdate(frameInfo, ubo);
 
+                // write updated globalUbo
 				m_uboBuffers[frameIndex]->writeToBuffer(&ubo);
 				m_uboBuffers[frameIndex]->flush();
 
-				m_masterRenderSystem->doRenderPasses(frameInfo);
+				m_renderLayerPtr->doRenderPasses(frameInfo);
+
+                // IMGUI RENDER
+				m_uiRenderLayerPtr->beginFrame(m_scene, m_renderer, frameInfo);
+				m_layerStack.onUpdateUi(frameInfo);
+				m_uiRenderLayerPtr->render(frameInfo, m_renderer);
 
                 m_renderer.endFrame();
 
-                // TODO: i dont like this
-				m_masterRenderSystem->postFrameUpdate(frameInfo);
+                m_layerStack.onPostFrameUpdate(frameInfo);
             }
 
             // tracy end frame mark
@@ -273,6 +287,9 @@ namespace PXTEngine {
         dispatcher.dispatch<WindowCloseEvent>([this](auto& event) {
             m_running = false;
         });
+        // TODO: add window resize event and then refactor resizing code in Renderer and RenderLayer
+
+        m_layerStack.onEvent(event);
     }
 
     void Application::updateCamera(Camera& camera)
