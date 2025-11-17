@@ -86,9 +86,12 @@ namespace PXTEngine {
 
         int m_noiseFrequency = 3;
         float m_worleyExponent = 2.0f;
+        glm::vec4 m_fbmWeights = { 0.625f, 0.25f, 0.125f, 0.0f };
+
 		int m_densitySliceIndex = 0; // For viewing a specific slice in the UI
         bool m_needsRegeneration = true;
 		bool m_hasRigeneratedThisFrame = false;
+		
 
         const std::string m_generationShaderPath = "density_texture.comp";
 		const std::string m_globalMajorantShaderPath = "global_majorant.comp";

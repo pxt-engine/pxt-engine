@@ -2,12 +2,14 @@
 
 #include "core/pch.hpp"
 #include "core/events/event.hpp"
+#include "core/layer/layer_stack.hpp"
 #include "graphics/window.hpp"
 #include "graphics/context/context.hpp"
 #include "graphics/renderer.hpp"
 #include "graphics/descriptors/descriptors.hpp"
 #include "graphics/frame_info.hpp"
-#include "graphics/render_systems/master_render_system.hpp"
+#include "graphics/render_systems/render_layer.hpp"
+#include "graphics/render_systems/ui_render_layer.hpp"
 #include "graphics/resources/texture_registry.hpp"
 #include "graphics/resources/material_registry.hpp"
 #include "graphics/resources/blas_registry.hpp"
@@ -48,6 +50,43 @@ namespace PXTEngine {
 
     protected:
         virtual void loadScene() {}
+
+        // create the layer on the spot and push it
+		template<typename TLayer, typename ... Args>
+        requires(std::is_base_of_v<Layer, TLayer>)
+        TLayer* pushLayer(Args&& ... args) {
+            return m_layerStack.pushLayer(std::move(createUnique<TLayer>(std::forward<Args>(args)...)));
+        }
+
+        // push an already created layer
+        template<typename TLayer>
+        requires(std::is_base_of_v<Layer, TLayer>)
+        TLayer* pushLayer(Unique<TLayer> layer) {
+            return m_layerStack.pushLayer(std::move(layer));
+        }
+
+        // create the overlay on the spot and push it
+        template<typename TLayer, typename ... Args>
+        requires(std::is_base_of_v<Layer, TLayer>)
+        TLayer* pushOverlay(Args&& ... args) {
+            return m_layerStack.pushOverlay(std::move(createUnique<TLayer>(std::forward<Args>(args)...)));
+        }
+
+        // push an already created overlay
+        template<typename TLayer>
+        requires(std::is_base_of_v<Layer, TLayer>)
+        TLayer* pushOverlay(Unique<TLayer> overlay) {
+            return m_layerStack.pushOverlay(std::move(overlay));
+        }
+
+        void popLayer(Layer& layer) {
+            m_layerStack.popLayer(layer);
+        }
+
+        void popOverlay(Layer& overlay) {
+            m_layerStack.popOverlay(overlay);
+        }
+
     private:
 		void createDescriptorPoolAllocator();
 		void createUboBuffers();
@@ -67,7 +106,10 @@ namespace PXTEngine {
         Context m_context{m_window};
 
         Renderer m_renderer{m_window, m_context};
-        Unique<MasterRenderSystem> m_masterRenderSystem;
+
+        LayerStack m_layerStack{};
+        RenderLayer* m_renderLayerPtr = nullptr;
+        UiRenderLayer* m_uiRenderLayerPtr = nullptr;
 
 		Shared<DescriptorAllocatorGrowable> m_descriptorAllocator{};
 		Shared<DescriptorSetLayout> m_globalSetLayout{};

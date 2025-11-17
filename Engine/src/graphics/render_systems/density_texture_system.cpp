@@ -3,7 +3,8 @@
 namespace PXTEngine {
 
     // Push constants to control noise generation in the shader
-    struct DensityPushConstants {
+    struct alignas(16) DensityPushConstants {
+        glm::vec4 fbmWeights;
         float noiseFrequency;
         float worleyExponent;
     };
@@ -300,6 +301,8 @@ namespace PXTEngine {
         DensityPushConstants pushConstants{};
         pushConstants.noiseFrequency = static_cast<float>(m_noiseFrequency); // Higher value = more detail
         pushConstants.worleyExponent = m_worleyExponent;   // How much the cell-like structure influences the shape
+		// FBM weights for 4 octaves
+        pushConstants.fbmWeights = m_fbmWeights; // weights sum to 1.0
 
         vkCmdPushConstants(
             commandBuffer,
@@ -412,9 +415,18 @@ namespace PXTEngine {
                 m_needsRegeneration = true;
             }
 
-            if (ImGui::DragFloat("Worley Weight", &m_worleyExponent, 0.05f, 0.0f, 5.0f)) {
+            if (ImGui::DragFloat("Worley Weight", &m_worleyExponent, 0.05f, 0.0f, 10.0f)) {
 				m_needsRegeneration = true;
             }
+
+            if (ImGui::DragFloat4("FBM Weights", glm::value_ptr(m_fbmWeights), 0.01f, 0.0f, 1.0f)) {
+                // Normalize weights to sum to 1.0
+                float sum = m_fbmWeights.x + m_fbmWeights.y + m_fbmWeights.z + m_fbmWeights.w;
+                if (sum > 0.0f) {
+                    m_fbmWeights /= sum;
+                }
+                m_needsRegeneration = true;
+			}
 
             if (ImGui::SliderInt("Density Texture Depth Slice", &m_densitySliceIndex, 0, m_densityTextureExtent.depth - 1)) {
                 updateSliceImageViews();

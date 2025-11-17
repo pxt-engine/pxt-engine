@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/pch.hpp"
+#include "core/layer/layer.hpp"
 #include "graphics/context/context.hpp"
 #include "graphics/renderer.hpp"
 #include "graphics/descriptors/descriptors.hpp"
@@ -12,7 +13,6 @@
 #include "graphics/render_systems/material_render_system.hpp"
 #include "graphics/render_systems/shadow_map_render_system.hpp"
 #include "graphics/render_systems/point_light_system.hpp"
-#include "graphics/render_systems/ui_render_system.hpp"
 #include "graphics/render_systems/debug_render_system.hpp"
 #include "graphics/render_systems/skybox_render_system.hpp"
 #include "graphics/render_systems/raytracing_render_system.hpp"
@@ -26,9 +26,9 @@
 
 namespace PXTEngine {
 
-	class MasterRenderSystem {
+	class RenderLayer : public Layer {
 	public:
-		MasterRenderSystem(Context& context, Renderer& renderer, 
+		RenderLayer(Context& context, Renderer& renderer, 
 						   Shared<DescriptorAllocatorGrowable> descriptorAllocator,
 						   TextureRegistry& textureRegistry,
 						   MaterialRegistry& materialRegistry,
@@ -36,16 +36,18 @@ namespace PXTEngine {
 						   Shared<DescriptorSetLayout> globalSetLayout,
 						   Shared<Environment> environment);
 
-		~MasterRenderSystem();
+		~RenderLayer();
 
-		MasterRenderSystem(const MasterRenderSystem&) = delete;
-		MasterRenderSystem& operator=(const MasterRenderSystem&) = delete;
-		MasterRenderSystem(MasterRenderSystem&&) = delete;
-		MasterRenderSystem& operator=(MasterRenderSystem&&) = delete;
+		RenderLayer(const RenderLayer&) = delete;
+		RenderLayer& operator=(const RenderLayer&) = delete;
+		RenderLayer(RenderLayer&&) = delete;
+		RenderLayer& operator=(RenderLayer&&) = delete;
 
-		void onUpdate(FrameInfo& frameInfo, GlobalUbo& ubo);
+		void onUpdate(FrameInfo& frameInfo, GlobalUbo& ubo) override;
+		void onUpdateUi(FrameInfo& frameInfo) override;
+		void onPostFrameUpdate(FrameInfo& frameInfo) override;
+
 		void doRenderPasses(FrameInfo& frameInfo);
-		void postFrameUpdate(FrameInfo& frameInfo);
 
 	private:
 		void recreateViewportResources();
@@ -62,7 +64,6 @@ namespace PXTEngine {
 
 		ImVec2 getImageSizeWithAspectRatioForImGuiWindow(ImVec2 windowSize, float aspectRatio);
 		void updateSceneUi();
-		void updateUi();
 
 		Context& m_context;
 		Renderer& m_renderer;
@@ -81,7 +82,6 @@ namespace PXTEngine {
 		Unique<MaterialRenderSystem> m_materialRenderSystem = nullptr;
 		Unique<PointLightSystem> m_pointLightSystem = nullptr;
 		Unique<ShadowMapRenderSystem> m_shadowMapRenderSystem = nullptr;
-		Unique<UiRenderSystem> m_uiRenderSystem = nullptr;
 		Unique<DebugRenderSystem> m_debugRenderSystem = nullptr;
 		Unique<SkyboxRenderSystem> m_skyboxRenderSystem = nullptr;
 		Unique<RayTracingRenderSystem> m_rayTracingRenderSystem = nullptr;
