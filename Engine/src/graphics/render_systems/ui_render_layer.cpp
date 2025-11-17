@@ -1,22 +1,26 @@
-#include "graphics/render_systems/ui_render_system.hpp"
+#include "graphics/render_systems/ui_render_layer.hpp"
 #include "scene/scene_serializer.hpp"
 #include "application.hpp"
 
 namespace PXTEngine {
 
-	UiRenderSystem::UiRenderSystem(Context& context, VkRenderPass renderPass) : m_context(context) {
+	UiRenderLayer::UiRenderLayer(Context& context, VkRenderPass renderPass) 
+		: Layer("UiRenderLayer"),
+		
+		m_context(context)
+	{
 		initImGui(renderPass);
 
 		registerComponents();
 	}
 
-	UiRenderSystem::~UiRenderSystem() {
+	UiRenderLayer::~UiRenderLayer() {
 		ImGui_ImplVulkan_Shutdown();
 		ImGui_ImplGlfw_Shutdown();
 		ImGui::DestroyContext();
 	}
 
-	void UiRenderSystem::initImGui(VkRenderPass& renderPass) {
+	void UiRenderLayer::initImGui(VkRenderPass& renderPass) {
 		// we need one set per imgui rendered texture NOT PER FRAME!!! (fonts included)
 		// ImGui will use the same descriptor set for all textures.
 		// ImGui will use this pool for fonts and its stuff, textures will be allocated from the descriptor allocator growable
@@ -75,7 +79,7 @@ namespace PXTEngine {
 		ImGui_ImplVulkan_CreateFontsTexture();
 	}
 
-	VkDescriptorSet UiRenderSystem::addImGuiTexture(VkSampler sampler, VkImageView imageView, VkImageLayout layout) {
+	VkDescriptorSet UiRenderLayer::addImGuiTexture(VkSampler sampler, VkImageView imageView, VkImageLayout layout) {
 		VkDescriptorSet descriptorSet;
 		
 		Unique<DescriptorSetLayout> imguiLayout = DescriptorSetLayout::Builder(m_context)
@@ -96,7 +100,7 @@ namespace PXTEngine {
 		return descriptorSet;
 	}
 
-	void UiRenderSystem::drawSceneEntityList(Scene& scene)
+	void UiRenderLayer::drawSceneEntityList(Scene& scene)
 	{
 		ImGui::Begin("Scene Entities");
 
@@ -120,7 +124,7 @@ namespace PXTEngine {
 		ImGui::End();
 	}
 
-	void UiRenderSystem::drawEntityInspector(Scene& scene) {
+	void UiRenderLayer::drawEntityInspector(Scene& scene) {
 		ImGui::Begin("Entity Inspector");
 		if (m_isAnEntitySelected) {
 			Entity entity = scene.getEntity(m_selectedEntityID);
@@ -139,14 +143,19 @@ namespace PXTEngine {
 		ImGui::End();
 	}
 
-	void UiRenderSystem::render(FrameInfo& frameInfo) {
+	void UiRenderLayer::render(FrameInfo& frameInfo, Renderer& renderer) {
+		// TODO: move the ui functions of "buildUi" into "onUpdateUi" of other layers
 		buildUi(frameInfo.scene);
 
 		ImGui::Render();
 		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), frameInfo.commandBuffer);
+
+		renderer.endSwapChainRenderPass(frameInfo.commandBuffer);
 	}
 
-	void UiRenderSystem::beginBuildingUi(Scene& scene) {
+	void UiRenderLayer::beginFrame(Scene& scene, Renderer& renderer, FrameInfo& frameInfo) {
+		renderer.beginSwapChainRenderPass(frameInfo.commandBuffer);
+
 		ImGui_ImplVulkan_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
@@ -179,7 +188,7 @@ namespace PXTEngine {
 		ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport(), ImGuiDockNodeFlags_PassthruCentralNode);
 	}
 
-	void UiRenderSystem::saveSceneUi(Scene& scene) {
+	void UiRenderLayer::saveSceneUi(Scene& scene) {
 		// Always center this window when appearing
 		ImVec2 center = ImGui::GetMainViewport()->GetCenter();
 		ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
@@ -212,7 +221,7 @@ namespace PXTEngine {
 		}
 	}
 
-	void UiRenderSystem::buildUi(Scene& scene) {
+	void UiRenderLayer::buildUi(Scene& scene) {
 		drawSceneEntityList(scene);
 		drawEntityInspector(scene);
 
@@ -221,7 +230,7 @@ namespace PXTEngine {
 		ImGui::ShowMetricsWindow();
 	}
 
-	void UiRenderSystem::registerComponents() {
+	void UiRenderLayer::registerComponents() {
 		// IDComponent
 		RegisterComponent<IDComponent>("IDComponent", [](auto& c) {
 			ImGui::Text("UUID: %s", c.uuid.toString().c_str());

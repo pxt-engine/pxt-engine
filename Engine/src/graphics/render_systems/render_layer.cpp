@@ -1,21 +1,24 @@
-#include "graphics/render_systems/master_render_system.hpp"
+#include "graphics/render_systems/render_layer.hpp"
 
 #include "utils/vk_enum_str.h"
 
 namespace PXTEngine {
-	MasterRenderSystem::MasterRenderSystem(Context& context, Renderer& renderer, 
+	RenderLayer::RenderLayer(Context& context, Renderer& renderer, 
 			Shared<DescriptorAllocatorGrowable> descriptorAllocator, 
 			TextureRegistry& textureRegistry, MaterialRegistry& materialRegistry, 
 			BLASRegistry& blasRegistry,
 			Shared<DescriptorSetLayout> globalSetLayout,
 			Shared<Environment> environment)
-		:	m_context(context), 
+		
+		:	Layer("RenderLayer"),
+
+			m_context(context), 
 			m_renderer(renderer),
 			m_descriptorAllocator(std::move(descriptorAllocator)),
 			m_textureRegistry(textureRegistry),
 		    m_materialRegistry(materialRegistry),
 			m_blasRegistry(blasRegistry),
-			m_globalSetLayout(std::move(globalSetLayout)),
+			m_globalSetLayout(std::move(globalSetLayout)), // TODO: check ownership on this shared pointer (intended behavior here?)
 			m_environment(std::move(environment))
 	{
 		m_offscreenColorFormat = m_context.findSupportedFormat(
@@ -29,7 +32,7 @@ namespace PXTEngine {
 		PXT_INFO("Offscreen color format: {}", STR_VK_FORMAT(m_offscreenColorFormat));
 
 		if (m_offscreenColorFormat == VK_FORMAT_UNDEFINED) {
-			throw std::runtime_error("Failed to find a suitable offscreen color format for MasterRenderSystem's render target!");
+			throw std::runtime_error("Failed to find a suitable offscreen color format for RenderLayer's render target!");
 		}
 
 		// to handle viewport resizing
@@ -45,9 +48,9 @@ namespace PXTEngine {
 		createDescriptorSetsImGui();
 	}
 
-	MasterRenderSystem::~MasterRenderSystem() {};
+	RenderLayer::~RenderLayer() {};
 
-	void MasterRenderSystem::recreateViewportResources() {
+	void RenderLayer::recreateViewportResources() {
 		// wait for the device to be idle
 		vkDeviceWaitIdle(m_context.getDevice());
 
@@ -62,7 +65,7 @@ namespace PXTEngine {
 		updateImguiDescriptorSet();
 	}
 
-	void MasterRenderSystem::createRenderPass() {
+	void RenderLayer::createRenderPass() {
 		VkAttachmentDescription depthAttachment{};
 		depthAttachment.format = m_context.findDepthFormat();
 		depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -132,11 +135,11 @@ namespace PXTEngine {
 			renderPassInfo,
 			colorAttachment,
 			depthAttachment,
-			"MasterRenderSystem Offscreen Render Pass"
+			"RenderLayer Offscreen Render Pass"
 		);
 	}
 
-	void MasterRenderSystem::createSceneImage() {
+	void RenderLayer::createSceneImage() {
 		VkExtent2D swapChainExtent = m_renderer.getSwapChainExtent();
 
 		VkImageCreateInfo sceneImageInfo{};
@@ -209,7 +212,7 @@ namespace PXTEngine {
 		m_sceneImage->createSampler(samplerInfo);
 	}
 
-	void MasterRenderSystem::createOffscreenDepthResources() {
+	void RenderLayer::createOffscreenDepthResources() {
 		// DEPTH RESOURCE
 		VkFormat depthFormat = m_context.findDepthFormat();
 		VkExtent2D swapChainExtent = m_renderer.getSwapChainExtent();
@@ -249,7 +252,7 @@ namespace PXTEngine {
 		m_offscreenDepthImage->createImageView(viewInfo);
 	}
 
-	void MasterRenderSystem::createOffscreenFrameBuffer() {
+	void RenderLayer::createOffscreenFrameBuffer() {
 		// Create the offscreen framebuffer
 		std::array<VkImageView, 2> attachments = { m_sceneImage->getImageView(), m_offscreenDepthImage->getImageView() };
 		VkExtent2D swapChainExtent = m_renderer.getSwapChainExtent();
@@ -266,13 +269,13 @@ namespace PXTEngine {
 		m_offscreenFb = createUnique<FrameBuffer>(
 			m_context,
 			framebufferInfo,
-			"MasterRenderSystem Offscreen Framebuffer",
+			"RenderLayer Offscreen Framebuffer",
 			m_sceneImage,
 			m_offscreenDepthImage
 		);
 	}
 
-	void MasterRenderSystem::createRenderSystems() {
+	void RenderLayer::createRenderSystems() {
 		m_pointLightSystem = createUnique<PointLightSystem>(
 			m_context,
 			m_offscreenRenderPass->getHandle(),
@@ -300,11 +303,6 @@ namespace PXTEngine {
 			m_textureRegistry,
 			m_offscreenRenderPass->getHandle(),
 			*m_globalSetLayout
-		);
-
-		m_uiRenderSystem = createUnique<UiRenderSystem>(
-			m_context,
-			m_renderer.getSwapChainRenderPass()
 		);
 
 		m_skyboxRenderSystem = createUnique<SkyboxRenderSystem>(
@@ -340,11 +338,11 @@ namespace PXTEngine {
 		);
 	}
 
-	void MasterRenderSystem::reloadShaders() {
+	void RenderLayer::reloadShaders() {
 		// wait for the device to be idle before reloading shaders
 		vkDeviceWaitIdle(m_context.getDevice());
 
-		PXT_INFO("Reloading shaders in MasterRenderSystem...");
+		PXT_INFO("Reloading shaders in RenderLayer...");
 
 		// reload shaders in all render systems
 		if (m_isRaytracingEnabled) {
@@ -362,7 +360,7 @@ namespace PXTEngine {
 		PXT_INFO("Shaders reloaded successfully.");
 	}
 
-	void MasterRenderSystem::onUpdate(FrameInfo& frameInfo, GlobalUbo& ubo) {
+	void RenderLayer::onUpdate(FrameInfo& frameInfo, GlobalUbo& ubo) {
 		// check if viewport size has changed, if so recreate resources
 		VkExtent2D swapChainExtent = m_renderer.getSwapChainExtent();
 		if (swapChainExtent.width != m_lastFrameSwapChainExtent.width ||
@@ -406,10 +404,7 @@ namespace PXTEngine {
 		}
 	}
 
-	void MasterRenderSystem::doRenderPasses(FrameInfo& frameInfo) {
-		// begin new frame imgui
-		m_uiRenderSystem->beginBuildingUi(frameInfo.scene);
-
+	void RenderLayer::doRenderPasses(FrameInfo& frameInfo) {
 		if (m_densityTextureSystem->needsRegeneration()) {
 			m_densityTextureSystem->generate(frameInfo.commandBuffer);
 		}
@@ -463,24 +458,13 @@ namespace PXTEngine {
 
 			m_renderer.endRenderPass(frameInfo.commandBuffer, *m_offscreenRenderPass, *m_offscreenFb);
 		}
-
-		// update scene ui
-		this->updateUi();
-
-		// render imgui and present
-		m_renderer.beginSwapChainRenderPass(frameInfo.commandBuffer);
-
-		// render ui and end imgui frame
-		m_uiRenderSystem->render(frameInfo);
-
-		m_renderer.endSwapChainRenderPass(frameInfo.commandBuffer);
 	}
 
-	void MasterRenderSystem::postFrameUpdate(FrameInfo& frameInfo) {
+	void RenderLayer::onPostFrameUpdate(FrameInfo& frameInfo) {
 		m_densityTextureSystem->postFrameUpdate(frameInfo.frameFence);
 	}
 
-	void MasterRenderSystem::createDescriptorSetsImGui() {
+	void RenderLayer::createDescriptorSetsImGui() {
 		// DESCRIPTOR SET FOR IMGUI VIEWPORT
 		m_sceneDescriptorSetLayout = DescriptorSetLayout::Builder(m_context)
 			.addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 1)
@@ -498,7 +482,7 @@ namespace PXTEngine {
 			.updateSet(m_sceneDescriptorSet);
 	}
 
-	void MasterRenderSystem::updateImguiDescriptorSet() {
+	void RenderLayer::updateImguiDescriptorSet() {
 		VkDescriptorImageInfo imageInfo;
 		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		imageInfo.imageView = m_sceneImage->getImageView();
@@ -509,7 +493,7 @@ namespace PXTEngine {
 			.updateSet(m_sceneDescriptorSet);
 	}
 
-	ImVec2 MasterRenderSystem::getImageSizeWithAspectRatioForImGuiWindow(
+	ImVec2 RenderLayer::getImageSizeWithAspectRatioForImGuiWindow(
 		ImVec2 windowSize, float aspectRatio) {
 		ImVec2 ratioedExtent = { 0, 0 };
 
@@ -531,7 +515,7 @@ namespace PXTEngine {
 		return ratioedExtent;
 	}
 
-	void MasterRenderSystem::updateSceneUi() {
+	void RenderLayer::updateSceneUi() {
 		ImTextureID scene = (ImTextureID) m_sceneDescriptorSet;
 
 		// we push a style var to remove the viewpoer window padding
@@ -559,7 +543,7 @@ namespace PXTEngine {
 		ImGui::PopStyleVar();
 	}
 
-	void MasterRenderSystem::updateUi() {
+	void RenderLayer::onUpdateUi(FrameInfo& frameInfo) {
 		updateSceneUi();
 
 		ImGui::Begin("Raytracing Renderer");
