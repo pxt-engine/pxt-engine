@@ -24,6 +24,8 @@ namespace PXTEngine {
     void Application::start() {
         PXT_PROFILE_FN();
 
+		m_resourceManagerPtr = pushLayer<ResourceManager>();
+
 		// load default and scene assets and register them in the resource registry
         createDefaultResources();
         {
@@ -150,26 +152,26 @@ namespace PXTEngine {
 
             Buffer buffer = Buffer(&color, sizeof(color));
             Shared<Image> image = createShared<Texture2D>(m_context, info, buffer);
-            m_resourceManager.add(image, name);
+            m_resourceManagerPtr->add(image, name);
         }
 
         auto defaultMaterial = Material::Builder()
             .setAlbedoColor(glm::vec4(1.0f))
-            .setAlbedoMap(m_resourceManager.get<Image>(WHITE_PIXEL))
-            .setNormalMap(m_resourceManager.get<Image>(NORMAL_PIXEL_LINEAR))
-            .setAmbientOcclusionMap(m_resourceManager.get<Image>(WHITE_PIXEL_LINEAR))
+            .setAlbedoMap(m_resourceManagerPtr->get<Image>(WHITE_PIXEL))
+            .setNormalMap(m_resourceManagerPtr->get<Image>(NORMAL_PIXEL_LINEAR))
+            .setAmbientOcclusionMap(m_resourceManagerPtr->get<Image>(WHITE_PIXEL_LINEAR))
 			.setMetallic(0.0f)
 			.setRoughness(0.0f)
             //.setMetallicMap(m_resourceManager.get<Image>(BLACK_PIXEL_LINEAR))
             //.setRoughnessMap(m_resourceManager.get<Image>(GRAY_PIXEL_LINEAR))
-            .setEmissiveMap(m_resourceManager.get<Image>(WHITE_PIXEL_LINEAR))
+            .setEmissiveMap(m_resourceManagerPtr->get<Image>(WHITE_PIXEL_LINEAR))
             .setTransmission(0.0f)
             .setIndexOfRefraction(1.3f)
             .build();
 
         ResourceManager::defaultMaterial = defaultMaterial;
 
-		m_resourceManager.add(defaultMaterial, DEFAULT_MATERIAL);
+		m_resourceManagerPtr->add(defaultMaterial, DEFAULT_MATERIAL);
 
 		// Create blue noise texture resources
 		ImageInfo blueNoiseInfo;
@@ -184,7 +186,7 @@ namespace PXTEngine {
 
 		for (uint32_t i = 0; i < BLUE_NOISE_TEXTURE_COUNT; i++) {
 			blueNoiseFile = BLUE_NOISE_FILE + std::to_string(i) + BLUE_NOISE_FILE_EXT;
-			m_resourceManager.get<Image>(blueNoiseFile, &blueNoiseInfo);
+			m_resourceManagerPtr->get<Image>(blueNoiseFile, &blueNoiseInfo);
 		}
     }
 
@@ -192,7 +194,7 @@ namespace PXTEngine {
         // TODO: we will eventually redo all resource management, this sucks :)
 
 		// iterate over resource and register images
-		m_resourceManager.foreach([&](const Shared<Resource>& resource) {
+		m_resourceManagerPtr->foreach([&](const Shared<Resource>& resource) {
             if (resource->getType() == Resource::Type::Image) {
                 const auto image = std::static_pointer_cast<Image>(resource);
                 m_textureRegistry.add(image);
@@ -203,7 +205,7 @@ namespace PXTEngine {
 			}
 		});
 
-        m_resourceManager.foreach([&](const Shared<Resource>& resource) {
+        m_resourceManagerPtr->foreach([&](const Shared<Resource>& resource) {
             if (resource->getType() == Resource::Type::Material) {
                 auto material = std::static_pointer_cast<Material>(resource);
 

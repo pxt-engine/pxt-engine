@@ -46,20 +46,20 @@ public:
     }
 
     void createFloor() {
-        auto& rm = getResourceManager();
+        auto rm = getResourceManager();
 
         ImageInfo albedoInfo{};
         albedoInfo.format = RGBA8_SRGB;
 
-        auto quad = rm.get<Mesh>(MODELS_PATH + "quad.obj");
+        auto quad = rm->get<Mesh>(MODELS_PATH + "quad.obj");
 		auto stylizedStoneMaterial = Material::Builder()
-			.setAlbedoMap(rm.get<Image>(TEXTURES_PATH + "laminated_wood/albedo.png", &albedoInfo))
-			.setNormalMap(rm.get<Image>(TEXTURES_PATH + "laminated_wood/normal.png"))
-            .setMetallicMap(rm.get<Image>(TEXTURES_PATH + "laminated_wood/metallic.png"))
-			.setRoughnessMap(rm.get<Image>(TEXTURES_PATH + "laminated_wood/roughness.png"))
-			.setAmbientOcclusionMap(rm.get<Image>(TEXTURES_PATH + "laminated_wood/ao.png"))
+			.setAlbedoMap(rm->get<Image>(TEXTURES_PATH + "laminated_wood/albedo.png", &albedoInfo))
+			.setNormalMap(rm->get<Image>(TEXTURES_PATH + "laminated_wood/normal.png"))
+            .setMetallicMap(rm->get<Image>(TEXTURES_PATH + "laminated_wood/metallic.png"))
+			.setRoughnessMap(rm->get<Image>(TEXTURES_PATH + "laminated_wood/roughness.png"))
+			.setAmbientOcclusionMap(rm->get<Image>(TEXTURES_PATH + "laminated_wood/ao.png"))
 			.build();
-		rm.add(stylizedStoneMaterial, "floor_material");
+		rm->add(stylizedStoneMaterial, "floor_material");
 
         Entity entity = getScene().createEntity("Floor")
             .add<TransformComponent>(glm::vec3{ 0.f, 1.0f, 0.f }, glm::vec3{ 1.f, 1.f, 1.f }, glm::vec3{ 0.0f, 0.0f, 0.0f })
@@ -91,7 +91,7 @@ public:
     }
 
     void createTeapotAndVases() {
-        auto& rm = getResourceManager();
+        auto rm = getResourceManager();
         
         auto glassMaterial = Material::Builder()
             .setAlbedoColor(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f))
@@ -100,30 +100,30 @@ public:
             .setTransmission(1.0f)
             .setIndexOfRefraction(1.67f)
             .build();
-        rm.add(glassMaterial, "glass_material0");
+        rm->add(glassMaterial, "glass_material0");
 
         
-        auto vaseMesh = rm.get<Mesh>(MODELS_PATH + "smooth_vase.obj");
-        auto teapotMesh = rm.get<Mesh>(MODELS_PATH + "utah_teapot.obj");
+        auto vaseMesh = rm->get<Mesh>(MODELS_PATH + "smooth_vase.obj");
+        auto teapotMesh = rm->get<Mesh>(MODELS_PATH + "utah_teapot.obj");
 
         ImageInfo albedoInfo{};
         albedoInfo.format = RGBA8_SRGB;
 
         auto metallicMaterial = Material::Builder()
-            .setRoughnessMap(rm.get<Image>(TEXTURES_PATH + "/gold/roughness.png"))
-            .setMetallicMap(rm.get<Image>(TEXTURES_PATH + "/gold/metallic.png"))
-            .setNormalMap(rm.get<Image>(TEXTURES_PATH + "/gold/normal.png"))
+            .setRoughnessMap(rm->get<Image>(TEXTURES_PATH + "/gold/roughness.png"))
+            .setMetallicMap(rm->get<Image>(TEXTURES_PATH + "/gold/metallic.png"))
+            .setNormalMap(rm->get<Image>(TEXTURES_PATH + "/gold/normal.png"))
             .build();
-        rm.add(metallicMaterial, "metallic_material");
+        rm->add(metallicMaterial, "metallic_material");
 
         auto graniteMaterial = Material::Builder()
-            .setAlbedoMap(rm.get<Image>(TEXTURES_PATH + "granite/albedo.png", &albedoInfo))
-            .setRoughnessMap(rm.get<Image>(TEXTURES_PATH + "granite/roughness.png"))
-            .setMetallicMap(rm.get<Image>(TEXTURES_PATH + "granite/metallic.png"))
-            .setNormalMap(rm.get<Image>(TEXTURES_PATH + "granite/normal.png"))
-            .setAmbientOcclusionMap(rm.get<Image>(TEXTURES_PATH + "granite/ao.png"))
+            .setAlbedoMap(rm->get<Image>(TEXTURES_PATH + "granite/albedo.png", &albedoInfo))
+            .setRoughnessMap(rm->get<Image>(TEXTURES_PATH + "granite/roughness.png"))
+            .setMetallicMap(rm->get<Image>(TEXTURES_PATH + "granite/metallic.png"))
+            .setNormalMap(rm->get<Image>(TEXTURES_PATH + "granite/normal.png"))
+            .setAmbientOcclusionMap(rm->get<Image>(TEXTURES_PATH + "granite/ao.png"))
             .build();
-        rm.add(graniteMaterial, "brown_granite");
+        rm->add(graniteMaterial, "brown_granite");
 
         Entity entity = getScene().createEntity("vase")
             .add<TransformComponent>(glm::vec3{ -0.75f, 0.99f, 0.1f }, glm::vec3{ 1.0f, 1.0f, 1.0f }, glm::vec3{0.0f, glm::pi<float>()/4, 0.0f})
@@ -145,20 +145,20 @@ public:
 	}
 
     void createRubikCube() {
-        auto& rm = getResourceManager();
-        auto rubikMesh = rm.get<Mesh>(MODELS_PATH + "rubik.obj");
+        auto rm = getResourceManager();
+        auto rubikMesh = rm->get<Mesh>(MODELS_PATH + "rubik.obj");
 
         ImageInfo albedoInfo{};
         albedoInfo.format = RGBA8_SRGB;
 
         auto rubikMaterial = Material::Builder()
-            .setAlbedoMap(rm.get<Image>(TEXTURES_PATH + "/rubik/albedo.jpg", &albedoInfo))
+            .setAlbedoMap(rm->get<Image>(TEXTURES_PATH + "/rubik/albedo.jpg", &albedoInfo))
             .setMetallic(0.45f)
-            .setRoughnessMap(rm.get<Image>(TEXTURES_PATH + "/rubik/roughness.jpg"))
-            //.setNormalMap(rm.get<Image>(TEXTURES_PATH + "/rubik/normal.jpg"))
-            .setAmbientOcclusionMap(rm.get<Image>(TEXTURES_PATH + "/rubik/ao.jpg"))
+            .setRoughnessMap(rm->get<Image>(TEXTURES_PATH + "/rubik/roughness.jpg"))
+            //.setNormalMap(rm->get<Image>(TEXTURES_PATH + "/rubik/normal.jpg"))
+            .setAmbientOcclusionMap(rm->get<Image>(TEXTURES_PATH + "/rubik/ao.jpg"))
             .build();
-        rm.add(rubikMaterial, "rubik_material");
+        rm->add(rubikMaterial, "rubik_material");
 
         Entity entity = getScene().createEntity("rubik")
             .add<TransformComponent>(glm::vec3{ -0.75f, 0.9f, -0.3f }, glm::vec3{ 0.1f, 0.1f, 0.1f }, glm::vec3{ 0.0f, -glm::pi<float>()/2.5, 0.0f})
@@ -169,22 +169,22 @@ public:
     }
 
     void createLamp() {
-		auto& rm = getResourceManager();
+		auto rm = getResourceManager();
 
         ImageInfo albedoInfo{};
         albedoInfo.format = RGBA8_SRGB;
 
         auto lampMaterial = Material::Builder()
-            .setAlbedoMap(rm.get<Image>(TEXTURES_PATH + "/lamp/albedo.png", &albedoInfo))
-            .setRoughnessMap(rm.get<Image>(TEXTURES_PATH + "/lamp/roughness.png"))
-            .setMetallicMap(rm.get<Image>(TEXTURES_PATH + "/lamp/metallic.png"))
-            .setNormalMap(rm.get<Image>(TEXTURES_PATH + "/lamp/normal.png"))
-            .setEmissiveMap(rm.get<Image>(TEXTURES_PATH + "white_pixel.png"))//"/lamp/emissive.png"))
+            .setAlbedoMap(rm->get<Image>(TEXTURES_PATH + "/lamp/albedo.png", &albedoInfo))
+            .setRoughnessMap(rm->get<Image>(TEXTURES_PATH + "/lamp/roughness.png"))
+            .setMetallicMap(rm->get<Image>(TEXTURES_PATH + "/lamp/metallic.png"))
+            .setNormalMap(rm->get<Image>(TEXTURES_PATH + "/lamp/normal.png"))
+            .setEmissiveMap(rm->get<Image>(TEXTURES_PATH + "white_pixel.png"))//"/lamp/emissive.png"))
             .setEmissiveColor(glm::vec4{ 1.0f, 1.0f, 1.0f, 6.0f })
             .build();
-        rm.add(lampMaterial, "lamp_material");
+        rm->add(lampMaterial, "lamp_material");
 
-        auto lampMesh = rm.get<Mesh>(MODELS_PATH + "lamp.obj");
+        auto lampMesh = rm->get<Mesh>(MODELS_PATH + "lamp.obj");
 
         Entity entity = getScene().createEntity("lamp")
             .add<TransformComponent>(glm::vec3{ 0.6f, 1.0f, 0.6f }, glm::vec3{ 2.4f, 2.8f, 2.4f }, glm::vec3{ glm::pi<float>(), glm::pi<float>() / 4, 0.0f })
@@ -194,18 +194,18 @@ public:
     }
 
     void createRoofLight() {
-        auto& rm = getResourceManager();
+        auto rm = getResourceManager();
 
         ImageInfo albedoInfo{};
         albedoInfo.format = RGBA8_SRGB;
 
         auto roofLightMaterial = Material::Builder()
-            .setEmissiveMap(rm.get<Image>(TEXTURES_PATH + "white_pixel.png"))
+            .setEmissiveMap(rm->get<Image>(TEXTURES_PATH + "white_pixel.png"))
             .setEmissiveColor(glm::vec4{ 1.0f, 1.0f, 1.0f, 7.0f})
             .build();
-        rm.add(roofLightMaterial, "roof_light_material");
+        rm->add(roofLightMaterial, "roof_light_material");
 
-        auto roofLightMesh = rm.get<Mesh>(MODELS_PATH + "sphere.obj");
+        auto roofLightMesh = rm->get<Mesh>(MODELS_PATH + "sphere.obj");
 
         Entity entity = getScene().createEntity("roofLight")
             .add<TransformComponent>(glm::vec3{ 0.0f, -1.1f, 0.0f }, glm::vec3{ 0.25f, 0.25f, 0.25f }, glm::vec3{ glm::pi<float>(), 0.0, 0.0})
@@ -215,20 +215,20 @@ public:
     }
 
     void createPencilAndPen() {
-        auto& rm = getResourceManager();
+        auto rm = getResourceManager();
 
         ImageInfo albedoInfo{};
         albedoInfo.format = RGBA8_SRGB;
 
         auto pencilMaterial = Material::Builder()
-            .setAlbedoMap(rm.get<Image>(TEXTURES_PATH + "/pencil/albedo.png", &albedoInfo))
-            .setRoughnessMap(rm.get<Image>(TEXTURES_PATH + "/pencil/roughness.png"))
-			.setMetallicMap(rm.get<Image>(TEXTURES_PATH + "/pencil/metallic.png"))
-            .setNormalMap(rm.get<Image>(TEXTURES_PATH + "/pencil/normal.png"))
+            .setAlbedoMap(rm->get<Image>(TEXTURES_PATH + "/pencil/albedo.png", &albedoInfo))
+            .setRoughnessMap(rm->get<Image>(TEXTURES_PATH + "/pencil/roughness.png"))
+			.setMetallicMap(rm->get<Image>(TEXTURES_PATH + "/pencil/metallic.png"))
+            .setNormalMap(rm->get<Image>(TEXTURES_PATH + "/pencil/normal.png"))
             .build();
-        rm.add(pencilMaterial, "pencil_material");
+        rm->add(pencilMaterial, "pencil_material");
 
-        auto pencilMesh = rm.get<Mesh>(MODELS_PATH + "pencil.obj");
+        auto pencilMesh = rm->get<Mesh>(MODELS_PATH + "pencil.obj");
 
         Entity entity = getScene().createEntity("pencil")
             .add<TransformComponent>(glm::vec3{ 0.65f, 0.985f, -0.1f }, glm::vec3{ 0.1f, 0.1f, 0.1f }, glm::vec3{ 0.0f, -glm::pi<float>() / 10, 0.0f })
@@ -266,7 +266,7 @@ public:
     void loadScene() override {
 #if 1
         Scene& scene = getScene();
-        SceneSerializer serializer(&scene, &getResourceManager());
+        SceneSerializer serializer(&scene, getResourceManager());
         serializer.deserialize(SCENES_PATH + "nuv.pxtscene");
         
         // TODO: add scripts to scene serialize
@@ -291,14 +291,14 @@ public:
         //createPencilAndPen();
         //createLights();
 
-        auto& rm = getResourceManager();
+        auto rm = getResourceManager();
 
         ImageInfo albedoInfo{};
         albedoInfo.format = RGBA8_SRGB;
 
         // create first volume
-        auto sphereModel = rm.get<Mesh>(MODELS_PATH + "sphere.obj");
-        auto cubeModel = rm.get<Mesh>(MODELS_PATH + "cube_hd.obj");
+        auto sphereModel = rm->get<Mesh>(MODELS_PATH + "sphere.obj");
+        auto cubeModel = rm->get<Mesh>(MODELS_PATH + "cube_hd.obj");
 
         auto glassMaterial = Material::Builder()
             .setRoughness(0.0)
@@ -306,7 +306,7 @@ public:
             .setTransmission(1.0f)
             .setIndexOfRefraction(1.5f)
             .build();
-        rm.add(glassMaterial, "glass_material1");
+        rm->add(glassMaterial, "glass_material1");
 
         auto transMaterial = Material::Builder()
             .setRoughness(0.0)
@@ -314,17 +314,17 @@ public:
             .setTransmission(1.0f)
             .setIndexOfRefraction(1.001f)
             .build();
-        rm.add(transMaterial, "transMaterial");
+        rm->add(transMaterial, "transMaterial");
 
         auto jadeMaterial = Material::Builder()
-            .setAlbedoMap(rm.get<Image>(TEXTURES_PATH + "jade/albedo.jpg", &albedoInfo))
-            .setRoughnessMap(rm.get<Image>(TEXTURES_PATH + "jade/roughness.jpg"))
+            .setAlbedoMap(rm->get<Image>(TEXTURES_PATH + "jade/albedo.jpg", &albedoInfo))
+            .setRoughnessMap(rm->get<Image>(TEXTURES_PATH + "jade/roughness.jpg"))
             //.setRoughness(0.1)
             .setMetallic(0.2f)
             .setTransmission(0.7f)
             .setIndexOfRefraction(1.67f)
             .build();
-        rm.add(jadeMaterial, "jadeMaterial");
+        rm->add(jadeMaterial, "jadeMaterial");
 
         /*auto volumeCubeEntity = getScene().createEntity("Volume Cube")
             .add<TransformComponent>(glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3{ 0.5f }, glm::vec3{ 0.0f, 0.0f, 0.0f })
@@ -333,14 +333,14 @@ public:
                 .setAbsorption(glm::vec4{ 0.3f })
                 .setScattering(glm::vec4{ 0.3f })
                 .setPhaseFunctionG(0.5f)
-                .setDensityTexture(rm.get<Image>(TEXTURES_PATH + "noise/perlin_worley.png"))
+                .setDensityTexture(rm->get<Image>(TEXTURES_PATH + "noise/perlin_worley.png"))
                 .build());*/
 
         auto emissiveMat = Material::Builder()
-            .setEmissiveMap(rm.get<Image>(TEXTURES_PATH + "white_pixel.png"))
+            .setEmissiveMap(rm->get<Image>(TEXTURES_PATH + "white_pixel.png"))
             .setEmissiveColor(glm::vec4{ 1.0f, 1.0f, 1.0f, 15.0f })
             .build();
-        rm.add(emissiveMat, "emissive_mat");
+        rm->add(emissiveMat, "emissive_mat");
 
         auto emissiveSphere = getScene().createEntity("Emissive sphere")
             .add<TransformComponent>(glm::vec3{ 0.0f, -0.45f, 0.6f }, glm::vec3{ 0.5f }, glm::vec3{ 0.0f, 0.0f, 0.0f })
@@ -350,21 +350,21 @@ public:
                 .build());
 
 
-        auto bunny = rm.get<Mesh>(MODELS_PATH + "dragon.obj");
+        auto bunny = rm->get<Mesh>(MODELS_PATH + "dragon.obj");
         /*auto bunnyMaterial = Material::Builder()
-            .setAlbedoMap(rm.get<Image>(MODELS_PATH + "bunny/terracotta.jpg", &albedoInfo))
-            //.setAlbedoMap(rm.get<Image>(TEXTURES_PATH + "granite/albedo.png", &albedoInfo))
-            .setRoughnessMap(rm.get<Image>(TEXTURES_PATH + "granite/roughness.png"))
-            .setMetallicMap(rm.get<Image>(TEXTURES_PATH + "granite/metallic.png"))
-            .setNormalMap(rm.get<Image>(TEXTURES_PATH + "granite/normal.png"))
-            .setAmbientOcclusionMap(rm.get<Image>(TEXTURES_PATH + "granite/ao.png"))
+            .setAlbedoMap(rm->get<Image>(MODELS_PATH + "bunny/terracotta.jpg", &albedoInfo))
+            //.setAlbedoMap(rm->get<Image>(TEXTURES_PATH + "granite/albedo.png", &albedoInfo))
+            .setRoughnessMap(rm->get<Image>(TEXTURES_PATH + "granite/roughness.png"))
+            .setMetallicMap(rm->get<Image>(TEXTURES_PATH + "granite/metallic.png"))
+            .setNormalMap(rm->get<Image>(TEXTURES_PATH + "granite/normal.png"))
+            .setAmbientOcclusionMap(rm->get<Image>(TEXTURES_PATH + "granite/ao.png"))
             .build();*/
         auto bunnyMaterial = Material::Builder()
-            .setRoughnessMap(rm.get<Image>(TEXTURES_PATH + "/gold/roughness.png"))
-            .setMetallicMap(rm.get<Image>(TEXTURES_PATH + "/gold/metallic.png"))
-            .setNormalMap(rm.get<Image>(TEXTURES_PATH + "/gold/normal.png"))
+            .setRoughnessMap(rm->get<Image>(TEXTURES_PATH + "/gold/roughness.png"))
+            .setMetallicMap(rm->get<Image>(TEXTURES_PATH + "/gold/metallic.png"))
+            .setNormalMap(rm->get<Image>(TEXTURES_PATH + "/gold/normal.png"))
             .build();
-        rm.add(bunnyMaterial, "bunny_material");
+        rm->add(bunnyMaterial, "bunny_material");
 
         /*Entity entity = getScene().createEntity("glass cube")
             .add<TransformComponent>(glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3{ 0.1f }, glm::vec3{ 0.0f, glm::pi<float>() / 4, 0.0f })
@@ -381,7 +381,7 @@ public:
                 .setAbsorption(glm::vec4{ 0.1f })
                 .setScattering(glm::vec4{ 0.9f })
                 .setPhaseFunctionG(0.5f)
-                .setDensityTexture(rm.get<Image>(TEXTURES_PATH + "/noise/perlin_worley.png"))
+                .setDensityTexture(rm->get<Image>(TEXTURES_PATH + "/noise/perlin_worley.png"))
                 .build());
     }
 

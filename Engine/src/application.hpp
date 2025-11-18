@@ -40,8 +40,8 @@ namespace PXTEngine {
             return m_window;
         }
 
-        ResourceManager& getResourceManager() {
-            return m_resourceManager;
+        ResourceManager* getResourceManager() {
+            return m_resourceManagerPtr;
         }
 
 		Shared<DescriptorAllocatorGrowable> getDescriptorAllocator() {
@@ -110,6 +110,7 @@ namespace PXTEngine {
         LayerStack m_layerStack{};
         RenderLayer* m_renderLayerPtr = nullptr;
         UiRenderLayer* m_uiRenderLayerPtr = nullptr;
+        ResourceManager* m_resourceManagerPtr = nullptr;
 
 		Shared<DescriptorAllocatorGrowable> m_descriptorAllocator{};
 		Shared<DescriptorSetLayout> m_globalSetLayout{};
@@ -119,7 +120,6 @@ namespace PXTEngine {
 
         Scene m_scene{};
 
-        ResourceManager m_resourceManager{};
         TextureRegistry m_textureRegistry{m_context};
 		MaterialRegistry m_materialRegistry{m_context, m_textureRegistry};
 		BLASRegistry m_blasRegistry{m_context};

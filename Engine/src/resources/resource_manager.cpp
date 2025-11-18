@@ -1,10 +1,10 @@
 #include "resources/resource_manager.hpp"
 
-#include "resources/importers/resource_importer.hpp"
-
 namespace PXTEngine {
 
 	Shared<Material> ResourceManager::defaultMaterial = nullptr;
+
+	ResourceManager::ResourceManager() : Layer("ResourceManager") {}
 
 	ResourceManager::~ResourceManager() {
 		defaultMaterial = nullptr;
@@ -26,7 +26,7 @@ namespace PXTEngine {
 		const auto filePath = std::filesystem::path(alias);
 
 		try {
-			auto importedResource = ResourceImporter::import(*this, filePath, resourceInfo);
+			auto importedResource = m_resourceImporter.import(*this, filePath, resourceInfo);
 
 			add(importedResource, alias);
 
@@ -51,5 +51,46 @@ namespace PXTEngine {
 		for (const auto& resource : m_resources | std::views::values) {
 			function(resource);
 		}
+	}
+
+	void ResourceManager::onUpdateUi(FrameInfo& frameInfo) {
+		// probably call ui code for imports and asset browser?
+		// Asset browser could be a "view" class of all resources given
+		// by the resource manager
+		
+		// create import window
+		ImGui::Begin("Import");
+
+		if (ImGui::Button("Select File")) {
+			m_currentlyImportingResourcePath = FileSystem::openFileDialog();
+
+			if (!m_currentlyImportingResourcePath.empty()) {
+				m_isImportingResource = true;
+			}
+		}
+
+		if (m_isImportingResource) {
+			// ui stuff
+			ImGui::Text("Importing: %s", m_currentlyImportingResourcePath.c_str());
+
+			if (ImGui::Button("Import")) {
+				try {
+					std::string filename = m_currentlyImportingResourcePath.substr(
+						m_currentlyImportingResourcePath.find_last_of("/\\") + 1);
+
+					auto importedResource = m_resourceImporter.import(*this, m_currentlyImportingResourcePath);
+					importedResource->alias = filename;
+					add(importedResource, importedResource->alias);
+					PXT_INFO("Imported resource: {}\n", importedResource->alias.c_str());
+				}
+				catch (const std::exception& e) {
+					PXT_ERROR("Failed to import resource: {}\n", e.what());
+				}
+
+				m_isImportingResource = false;
+			}
+		}
+
+		ImGui::End();
 	}
 }
