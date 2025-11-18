@@ -78,5 +78,7 @@ namespace PXTEngine {
 
 		bool m_isImportingResource = false;
 		std::string m_currentlyImportingResourcePath = "";
+		ImporterEntry* m_currentImporterEntry = nullptr;
+		Unique<ResourceInfo> m_currentImportResourceInfo = nullptr;
 	};
 }

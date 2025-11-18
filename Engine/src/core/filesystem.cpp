@@ -19,4 +19,14 @@ namespace PXTEngine {
 
 		return "";
 	}
+
+	void FileSystem::openErrorModal(const std::string& message)
+	{
+		tinyfd_messageBox(
+			"Error",
+			message.c_str(),
+			"ok",
+			"error",
+			1);
+	}
 }

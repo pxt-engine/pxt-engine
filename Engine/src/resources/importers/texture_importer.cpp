@@ -79,4 +79,30 @@ namespace PXTEngine {
 
 		return Texture2D::create(imageInfo, pixels);
 	}
+
+	void TextureImporter::updateUi(ResourceInfo* resourceInfo) {
+		ImGui::SeparatorText("Texture Importer Settings");
+
+		ImageInfo* imageInfo = dynamic_cast<ImageInfo*>(resourceInfo);
+		if (!imageInfo) {
+			ImGui::Text("Invalid resource info for TextureImporter");
+			return;
+		}
+
+		int current = static_cast<int>(imageInfo->format);
+
+		if (ImGui::BeginCombo("Choose image format", s_imageFormatNames[current]))
+		{
+			for (int i = 0; i < IM_ARRAYSIZE(s_imageFormatNames); i++)
+			{
+				bool isSelected = (current == i);
+				if (ImGui::Selectable(s_imageFormatNames[i], isSelected))
+					imageInfo->format = static_cast<ImageFormat>(i);
+
+				if (isSelected)
+					ImGui::SetItemDefaultFocus();  // Makes selected item auto-focused
+			}
+			ImGui::EndCombo();
+		}
+	}
 }

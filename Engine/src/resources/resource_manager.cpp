@@ -65,7 +65,21 @@ namespace PXTEngine {
 			m_currentlyImportingResourcePath = FileSystem::openFileDialog();
 
 			if (!m_currentlyImportingResourcePath.empty()) {
-				m_isImportingResource = true;
+				std::string extension = m_currentlyImportingResourcePath.substr(
+					m_currentlyImportingResourcePath.find_last_of('.'));
+
+				ImporterEntry* entry = m_resourceImporter.getImporterEntry(extension);
+				if (!entry) { // for now only error is unsupported format
+					// TODO: use a proper error handling mechanism, like a Result<T> type
+					FileSystem::openErrorModal("Unsupported file format: " + extension);
+				}
+				else {
+					m_currentImporterEntry = entry;
+					m_currentImportResourceInfo.reset(
+						m_currentImporterEntry->infoConstructor()
+					);
+					m_isImportingResource = true;
+				}
 			}
 		}
 
@@ -73,21 +87,34 @@ namespace PXTEngine {
 			// ui stuff
 			ImGui::Text("Importing: %s", m_currentlyImportingResourcePath.c_str());
 
+			m_currentImporterEntry->uiFunction(m_currentImportResourceInfo.get());
+
 			if (ImGui::Button("Import")) {
+				// try catch may be unnecessary in the future
+				// we dont know yet if we will have exceptions here
+				// or only ui error messages.
 				try {
 					std::string filename = m_currentlyImportingResourcePath.substr(
 						m_currentlyImportingResourcePath.find_last_of("/\\") + 1);
 
-					auto importedResource = m_resourceImporter.import(*this, m_currentlyImportingResourcePath);
+					auto importedResource = m_resourceImporter.import(*this, m_currentlyImportingResourcePath, m_currentImportResourceInfo.get());
+					
+					if (!importedResource) {
+						m_isImportingResource = false;
+						return;
+					}
+					
 					importedResource->alias = filename;
 					add(importedResource, importedResource->alias);
+
+					m_isImportingResource = false;
+
 					PXT_INFO("Imported resource: {}\n", importedResource->alias.c_str());
 				}
 				catch (const std::exception& e) {
+					m_isImportingResource = false;
 					PXT_ERROR("Failed to import resource: {}\n", e.what());
 				}
-
-				m_isImportingResource = false;
 			}
 		}
 

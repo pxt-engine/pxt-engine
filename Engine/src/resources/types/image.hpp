@@ -19,6 +19,15 @@ namespace PXTEngine {
 		RGBA8_LINEAR,
 	};
 
+	// TODO: better way to get image format names, with array length check
+	static const char* s_imageFormatNames[] = {
+		"RGB8_SRGB",
+		"RGBA8_SRGB",
+		"RGB8_LINEAR",
+		"RGBA32_LINEAR",
+		"RGBA8_LINEAR"
+	};
+
 	inline uint32_t getChannelBytePerPixelForFormat(ImageFormat format) {
 		switch (format) {
 		case ImageFormat::RGB8_SRGB:

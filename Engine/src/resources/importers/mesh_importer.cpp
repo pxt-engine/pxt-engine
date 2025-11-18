@@ -124,4 +124,7 @@ namespace PXTEngine {
 
 		return VulkanMesh::create(vertices, indices);
 	}
+    void MeshImporter::updateUi(ResourceInfo* resourceInfo) {
+		ImGui::SeparatorText("Mesh Importer Settings");
+    }
 }
