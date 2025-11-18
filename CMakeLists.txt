@@ -39,7 +39,7 @@ endif()
 # Vendor libraries
 add_subdirectory(Engine/vendor/glfw)         
 add_subdirectory(Engine/vendor/glm)          
-add_subdirectory(Engine/vendor/tinyobjloader)  
+add_subdirectory(Engine/vendor/tinyobjloader)
 add_subdirectory(Engine/vendor/entt)
 add_subdirectory(Engine/vendor/spdlog)
 
@@ -55,6 +55,15 @@ add_subdirectory(Engine/vendor/tracy) # target : TracyClient or alias Tracy::Tra
 # STB IMAGE library
 add_library(stb INTERFACE)
 target_include_directories(stb INTERFACE ${CMAKE_SOURCE_DIR}/Engine/vendor/stb)
+
+# tinyfiledialog static library
+add_library(tinyfiledialogs STATIC
+    Engine/vendor/tinyfiledialogs/tinyfiledialogs.c
+)
+
+target_include_directories(tinyfiledialogs PUBLIC
+    ${CMAKE_SOURCE_DIR}/Engine/vendor/tinyfiledialogs
+)
 
 # YAML-CPP library
 add_subdirectory(Engine/vendor/yaml-cpp) 
@@ -146,6 +155,7 @@ if (WIN32)
     spdlog::spdlog_header_only
     Vulkan::shaderc_combined
     yaml-cpp
+    tinyfiledialogs
   )
 
 
