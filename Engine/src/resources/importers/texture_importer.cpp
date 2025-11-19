@@ -77,7 +77,16 @@ namespace PXTEngine {
 		imageInfo.height = static_cast<uint32_t>(height);
 		imageInfo.channels = static_cast<uint16_t>(requestedChannels);
 
-		return Texture2D::create(imageInfo, pixels);
+		switch (imageInfo.type) {
+			case ImageType::CUBE_MAP:	
+				//TODO: implement cube map import
+				return nullptr;
+			case ImageType::TEXTURE_2D:
+			default:
+				return Texture2D::create(imageInfo, pixels);
+		}
+
+		
 	}
 
 	void TextureImporter::updateUi(ResourceInfo* resourceInfo) {
