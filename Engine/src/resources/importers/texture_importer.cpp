@@ -1,8 +1,8 @@
 #include "resources/importers/texture_importer.hpp"
 
 #include "core/pch.hpp"
-#include "core/buffer.hpp"
 #include "graphics/resources/texture2d.hpp"
+#include "ui/widgets/dropdown.hpp"
 
 #include <stb_image.h>
 
@@ -30,13 +30,13 @@ namespace PXTEngine {
         // Currently every image is loaded as RGBA
 		constexpr uint16_t requestedChannels = STBI_rgb_alpha;
 
-		Buffer pixels;
+		uint8_t* bytes;
 
 		uint32_t channelBitsPerPixel = getChannelBytePerPixelForFormat(imageInfo.format);
 
 		switch (channelBitsPerPixel) {
 		case 1:
-			pixels.bytes = stbi_load(
+			bytes = stbi_load(
 				filePath.string().c_str(),
 				&width,
 				&height,
@@ -45,7 +45,7 @@ namespace PXTEngine {
 			);
 			break;
 		case 2:
-			pixels.bytes = (uint8_t*) stbi_load_16(
+			bytes = (uint8_t*) stbi_load_16(
 				filePath.string().c_str(),
 				&width,
 				&height,
@@ -54,7 +54,7 @@ namespace PXTEngine {
 			);
 			break;
 		case 4:
-			pixels.bytes = (uint8_t*) stbi_loadf(
+			bytes = (uint8_t*) stbi_loadf(
 				filePath.string().c_str(),
 				&width,
 				&height,
@@ -66,10 +66,12 @@ namespace PXTEngine {
 			throw std::runtime_error("Unsupported channel bits per pixel: " + std::to_string(channelBitsPerPixel));
 		}
 
-		pixels.size = width * height * requestedChannels * channelBitsPerPixel;
+		auto size = width * height * requestedChannels * channelBitsPerPixel;
+
+		std::span<uint8_t> pixels(bytes, size);
 		
-		if (!pixels) {
-            pixels.release();
+		if (size <= 0 || bytes == nullptr) {
+			free(bytes);
 			throw std::runtime_error("failed to load image from file: " + filePath.string());
 		}
 
@@ -98,20 +100,12 @@ namespace PXTEngine {
 			return;
 		}
 
-		int current = static_cast<int>(imageInfo->format);
+		int currentType = static_cast<int>(imageInfo->type);
+		UI::Dropdown::render("Image Type", currentType, std::span(s_imageTypeNames));
+		imageInfo->type = static_cast<ImageType>(currentType);
 
-		if (ImGui::BeginCombo("Choose image format", s_imageFormatNames[current]))
-		{
-			for (int i = 0; i < IM_ARRAYSIZE(s_imageFormatNames); i++)
-			{
-				bool isSelected = (current == i);
-				if (ImGui::Selectable(s_imageFormatNames[i], isSelected))
-					imageInfo->format = static_cast<ImageFormat>(i);
-
-				if (isSelected)
-					ImGui::SetItemDefaultFocus();  // Makes selected item auto-focused
-			}
-			ImGui::EndCombo();
-		}
+		int currentFormat = static_cast<int>(imageInfo->format);
+		UI::Dropdown::render("Image Format", currentFormat, std::span(s_imageFormatNames));
+		imageInfo->format = static_cast<ImageFormat>(currentFormat);
 	}
 }

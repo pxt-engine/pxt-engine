@@ -1,4 +1,5 @@
 #include "resources/resource_manager.hpp"
+#include "ui/widgets/space.hpp"
 
 namespace PXTEngine {
 
@@ -88,6 +89,8 @@ namespace PXTEngine {
 			ImGui::Text("Importing: %s", m_currentlyImportingResourcePath.c_str());
 
 			m_currentImporterEntry->uiFunction(m_currentImportResourceInfo.get());
+
+			UI::Space::render(0.0, 15.0);
 
 			if (ImGui::Button("Import")) {
 				// try catch may be unnecessary in the future

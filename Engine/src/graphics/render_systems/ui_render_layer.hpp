@@ -8,6 +8,7 @@
 #include "graphics/frame_info.hpp"
 #include "graphics/descriptors/descriptors.hpp"
 #include "scene/ecs/entity.hpp"
+#include "ui/widgets/space.hpp"
 
 namespace PXTEngine {
 
@@ -67,7 +68,7 @@ namespace PXTEngine {
 
 							ImGui::TreePop();
 						}
-						ImGui::Dummy({ 0.0f, 5.0f }); // spacing
+						UI::Space::render(0.0f, 5.0f);
 					}
 				}
 			});
