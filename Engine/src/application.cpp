@@ -1,6 +1,5 @@
 #include "application.hpp"
 
-#include "core/buffer.hpp"
 #include "core/events/event_dispatcher.hpp"
 #include "core/events/window_event.hpp"
 #include "core/diagnostics.hpp"
@@ -142,7 +141,7 @@ namespace PXTEngine {
 
         for (const auto& [name, data] : defaultImagesData) {
             // Create a buffer with the pixel data
-            auto color = data.first;
+            uint32_t color = data.first;
 
             ImageInfo info;
             info.width = 1;
@@ -150,7 +149,9 @@ namespace PXTEngine {
             info.channels = 4;
             info.format = data.second;
 
-            Buffer buffer = Buffer(&color, sizeof(color));
+            std::span<uint8_t> buffer(reinterpret_cast<uint8_t*>(&color), sizeof(color));
+
+            //Buffer buffer = Buffer(&color, sizeof(color));
             Shared<Image> image = createShared<Texture2D>(m_context, info, buffer);
             m_resourceManagerPtr->add(image, name);
         }

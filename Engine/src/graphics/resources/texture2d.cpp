@@ -5,20 +5,20 @@
 
 namespace PXTEngine {
 
-	Unique<Texture2D> Texture2D::create(const ImageInfo& info, const Buffer& buffer) {
+	Unique<Texture2D> Texture2D::create(const ImageInfo& info, const std::span<uint8_t> buffer) {
 		Context& context = Application::get().getContext();
 
 		return createUnique<Texture2D>(context, info, buffer);
 	}
 
-	Texture2D::Texture2D(Context& context, const ImageInfo& info, const Buffer& buffer)
+	Texture2D::Texture2D(Context& context, const ImageInfo& info, const std::span<uint8_t> buffer)
 	: VulkanImage(context, info, buffer) {
 		createTextureImage(buffer);
 		createTextureImageView();
 		createTextureSampler();
 	}
 
-	void Texture2D::createTextureImage(const Buffer& buffer) {
+	void Texture2D::createTextureImage(const std::span<uint8_t> buffer) {
 		VkDeviceSize imageSize = m_info.width * m_info.height * m_info.channels * getChannelBytePerPixelForFormat(m_info.format);
 		// create a staging buffer visible to the host and copy the pixels to it
 		Unique<VulkanBuffer> stagingBuffer = createUnique<VulkanBuffer>(
@@ -30,7 +30,7 @@ namespace PXTEngine {
 		);
 
 		stagingBuffer->map(imageSize);
-		stagingBuffer->writeToBuffer(buffer.bytes, imageSize, 0);
+		stagingBuffer->writeToBuffer(buffer.data(), imageSize, 0);
 		stagingBuffer->unmap();
 
 		// create an empty vkImage

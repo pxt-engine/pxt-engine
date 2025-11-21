@@ -1,7 +1,7 @@
 #include "graphics/resources/vk_image.hpp"
 
 namespace PXTEngine {
-	VulkanImage::VulkanImage(Context& context, const ImageInfo& info, const Buffer& buffer) :
+	VulkanImage::VulkanImage(Context& context, const ImageInfo& info, const std::span<uint8_t> buffer) :
 	m_context(context),
 	m_info(info) {
 		// set other members as VK_NULL_HANDLE
@@ -14,7 +14,7 @@ namespace PXTEngine {
 	}
 
 	VulkanImage::VulkanImage(Context& context, const VkImageCreateInfo& imageInfo, VkMemoryPropertyFlags memoryFlags)
-	: VulkanImage(context, ImageInfo(imageInfo.extent.width, imageInfo.extent.height, 4), Buffer()) {
+	: VulkanImage(context, ImageInfo(imageInfo.extent.width, imageInfo.extent.height, 4), std::span<uint8_t>()) {
 		// create the image and allocate memory for it
 		m_context.createImageWithInfo(imageInfo, memoryFlags, m_vkImage, m_imageMemory);
 	}

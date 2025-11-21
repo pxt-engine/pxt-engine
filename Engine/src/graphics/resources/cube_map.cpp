@@ -3,7 +3,7 @@
 
 namespace PXTEngine {
 	CubeMap::CubeMap(Context& context, const uint32_t size, const VkFormat format, const VkImageUsageFlags usageFlags)
-		: VulkanImage(context, {}, Buffer()), m_imageFormat(format), m_usageFlags(usageFlags),
+		: VulkanImage(context, {}, std::span<uint8_t>()), m_imageFormat(format), m_usageFlags(usageFlags),
 		  m_size(size) {
 		for (int i = 0; i < 6; i++) {
 			m_cubeFaceViews[i] = VK_NULL_HANDLE;
