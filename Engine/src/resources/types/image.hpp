@@ -19,6 +19,33 @@ namespace PXTEngine {
 		RGBA8_LINEAR,
 	};
 
+	// TODO: better way to get image format names, with array length check
+	static const char* s_imageFormatNames[] = {
+		"RGB8_SRGB",
+		"RGBA8_SRGB",
+		"RGB8_LINEAR",
+		"RGBA32_LINEAR",
+		"RGBA8_LINEAR"
+	};
+
+	enum ImageType : uint8_t {
+		TEXTURE_2D = 0,
+		CUBE_MAP,
+	};
+
+	static const char* s_imageTypeNames[] = {
+		"TEXTURE_2D",
+		"CUBE_MAP",
+	};
+
+	enum CubeMapLayout : uint8_t {
+		LAYOUT_1x6 = 0,			// 1 row,  6 columns
+		LAYOUT_3x2,				// 3 rows, 2 columns
+		LAYOUT_2x3,				// 2 rows, 3 columns
+		LAYOUT_6x1,				// 6 rows, 1 column
+		SEPARATE_FILES			// Separate files for each face
+	};
+
 	inline uint32_t getChannelBytePerPixelForFormat(ImageFormat format) {
 		switch (format) {
 		case ImageFormat::RGB8_SRGB:
@@ -76,8 +103,10 @@ namespace PXTEngine {
 		uint32_t height = 0;
 		uint16_t channels = 0;
 		ImageFormat format = RGBA8_LINEAR;
+		ImageType type = TEXTURE_2D;
 		ImageFiltering filtering = ImageFiltering::Linear;
 		ImageFlags flags = ImageFlags::None;
+		CubeMapLayout cubeMapLayout = CubeMapLayout::LAYOUT_1x6;
 
 		ImageInfo() = default;
 		ImageInfo(const uint32_t width, const uint32_t height, const uint16_t channels, 

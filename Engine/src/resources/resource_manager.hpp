@@ -1,7 +1,10 @@
 #pragma once
 
 #include "core/pch.hpp"
+#include "core/layer/layer.hpp"
+#include "core/filesystem.hpp"
 #include "resources/resource.hpp"
+#include "resources/importers/resource_importer.hpp"
 
 namespace PXTEngine {
 
@@ -13,9 +16,9 @@ namespace PXTEngine {
 	 *
 	 * @brief Manages resources in the engine, allowing for retrieval and storage of resources.
 	 */
-	class ResourceManager {
+	class ResourceManager : public Layer {
 	public:
-		ResourceManager() = default;
+		ResourceManager();
 		~ResourceManager();
 
 		/**
@@ -63,10 +66,19 @@ namespace PXTEngine {
 		 */
 		void foreach(const std::function<void(const Shared<Resource>&)>& function);
 
+		void onUpdateUi(FrameInfo& frameInfo) override;
+
 		static Shared<Material> defaultMaterial;
 	          
 	private:
 	    std::unordered_map<ResourceId, Shared<Resource>> m_resources;
 		std::unordered_map<std::string, ResourceId> m_aliases;
+
+		ResourceImporter m_resourceImporter{};
+
+		bool m_isImportingResource = false;
+		std::string m_currentlyImportingResourcePath = "";
+		ImporterEntry* m_currentImporterEntry = nullptr;
+		Unique<ResourceInfo> m_currentImportResourceInfo = nullptr;
 	};
 }

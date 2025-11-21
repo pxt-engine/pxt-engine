@@ -1,4 +1,5 @@
 #include "graphics/render_systems/render_layer.hpp"
+#include "ui/widgets/space.hpp"
 
 #include "utils/vk_enum_str.h"
 
@@ -553,7 +554,7 @@ namespace PXTEngine {
 			"If changes were made to the %s shaders\n(prior of switching render type), you need to reload them!",
 			m_isRaytracingEnabled ? "Raytracing" : "Rasterization");
 
-		ImGui::Dummy(ImVec2(0.0f, 10.0f));
+		UI::Space::render(0.0, 10.0);
 
 		if (m_isRaytracingEnabled) {
 			m_rayTracingRenderSystem->updateUi();

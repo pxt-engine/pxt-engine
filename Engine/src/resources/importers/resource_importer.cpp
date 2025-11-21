@@ -1,24 +1,13 @@
 #include "resources/importers/resource_importer.hpp"
-
 #include "resources/resource.hpp"
-#include "resources/importers/texture_importer.hpp"
-#include "resources/importers/mesh_importer.hpp"
 
 namespace PXTEngine {
-
-    namespace {
-        using ResourceImportFunction = std::function<Shared<Resource>(
-            ResourceManager&,
-            const std::filesystem::path,
-            ResourceInfo* resourceInfo
-        )>;
-
-        std::unordered_map<std::string, ResourceImportFunction> extensionToImportFunction = {
-            {".png", TextureImporter::import},
-            {".jpg", TextureImporter::import},
-            {".jpeg", TextureImporter::import},
-            {".obj", MeshImporter::importObj}
-        };
+    ImporterEntry* ResourceImporter::getImporterEntry(const std::string& extension) {
+        auto it = m_extensionToImporterHandler.find(extension);
+        if (it != m_extensionToImporterHandler.end()) {
+            return &it->second;
+        }
+        return nullptr;
     }
 
     Shared<Resource> ResourceImporter::import(ResourceManager& rm, const std::filesystem::path& filePath,
@@ -26,12 +15,15 @@ namespace PXTEngine {
 
         std::string extension = filePath.extension().string();
 
-        auto it = extensionToImportFunction.find(extension);
+		ImporterEntry* entry = getImporterEntry(extension);
 
-        if (it == extensionToImportFunction.end()) {
-            throw std::runtime_error("Unsupported file extension: " + extension);
+        if (!entry) {
+			FileSystem::openErrorModal("Unsupported file format: " + extension + 
+                " (THIS SHOULD NOT BE CALLED, ResourceManager should handle it before import");
+			// TODO: use a proper error handling mechanism, like a Result<T> type
+            return nullptr;
         }
 
-        return it->second(rm, filePath, resourceInfo);
+        return entry->importFunction(rm, filePath, resourceInfo);
     }
 }

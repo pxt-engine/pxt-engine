@@ -1,10 +1,11 @@
 #include "resources/resource_manager.hpp"
-
-#include "resources/importers/resource_importer.hpp"
+#include "ui/widgets/space.hpp"
 
 namespace PXTEngine {
 
 	Shared<Material> ResourceManager::defaultMaterial = nullptr;
+
+	ResourceManager::ResourceManager() : Layer("ResourceManager") {}
 
 	ResourceManager::~ResourceManager() {
 		defaultMaterial = nullptr;
@@ -26,7 +27,7 @@ namespace PXTEngine {
 		const auto filePath = std::filesystem::path(alias);
 
 		try {
-			auto importedResource = ResourceImporter::import(*this, filePath, resourceInfo);
+			auto importedResource = m_resourceImporter.import(*this, filePath, resourceInfo);
 
 			add(importedResource, alias);
 
@@ -51,5 +52,75 @@ namespace PXTEngine {
 		for (const auto& resource : m_resources | std::views::values) {
 			function(resource);
 		}
+	}
+
+	void ResourceManager::onUpdateUi(FrameInfo& frameInfo) {
+		// probably call ui code for imports and asset browser?
+		// Asset browser could be a "view" class of all resources given
+		// by the resource manager
+		
+		// create import window
+		ImGui::Begin("Import");
+
+		if (ImGui::Button("Select File")) {
+			m_currentlyImportingResourcePath = FileSystem::openFileDialog();
+
+			if (!m_currentlyImportingResourcePath.empty()) {
+				std::string extension = m_currentlyImportingResourcePath.substr(
+					m_currentlyImportingResourcePath.find_last_of('.'));
+
+				ImporterEntry* entry = m_resourceImporter.getImporterEntry(extension);
+				if (!entry) { // for now only error is unsupported format
+					// TODO: use a proper error handling mechanism, like a Result<T> type
+					FileSystem::openErrorModal("Unsupported file format: " + extension);
+				}
+				else {
+					m_currentImporterEntry = entry;
+					m_currentImportResourceInfo.reset(
+						m_currentImporterEntry->infoConstructor()
+					);
+					m_isImportingResource = true;
+				}
+			}
+		}
+
+		if (m_isImportingResource) {
+			// ui stuff
+			ImGui::Text("Importing: %s", m_currentlyImportingResourcePath.c_str());
+
+			m_currentImporterEntry->uiFunction(m_currentImportResourceInfo.get());
+
+			UI::Space::render(0.0, 15.0);
+
+			if (ImGui::Button("Import")) {
+				// try catch may be unnecessary in the future
+				// we dont know yet if we will have exceptions here
+				// or only ui error messages.
+				try {
+					std::string filename = m_currentlyImportingResourcePath.substr(
+						m_currentlyImportingResourcePath.find_last_of("/\\") + 1);
+
+					auto importedResource = m_resourceImporter.import(*this, m_currentlyImportingResourcePath, m_currentImportResourceInfo.get());
+					
+					if (!importedResource) {
+						m_isImportingResource = false;
+						return;
+					}
+					
+					importedResource->alias = filename;
+					add(importedResource, importedResource->alias);
+
+					m_isImportingResource = false;
+
+					PXT_INFO("Imported resource: {}\n", importedResource->alias.c_str());
+				}
+				catch (const std::exception& e) {
+					m_isImportingResource = false;
+					PXT_ERROR("Failed to import resource: {}\n", e.what());
+				}
+			}
+		}
+
+		ImGui::End();
 	}
 }

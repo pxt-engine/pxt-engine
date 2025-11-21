@@ -203,8 +203,8 @@ namespace PXTEngine {
 				if (!sceneName.empty()) {
 					scene.setName(sceneName);
 
-					auto& rm = Application::get().getResourceManager();
-					SceneSerializer serializer(&scene, &rm);
+					auto rm = Application::get().getResourceManager();
+					SceneSerializer serializer(&scene, rm);
 					serializer.serialize(SCENES_PATH + sceneName + ".pxtscene");
 					PXT_INFO("Saving scene with name: {}\n", sceneName);
 				}

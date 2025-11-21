@@ -1,7 +1,6 @@
 #pragma once
 
 #include "core/pch.hpp"
-#include "core/buffer.hpp"
 #include "resources/types/image.hpp"
 #include "graphics/context/context.hpp"
 
@@ -71,7 +70,7 @@ namespace PXTEngine {
 	 */
 	class VulkanImage : public Image {
 	public:
-		VulkanImage(Context& context, const ImageInfo& info, const Buffer& buffer);
+		VulkanImage(Context& context, const ImageInfo& info, const std::span<uint8_t> buffer);
 		VulkanImage(Context& context, const VkImageCreateInfo& imageInfo, VkMemoryPropertyFlags memoryFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
 		~VulkanImage() override;
