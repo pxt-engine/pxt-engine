@@ -5,6 +5,8 @@
 
 namespace pxt {
 
+    using EventCallbackFunction = std::function<void(core::Event&)>;
+
     /**
      * @struct WindowData
      * @brief Holds metadata about the window such as dimensions, title, and event handling.
@@ -16,7 +18,7 @@ namespace pxt {
 		uint32_t height;
         bool frameBufferResized;
 
-        std::function<void(core::Event&)> eventCallback;
+        EventCallbackFunction eventCallback;
 
         /**
          * @brief Constructs WindowData with default or provided values.
@@ -64,7 +66,7 @@ namespace pxt {
          * @brief Sets the event callback function for handling window events.
          * @param callback The function to handle events.
          */
-        void setEventCallback(const std::function<void(core::Event&)>& callback) {
+        void setEventCallback(const EventCallbackFunction& callback) {
             m_data.eventCallback = callback;
         }
 
