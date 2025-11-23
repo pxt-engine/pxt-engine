@@ -55,7 +55,7 @@ struct std::hash<pxt::Mesh::Vertex> {
     size_t operator()(pxt::Mesh::Vertex const& vertex) const noexcept {
         size_t seed = 0;
 
-        pxt::hashCombine(seed, vertex.position, vertex.normal, vertex.tangent, vertex.uv);
+        pxt::utils::hashCombine(seed, vertex.position, vertex.normal, vertex.tangent, vertex.uv);
         return seed;
     }
 };

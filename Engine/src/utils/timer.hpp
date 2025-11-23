@@ -2,7 +2,7 @@
 
 #include "core/pch.hpp"
 
-namespace pxt {
+namespace pxt::utils {
 
 	class ProfilingTimer {
 	public:

@@ -51,7 +51,7 @@
 
 // Profiling macros
 #if defined(PXT_ENABLE_PROFILING)
-#define PXT_PROFILE(name) ProfilingTimer timer##__LINE__(name)
+#define PXT_PROFILE(name) utils::ProfilingTimer timer##__LINE__(name)
 #define PXT_PROFILE_FN() PXT_PROFILE(__FUNCTION__)
 #else
 #define PXT_PROFILE(name)
