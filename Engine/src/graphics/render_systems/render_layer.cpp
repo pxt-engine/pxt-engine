@@ -3,7 +3,7 @@
 
 #include "utils/vk_enum_str.h"
 
-namespace PXTEngine {
+namespace pxt {
 	RenderLayer::RenderLayer(Context& context, Renderer& renderer, 
 			Shared<DescriptorAllocatorGrowable> descriptorAllocator, 
 			TextureRegistry& textureRegistry, MaterialRegistry& materialRegistry, 
@@ -554,7 +554,7 @@ namespace PXTEngine {
 			"If changes were made to the %s shaders\n(prior of switching render type), you need to reload them!",
 			m_isRaytracingEnabled ? "Raytracing" : "Rasterization");
 
-		UI::Space::render(0.0, 10.0);
+		ui::Space::render(0.0, 10.0);
 
 		if (m_isRaytracingEnabled) {
 			m_rayTracingRenderSystem->updateUi();

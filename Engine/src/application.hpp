@@ -17,7 +17,7 @@
 #include "resources/types/material.hpp"
 #include "scene/scene.hpp"
 
-namespace PXTEngine {
+namespace pxt {
 
     class Application {
     public:
@@ -54,37 +54,37 @@ namespace PXTEngine {
 
         // create the layer on the spot and push it
 		template<typename TLayer, typename ... Args>
-        requires(std::is_base_of_v<Layer, TLayer>)
+        requires(std::is_base_of_v<core::Layer, TLayer>)
         TLayer* pushLayer(Args&& ... args) {
             return m_layerStack.pushLayer(std::move(createUnique<TLayer>(std::forward<Args>(args)...)));
         }
 
         // push an already created layer
         template<typename TLayer>
-        requires(std::is_base_of_v<Layer, TLayer>)
+        requires(std::is_base_of_v<core::Layer, TLayer>)
         TLayer* pushLayer(Unique<TLayer> layer) {
             return m_layerStack.pushLayer(std::move(layer));
         }
 
         // create the overlay on the spot and push it
         template<typename TLayer, typename ... Args>
-        requires(std::is_base_of_v<Layer, TLayer>)
+        requires(std::is_base_of_v<core::Layer, TLayer>)
         TLayer* pushOverlay(Args&& ... args) {
             return m_layerStack.pushOverlay(std::move(createUnique<TLayer>(std::forward<Args>(args)...)));
         }
 
         // push an already created overlay
         template<typename TLayer>
-        requires(std::is_base_of_v<Layer, TLayer>)
+        requires(std::is_base_of_v<core::Layer, TLayer>)
         TLayer* pushOverlay(Unique<TLayer> overlay) {
             return m_layerStack.pushOverlay(std::move(overlay));
         }
 
-        void popLayer(Layer& layer) {
+        void popLayer(core::Layer& layer) {
             m_layerStack.popLayer(layer);
         }
 
-        void popOverlay(Layer& overlay) {
+        void popOverlay(core::Layer& overlay) {
             m_layerStack.popOverlay(overlay);
         }
 
@@ -95,7 +95,7 @@ namespace PXTEngine {
         void createDefaultResources();
         void registerResources();
 
-        void onEvent(Event& event);
+        void onEvent(core::Event& event);
         bool isRunning();
 		void updateCamera(Camera& camera);
 
@@ -106,7 +106,7 @@ namespace PXTEngine {
 
         Renderer m_renderer{m_window, m_context};
 
-        LayerStack m_layerStack{};
+        core::LayerStack m_layerStack{};
         RenderLayer* m_renderLayerPtr = nullptr;
         UiRenderLayer* m_uiRenderLayerPtr = nullptr;
         ResourceManager* m_resourceManagerPtr = nullptr;

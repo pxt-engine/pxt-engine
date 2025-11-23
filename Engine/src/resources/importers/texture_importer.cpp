@@ -6,7 +6,7 @@
 
 #include <stb_image.h>
 
-namespace PXTEngine {
+namespace pxt {
 
 	Shared<Image> TextureImporter::import(ResourceManager& rm, const std::filesystem::path& filePath,
 		ResourceInfo* resourceInfo) {
@@ -101,11 +101,11 @@ namespace PXTEngine {
 		}
 
 		int currentType = static_cast<int>(imageInfo->type);
-		UI::Dropdown::render("Image Type", currentType, std::span(s_imageTypeNames));
+		ui::Dropdown::render("Image Type", currentType, std::span(s_imageTypeNames));
 		imageInfo->type = static_cast<ImageType>(currentType);
 
 		int currentFormat = static_cast<int>(imageInfo->format);
-		UI::Dropdown::render("Image Format", currentFormat, std::span(s_imageFormatNames));
+		ui::Dropdown::render("Image Format", currentFormat, std::span(s_imageFormatNames));
 		imageInfo->format = static_cast<ImageFormat>(currentFormat);
 	}
 }

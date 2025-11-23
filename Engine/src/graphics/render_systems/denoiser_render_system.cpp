@@ -1,6 +1,6 @@
 #include "graphics/render_systems/denoiser_render_system.hpp"
 
-namespace PXTEngine {
+namespace pxt {
 
     // Struct for push constants, if needed
     struct DenoiserPushConstantData {

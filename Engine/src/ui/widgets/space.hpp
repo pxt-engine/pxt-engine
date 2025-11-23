@@ -2,7 +2,7 @@
 
 #include "core/pch.hpp"
 
-namespace PXTEngine::UI {
+namespace pxt::ui {
 	class Space {
 	public:
 		static void render(float width = 0.0, float height = 0.0);

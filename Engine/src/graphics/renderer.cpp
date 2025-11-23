@@ -1,6 +1,6 @@
 #include "graphics/renderer.hpp"
 
-namespace PXTEngine {
+namespace pxt {
 
     Renderer::Renderer(Window& window, Context& context) : m_window{window}, m_context{context} {
         recreateSwapChain();

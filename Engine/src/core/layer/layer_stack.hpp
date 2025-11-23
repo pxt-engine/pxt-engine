@@ -4,7 +4,7 @@
 #include "core/layer/layer.hpp"
 #include "graphics/frame_info.hpp"
 
-namespace PXTEngine {
+namespace pxt::core {
 	class LayerStack {
 	public:
 		LayerStack() = default;

@@ -2,7 +2,7 @@
 
 #include "core/pch.hpp"
 
-namespace PXTEngine {
+namespace pxt {
 
     namespace {
 		constexpr uint32_t ORTHO_LEFT = 0;

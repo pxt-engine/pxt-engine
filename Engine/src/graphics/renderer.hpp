@@ -7,7 +7,7 @@
 #include "graphics/render_pass.hpp"
 #include "graphics/frame_buffer.hpp"
 
-namespace PXTEngine {
+namespace pxt {
 
     /**
      * @class Renderer

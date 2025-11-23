@@ -6,7 +6,7 @@
 #include <stb_image.h>
 #include <stdexcept>
 
-namespace PXTEngine {
+namespace pxt {
     Unique<VulkanSkybox> VulkanSkybox::create(const std::array<std::string, 6>& paths) {
         Context& context = Application::get().getContext();
 

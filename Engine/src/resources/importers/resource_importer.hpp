@@ -6,7 +6,7 @@
 #include "resources/importers/texture_importer.hpp"
 #include "resources/importers/mesh_importer.hpp"
 
-namespace PXTEngine {
+namespace pxt {
 
 	class ResourceManager; // forward declaration
 

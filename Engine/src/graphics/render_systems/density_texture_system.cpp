@@ -1,6 +1,6 @@
 #include "graphics/render_systems/density_texture_system.hpp"
 
-namespace PXTEngine {
+namespace pxt {
 
     // Push constants to control noise generation in the shader
     struct alignas(16) DensityPushConstants {

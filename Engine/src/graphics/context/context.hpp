@@ -6,7 +6,7 @@
 #include "graphics/context/physical_device.hpp"
 #include "graphics/context/logical_device.hpp"
 
-namespace PXTEngine {
+namespace pxt {
 
 	/**
 	 * @class Context

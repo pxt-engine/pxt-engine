@@ -2,7 +2,7 @@
  
 #include "core/pch.hpp"
  
-namespace PXTEngine {
+namespace pxt {
  
     /**
      * @brief Combine multiple hash values into a single hash value

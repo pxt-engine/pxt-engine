@@ -5,7 +5,7 @@
 
 #include <random>
 
-using namespace PXTEngine;
+using namespace pxt;
 
 class App : public Application {
 public:
@@ -388,6 +388,6 @@ public:
     
 };
 
-PXTEngine::Application* PXTEngine::initApplication() {
+pxt::Application* pxt::initApplication() {
     return new App();
 }

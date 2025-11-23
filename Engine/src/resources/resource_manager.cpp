@@ -1,7 +1,7 @@
 #include "resources/resource_manager.hpp"
 #include "ui/widgets/space.hpp"
 
-namespace PXTEngine {
+namespace pxt {
 
 	Shared<Material> ResourceManager::defaultMaterial = nullptr;
 
@@ -63,7 +63,7 @@ namespace PXTEngine {
 		ImGui::Begin("Import");
 
 		if (ImGui::Button("Select File")) {
-			m_currentlyImportingResourcePath = FileSystem::openFileDialog();
+			m_currentlyImportingResourcePath = core::FileSystem::openFileDialog();
 
 			if (!m_currentlyImportingResourcePath.empty()) {
 				std::string extension = m_currentlyImportingResourcePath.substr(
@@ -72,7 +72,7 @@ namespace PXTEngine {
 				ImporterEntry* entry = m_resourceImporter.getImporterEntry(extension);
 				if (!entry) { // for now only error is unsupported format
 					// TODO: use a proper error handling mechanism, like a Result<T> type
-					FileSystem::openErrorModal("Unsupported file format: " + extension);
+					core::FileSystem::openErrorModal("Unsupported file format: " + extension);
 				}
 				else {
 					m_currentImporterEntry = entry;
@@ -90,7 +90,7 @@ namespace PXTEngine {
 
 			m_currentImporterEntry->uiFunction(m_currentImportResourceInfo.get());
 
-			UI::Space::render(0.0, 15.0);
+			ui::Space::render(0.0, 15.0);
 
 			if (ImGui::Button("Import")) {
 				// try catch may be unnecessary in the future

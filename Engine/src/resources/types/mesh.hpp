@@ -4,7 +4,7 @@
 #include "resources/resource.hpp"
 #include "utils/hash_func.hpp"
 
-namespace PXTEngine {
+namespace pxt {
 
 	/**
 	 * @struct MeshInfo
@@ -51,11 +51,11 @@ namespace PXTEngine {
 }
 
 template <>
-struct std::hash<PXTEngine::Mesh::Vertex> {
-    size_t operator()(PXTEngine::Mesh::Vertex const& vertex) const noexcept {
+struct std::hash<pxt::Mesh::Vertex> {
+    size_t operator()(pxt::Mesh::Vertex const& vertex) const noexcept {
         size_t seed = 0;
 
-        PXTEngine::hashCombine(seed, vertex.position, vertex.normal, vertex.tangent, vertex.uv);
+        pxt::hashCombine(seed, vertex.position, vertex.normal, vertex.tangent, vertex.uv);
         return seed;
     }
 };

@@ -6,7 +6,7 @@
 
 #include <shaderc/shaderc.hpp>
 
-namespace PXTEngine
+namespace pxt
 {
 
 	class VulkanShader

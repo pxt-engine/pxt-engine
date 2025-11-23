@@ -5,7 +5,7 @@
 #include "graphics/descriptors/descriptor_pool.hpp"
 
 
-namespace PXTEngine {
+namespace pxt {
     class DescriptorWriter {
     public:
 

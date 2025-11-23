@@ -3,7 +3,7 @@
 #include "core/pch.hpp"
 #include "resources/types/mesh.hpp"
 
-namespace PXTEngine {
+namespace pxt {
 
 	class ResourceManager; // forward declaration
 

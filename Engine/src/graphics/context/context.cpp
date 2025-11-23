@@ -1,6 +1,6 @@
 #include "graphics/context/context.hpp"
 
-namespace PXTEngine {
+namespace pxt {
 
     Context::Context(Window& window)
         : m_window(window),

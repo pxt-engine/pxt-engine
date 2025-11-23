@@ -3,7 +3,7 @@
 #include "scene/ecs/entity.hpp"
 #include "graphics/resources/vk_mesh.hpp"
 
-namespace PXTEngine {
+namespace pxt {
 
     struct ShadowMapPushConstantData {
 		// it will be modified to translate the object to the light position (i think so?)

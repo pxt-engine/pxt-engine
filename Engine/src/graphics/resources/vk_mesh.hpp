@@ -5,7 +5,7 @@
 #include "resources/types/mesh.hpp"
 #include "graphics/resources/vk_buffer.hpp"
 
-namespace PXTEngine {
+namespace pxt {
 
     class VulkanMesh : public Mesh {
     public:

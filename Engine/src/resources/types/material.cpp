@@ -2,7 +2,7 @@
 
 #include "resources/resource_manager.hpp"
 
-namespace PXTEngine {
+namespace pxt {
     Material::Material(
         const glm::vec4& albedoColor,
         const Shared<Image>& albedoMap,

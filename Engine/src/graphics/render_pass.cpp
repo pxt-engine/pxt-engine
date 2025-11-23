@@ -1,6 +1,6 @@
 #include "graphics/render_pass.hpp"
 
-namespace PXTEngine {
+namespace pxt {
     RenderPass::RenderPass(Context& context, const VkRenderPassCreateInfo& createInfo,
         const VkAttachmentDescription colorAttachmentDescription,
         const VkAttachmentDescription depthAttachmentDescription,

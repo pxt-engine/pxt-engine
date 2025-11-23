@@ -1,6 +1,6 @@
 #include "graphics/resources/texture_registry.hpp"
 
-namespace PXTEngine {
+namespace pxt {
 
 	TextureRegistry::TextureRegistry(Context& context)
 		: m_context(context) {

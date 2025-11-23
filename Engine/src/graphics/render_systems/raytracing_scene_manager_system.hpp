@@ -8,7 +8,7 @@
 #include "graphics/descriptors/descriptors.hpp"
 #include "graphics/swap_chain.hpp"
 
-namespace PXTEngine {
+namespace pxt {
 	struct alignas(16) MeshInstanceData {
 		VkDeviceAddress vertexBufferAddress;		// offset 0, size 8
 		VkDeviceAddress indexBufferAddress;			// offset 8, size 8

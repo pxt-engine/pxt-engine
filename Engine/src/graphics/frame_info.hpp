@@ -4,7 +4,7 @@
 #include "scene/camera.hpp"
 #include "scene/scene.hpp"
 
-namespace PXTEngine {
+namespace pxt {
     struct PointLight {
         glm::vec4 position{};
         glm::vec4 color{}; // w is intensity

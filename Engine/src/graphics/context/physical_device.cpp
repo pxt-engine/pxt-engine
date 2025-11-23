@@ -1,6 +1,6 @@
 #include "graphics/context/physical_device.hpp"
 
-namespace PXTEngine {
+namespace pxt {
 
 	/**
 	 * @struct DeviceScore

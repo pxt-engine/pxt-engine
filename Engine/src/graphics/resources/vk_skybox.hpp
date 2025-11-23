@@ -5,7 +5,7 @@
 #include "graphics/descriptors/descriptors.hpp"
 #include "scene/skybox.hpp"
 
-namespace PXTEngine {
+namespace pxt {
 
 	class VulkanSkybox : public Skybox {
 	public:

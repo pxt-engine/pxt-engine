@@ -3,7 +3,7 @@
 #include "core/events/event.hpp"
 #include "graphics/frame_info.hpp"
 
-namespace PXTEngine {
+namespace pxt::core {
 	class Layer {
 	public:
 		Layer(const std::string& name = "Unnamed-Layer");

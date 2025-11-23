@@ -1,6 +1,6 @@
 #include "graphics/resources/vk_image.hpp"
 
-namespace PXTEngine {
+namespace pxt {
 	VulkanImage::VulkanImage(Context& context, const ImageInfo& info, const std::span<uint8_t> buffer) :
 	m_context(context),
 	m_info(info) {

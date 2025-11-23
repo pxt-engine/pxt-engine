@@ -6,7 +6,7 @@
 #include "core/input/key_code.hpp"
 #include "core/input/mapper/glfw_input_mapper.hpp"
 
-namespace PXTEngine {
+namespace pxt::core {
 
     /**
      * @class Input

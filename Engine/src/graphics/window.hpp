@@ -1,10 +1,9 @@
 #pragma once
 
 #include "core/pch.hpp"
+#include "core/events/event.hpp"
 
-namespace PXTEngine {
-
-    class Event;
+namespace pxt {
 
     /**
      * @struct WindowData
@@ -17,7 +16,7 @@ namespace PXTEngine {
 		uint32_t height;
         bool frameBufferResized;
 
-        std::function<void(Event&)> eventCallback;
+        std::function<void(core::Event&)> eventCallback;
 
         /**
          * @brief Constructs WindowData with default or provided values.
@@ -65,7 +64,7 @@ namespace PXTEngine {
          * @brief Sets the event callback function for handling window events.
          * @param callback The function to handle events.
          */
-        void setEventCallback(const std::function<void(Event&)>& callback) {
+        void setEventCallback(const std::function<void(core::Event&)>& callback) {
             m_data.eventCallback = callback;
         }
 

@@ -3,7 +3,7 @@
 #include "application.hpp"
 
 
-namespace PXTEngine {
+namespace pxt {
 
 	Unique<Texture2D> Texture2D::create(const ImageInfo& info, const std::span<uint8_t> buffer) {
 		Context& context = Application::get().getContext();

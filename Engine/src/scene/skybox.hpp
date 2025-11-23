@@ -2,7 +2,7 @@
 
 #include "core/pch.hpp"
 
-namespace PXTEngine {
+namespace pxt {
 
 	class Skybox {
 	public:

@@ -6,7 +6,7 @@
 #include "graphics/descriptors/descriptors.hpp"
 #include "graphics/resources/texture2d.hpp"
 
-namespace PXTEngine {
+namespace pxt {
 
 	/**
 	 * @class TextureRegistry

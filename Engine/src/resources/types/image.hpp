@@ -3,7 +3,7 @@
 #include "core/pch.hpp"
 #include "resources/resource.hpp"
 
-namespace PXTEngine {
+namespace pxt {
 
 	/**
 	 * @enum ImageFormat

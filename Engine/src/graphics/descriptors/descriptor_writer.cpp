@@ -1,6 +1,6 @@
 #include "graphics/descriptors/descriptor_writer.hpp"
 
-namespace PXTEngine {    
+namespace pxt {    
     DescriptorWriter::DescriptorWriter(Context& context, DescriptorSetLayout& setLayout)
         : m_context(context), m_setLayout(setLayout) {}
 

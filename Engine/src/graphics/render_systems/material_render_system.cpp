@@ -3,7 +3,7 @@
 #include "graphics/resources/vk_mesh.hpp"
 #include "scene/ecs/entity.hpp"
 
-namespace PXTEngine {
+namespace pxt {
 
     struct MaterialPushConstantData {
         glm::mat4 modelMatrix{1.f};

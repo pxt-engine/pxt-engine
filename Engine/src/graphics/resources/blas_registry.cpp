@@ -1,6 +1,6 @@
 #include "graphics/resources/blas_registry.hpp"
 
-namespace PXTEngine {
+namespace pxt {
     BLASRegistry::BLASRegistry(Context& context) : m_context(context) {}
 
     BLASRegistry::~BLASRegistry() {

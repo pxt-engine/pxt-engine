@@ -14,7 +14,7 @@
 #include "scene/scene.hpp"
 #include "scene/environment.hpp"
 
-namespace PXTEngine {
+namespace pxt {
 
     class RayTracingRenderSystem {
     public:

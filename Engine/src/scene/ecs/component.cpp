@@ -2,7 +2,7 @@
 
 #include "application.hpp"  
 
-namespace PXTEngine
+namespace pxt
 {
 	// --- MaterialComponent ---
 	MaterialComponent::MaterialComponent()

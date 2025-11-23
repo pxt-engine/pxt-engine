@@ -1,6 +1,6 @@
 #include "core/layer/layer_stack.hpp"
 
-namespace PXTEngine {
+namespace pxt::core {
 	// TODO: maybe orderer destruction of layers here? see later
 	LayerStack::~LayerStack() {
 		m_layers.clear();

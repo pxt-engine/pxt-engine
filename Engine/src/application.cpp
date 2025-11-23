@@ -10,7 +10,7 @@
 
 #include "tracy/Tracy.hpp"
 
-namespace PXTEngine {
+namespace pxt {
 
     Application* Application::m_instance = nullptr;
 
@@ -28,7 +28,7 @@ namespace PXTEngine {
 		// load default and scene assets and register them in the resource registry
         createDefaultResources();
         {
-            PXT_PROFILE("PXTEngine::Application::loadScene");
+            PXT_PROFILE("pxt::Application::loadScene");
             loadScene();
         }
         registerResources();
@@ -284,10 +284,10 @@ namespace PXTEngine {
         return !m_window.shouldClose() && m_running;
     }
 
-    void Application::onEvent(Event& event) {
-        EventDispatcher dispatcher(event);
+    void Application::onEvent(core::Event& event) {
+        core::EventDispatcher dispatcher(event);
 
-        dispatcher.dispatch<WindowCloseEvent>([this](auto& event) {
+        dispatcher.dispatch<core::WindowCloseEvent>([this](auto& event) {
             m_running = false;
         });
         // TODO: add window resize event and then refactor resizing code in Renderer and RenderLayer

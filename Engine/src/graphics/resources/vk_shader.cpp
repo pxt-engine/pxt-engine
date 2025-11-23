@@ -15,7 +15,7 @@ inline std::string get_cwd() {
 	return cwdStr;
 }
 
-namespace PXTEngine
+namespace pxt
 {
 	inline bool IsSPIR_V(const std::string_view& fileName)
 	{

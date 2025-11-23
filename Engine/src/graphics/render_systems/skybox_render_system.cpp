@@ -1,6 +1,6 @@
 #include "graphics/render_systems/skybox_render_system.hpp"
 
-namespace PXTEngine {
+namespace pxt {
 
     // No push constants needed for skybox, as it doesn't transform based on a model matrix
     // It's usually rendered at the camera's position.

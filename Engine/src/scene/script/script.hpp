@@ -3,7 +3,7 @@
 #include "core/pch.hpp"
 #include "scene/ecs/entity.hpp"
 
-namespace PXTEngine {
+namespace pxt {
 
     /**
      * @brief Base class for creating custom scripts to be attached to entities in a scene.

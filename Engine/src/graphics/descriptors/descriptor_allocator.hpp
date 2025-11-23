@@ -4,7 +4,7 @@
 #include "graphics/descriptors/descriptor_pool.hpp"
 #include "graphics/descriptors/descriptor_set_layout.hpp"
 
-namespace PXTEngine {
+namespace pxt {
 	/**
 	 * @brief Represents a ratio for a specific descriptor type used when allocating descriptor pools.
 	 *

@@ -5,7 +5,7 @@
 
 #include <typeindex>
 
-namespace PXTEngine {
+namespace pxt {
 
 	using SerializerFunction = std::function<void(Entity, YAML::Emitter&)>;
 
@@ -247,7 +247,7 @@ namespace PXTEngine {
 				name = nameComponentNode.as<std::string>();
 			}
 
-			Entity entity = m_scene->createEntity(name, UUID(uuid));
+			Entity entity = m_scene->createEntity(name, core::UUID(uuid));
 
 			// Deserialize TransformComponent
 			if (auto transformComponentNode = entityNode["TransformComponent"]) {

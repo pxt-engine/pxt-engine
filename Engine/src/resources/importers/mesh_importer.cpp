@@ -6,7 +6,7 @@
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <tiny_obj_loader.h>
 
-namespace PXTEngine {
+namespace pxt {
 
 	Shared<Mesh> MeshImporter::importObj(ResourceManager& rm, const std::filesystem::path& filePath,
         ResourceInfo* resourceInfo) {

@@ -5,7 +5,7 @@
 #include "graphics/resources/vk_buffer.hpp"
 #include "graphics/resources/vk_mesh.hpp"
 
-namespace PXTEngine {
+namespace pxt {
 	struct BLAS {
 		VkAccelerationStructureKHR handle = VK_NULL_HANDLE;
 		VkAccelerationStructureBuildSizesInfoKHR buildSizes;
@@ -30,6 +30,6 @@ namespace PXTEngine {
 		Shared<BLAS> createBLAS(VulkanMesh& mesh);
 
 		Context& m_context;
-		std::unordered_map<UUID, Shared<BLAS>> m_blasRegistry;
+		std::unordered_map<core::UUID, Shared<BLAS>> m_blasRegistry;
 	};
 }

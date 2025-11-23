@@ -11,7 +11,7 @@
 #include "graphics/descriptors/descriptors.hpp"
 #include "graphics/render_pass.hpp"
 
-namespace PXTEngine {
+namespace pxt {
     class ShadowMapRenderSystem {
     public:
         ShadowMapRenderSystem(Context& context, Shared<DescriptorAllocatorGrowable> descriptorAllocator, DescriptorSetLayout& setLayout);

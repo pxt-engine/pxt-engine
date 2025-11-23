@@ -6,7 +6,7 @@
 #define ENABLE_RAYTRACING_EXT 1
 #endif
 
-namespace PXTEngine {
+namespace pxt {
 
     /* ------------------------ Local callback functions ------------------------ */
 

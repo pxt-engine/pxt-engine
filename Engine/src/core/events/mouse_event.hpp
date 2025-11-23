@@ -4,7 +4,7 @@
 #include "core/input/key_code.hpp"
 #include "core/events/event.hpp"
 
-namespace PXTEngine {
+namespace pxt::core {
 
     class MouseButtonEvent : public Event {
 	public:

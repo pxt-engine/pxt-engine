@@ -4,9 +4,9 @@
 #include "scene/ecs/entity.hpp"
 #include "scene/script/script.hpp"
 
-namespace PXTEngine {
+namespace pxt {
 
-    Entity Scene::createEntity(const std::string& name, UUID id) {
+    Entity Scene::createEntity(const std::string& name, core::UUID id) {
         Entity entity = { m_registry.create(), this };
 
         entity.add<IDComponent>(id);
@@ -17,7 +17,7 @@ namespace PXTEngine {
         return entity;
     }
 
-    Entity Scene::getEntity(UUID uuid) {
+    Entity Scene::getEntity(core::UUID uuid) {
         PXT_ASSERT(m_entityMap.contains(uuid), "Entity not found in Scene!");
 
         return { m_entityMap.at(uuid), this };

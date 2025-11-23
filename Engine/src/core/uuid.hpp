@@ -2,7 +2,7 @@
 
 #include "core/pch.hpp"
 
-namespace PXTEngine {
+namespace pxt::core {
 
     /**
      * @brief Enumeration representing the versions of UUID that can be generated.
@@ -38,9 +38,9 @@ namespace PXTEngine {
 	     * Parses a string in the format "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx".
 	     * If the string is not valid, the UUID will be initialized to zero.
 	     *
-	     * @param uuidString The string representation of the UUID.
+	     * @param UUIDString The string representation of the UUID.
 	     */
-        explicit UUID(const std::string& uuidString);
+        explicit UUID(const std::string& UUIDString);
 
 		bool operator==(const UUID& other) const {
 			return m_high == other.m_high && m_low == other.m_low;
@@ -83,30 +83,30 @@ namespace PXTEngine {
 	     */
         static UUID generateUUIDv7();
 
-        friend struct std::hash<PXTEngine::UUID>;
+        friend struct std::hash<UUID>;
     };
 }
 
 /**
- * @brief Specialization of std::hash for PXTEngine::UUID.
+ * @brief Specialization of std::hash for pxt::UUID.
  *
  * This allows UUIDs to be used as keys in unordered containers,
  * such as std::unordered_map and std::unordered_set.
  */
 template<>
-struct std::hash<PXTEngine::UUID> {
+struct std::hash<pxt::core::UUID> {
     /**
      * @brief Computes the hash for a given UUID.
      * Combines the hash values of the high and low 64-bit components.
      *
-     * @param uuid The UUID to be hashed.
+     * @param UUID The UUID to be hashed.
      * @return The hash value of the UUID as size_t.
      */
-    std::size_t operator()(const PXTEngine::UUID& uuid) const noexcept {
+    std::size_t operator()(const pxt::core::UUID& UUID) const noexcept {
         constexpr std::hash<uint64_t> hasher;
 
-        const uint64_t h1 = hasher(uuid.m_high);
-        const uint64_t h2 = hasher(uuid.m_low);
+        const uint64_t h1 = hasher(UUID.m_high);
+        const uint64_t h2 = hasher(UUID.m_low);
 
         return h1 ^ h2;
     }

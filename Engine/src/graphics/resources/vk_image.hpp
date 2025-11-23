@@ -4,7 +4,7 @@
 #include "resources/types/image.hpp"
 #include "graphics/context/context.hpp"
 
-namespace PXTEngine {
+namespace pxt {
 	static VkFormat pxtToVulkanImageFormat(const ImageFormat format) {
 		switch (format) {
 		case RGB8_LINEAR:

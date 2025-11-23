@@ -3,7 +3,7 @@
 #include "core/pch.hpp"
 #include "core/events/event.hpp"
 
-namespace PXTEngine {
+namespace pxt::core {
      
     class WindowCloseEvent : public Event {
     public:

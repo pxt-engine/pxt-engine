@@ -6,7 +6,7 @@
 // RenderPass Wrapper Class
 // mainly used to save the render pass creation info and the
 // resources linked to it
-namespace PXTEngine {
+namespace pxt {
     class RenderPass {
     public:
         RenderPass(Context& context, const VkRenderPassCreateInfo& createInfo,

@@ -4,7 +4,7 @@
 
 #include "core/input/key_code.hpp"
 
-namespace PXTEngine {
+namespace pxt::core {
 
     static KeyCode mapGLFWKey(int glfwKey) {
         switch (glfwKey) {

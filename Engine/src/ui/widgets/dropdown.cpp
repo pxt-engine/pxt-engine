@@ -1,6 +1,6 @@
 # include "ui/widgets/dropdown.hpp"
 
-namespace PXTEngine::UI {
+namespace pxt::ui {
 	void Dropdown::render(const char* label, int& currentItem, std::span<const char*> itemsName) {
 		if (ImGui::BeginCombo(label, itemsName[currentItem])) {
 			for (int n = 0; n < itemsName.size(); n++) {

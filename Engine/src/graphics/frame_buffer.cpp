@@ -1,6 +1,6 @@
 #include "graphics/frame_buffer.hpp"
 
-namespace PXTEngine {
+namespace pxt {
     FrameBuffer::FrameBuffer(Context& context,
         VkFramebufferCreateInfo& createInfo,
         std::string name,

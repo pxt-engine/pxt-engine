@@ -1,6 +1,6 @@
 #include "graphics/descriptors/descriptor_pool.hpp"
 
-namespace PXTEngine {
+namespace pxt {
     DescriptorPool::Builder& DescriptorPool::Builder::addPoolSize(VkDescriptorType descriptorType, uint32_t count) {
 		VkDescriptorPoolSize poolSize{};
 		poolSize.type = descriptorType;

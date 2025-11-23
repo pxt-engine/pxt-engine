@@ -1,6 +1,6 @@
 #include "graphics/descriptors/descriptor_allocator.hpp"
 
-namespace PXTEngine {
+namespace pxt {
 
 	DescriptorAllocatorGrowable::DescriptorAllocatorGrowable(Context& context, const uint32_t maxSets,
 		std::span<PoolSizeRatio> poolRatios, const float growthFactor, const uint32_t maxPools) :

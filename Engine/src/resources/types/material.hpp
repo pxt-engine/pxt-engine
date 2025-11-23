@@ -4,7 +4,7 @@
 #include "resources/resource.hpp"
 #include "resources/types/image.hpp"
 
-namespace PXTEngine {
+namespace pxt {
 
 	/**
 	 * @class Material

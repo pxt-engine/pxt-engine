@@ -10,7 +10,7 @@
 #include "scene/ecs/entity.hpp"
 #include "ui/widgets/space.hpp"
 
-namespace PXTEngine {
+namespace pxt {
 
 	struct ComponentUiInfo {
 		std::string name;
@@ -18,7 +18,7 @@ namespace PXTEngine {
 		std::function<void(Entity)> drawer;
 	};
 
-	class UiRenderLayer : public Layer {
+	class UiRenderLayer : public core::Layer {
 	public:
 		UiRenderLayer(Context& context, VkRenderPass renderPass);
 		~UiRenderLayer();
@@ -46,7 +46,7 @@ namespace PXTEngine {
 		Unique<DescriptorPool> m_imGuiPool{};
 
 		std::vector<ComponentUiInfo> m_componentUiRegistry;
-		UUID m_selectedEntityID; // currently selected entity in the inspector
+		core::UUID m_selectedEntityID; // currently selected entity in the inspector
 		bool m_isAnEntitySelected = false;
 		bool m_openSaveSceneDialog = false;
 
@@ -60,7 +60,7 @@ namespace PXTEngine {
 		void RegisterComponent(const std::string& name, std::function<void(T&)> uiFunction) {
 			m_componentUiRegistry.push_back({
 				name,
-				[=](PXTEngine::Entity entity) {
+				[=](pxt::Entity entity) {
 					if (entity.has<T>()) {
 						T& component = entity.get<T>();
 						if (ImGui::TreeNodeEx(name.c_str(), ImGuiTreeNodeFlags_DefaultOpen)) {
@@ -68,7 +68,7 @@ namespace PXTEngine {
 
 							ImGui::TreePop();
 						}
-						UI::Space::render(0.0f, 5.0f);
+						ui::Space::render(0.0f, 5.0f);
 					}
 				}
 			});

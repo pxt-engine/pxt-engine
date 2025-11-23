@@ -3,7 +3,7 @@
 #include "scene/ecs/component.hpp"
 #include "scene/ecs/entity.hpp"
 
-namespace PXTEngine {
+namespace pxt {
 	RayTracingSceneManagerSystem::RayTracingSceneManagerSystem(Context& context, MaterialRegistry& materialRegistry, 
 		BLASRegistry& blasRegistry, TextureRegistry& textureRegistry, Shared<DescriptorAllocatorGrowable> allocator)
 		: m_context(context), 

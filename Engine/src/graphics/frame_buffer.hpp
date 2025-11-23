@@ -7,7 +7,7 @@
 // FrameBuffer Wrapper Class
 // mainly used to save the FrameBuffer creation info and the
 // resources linked to it (attachments)
-namespace PXTEngine {
+namespace pxt {
     class FrameBuffer {
     public:
         FrameBuffer(Context& context,

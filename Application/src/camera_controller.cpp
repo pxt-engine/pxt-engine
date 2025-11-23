@@ -1,5 +1,7 @@
 #include "camera_controller.hpp"
 
+using namespace pxt::core;
+
 void CameraController::onUpdate(float deltaTime) {
     auto& transform = get<TransformComponent>();
 

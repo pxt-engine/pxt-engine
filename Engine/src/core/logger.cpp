@@ -5,7 +5,7 @@
 
 #include <string>
 
-namespace PXTEngine {
+namespace pxt::core {
 
 	Shared<spdlog::logger> Logger::s_logger;
 

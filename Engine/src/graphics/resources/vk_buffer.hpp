@@ -3,7 +3,7 @@
 #include "core/pch.hpp"
 #include "graphics/context/context.hpp"
 
-namespace PXTEngine {
+namespace pxt {
 
     /**
      * @brief A class representing a Vulkan buffer.

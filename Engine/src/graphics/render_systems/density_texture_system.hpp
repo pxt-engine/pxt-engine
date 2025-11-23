@@ -8,7 +8,7 @@
 #include "graphics/resources/vk_image.hpp"
 #include <graphics/resources/vk_buffer.hpp>
 
-namespace PXTEngine {
+namespace pxt {
 
     class DensityTextureRenderSystem {
     public:

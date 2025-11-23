@@ -7,17 +7,17 @@
 #include "scene/camera.hpp"       
            
 
-namespace PXTEngine
+namespace pxt
 {
 	struct IDComponent {
-		UUID uuid;
+		core::UUID uuid;
 
-		IDComponent(UUID uuid) : uuid(uuid) {}
+		IDComponent(core::UUID uuid) : uuid(uuid) {}
 		IDComponent(const IDComponent&) = default;
 
 		// Conversion operators
-		operator UUID& () { return uuid; }
-		operator const UUID& () const { return uuid; }
+		operator core::UUID& () { return uuid; }
+		operator const core::UUID& () const { return uuid; }
 	};
 
 	struct NameComponent {

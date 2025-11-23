@@ -3,7 +3,7 @@
 #include "core/pch.hpp"
 #include "graphics/context/context.hpp"
 
-namespace PXTEngine {
+namespace pxt {
 
 	struct ShaderGroupInfo {
 		VkRayTracingShaderGroupTypeKHR type;

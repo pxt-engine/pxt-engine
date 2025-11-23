@@ -1,6 +1,6 @@
 #include "graphics/resources/vk_buffer.hpp"
 
-namespace PXTEngine {
+namespace pxt {
 
     VkDeviceSize VulkanBuffer::getAlignment(VkDeviceSize instanceSize, VkDeviceSize minOffsetAlignment) {
         if (minOffsetAlignment > 0) {

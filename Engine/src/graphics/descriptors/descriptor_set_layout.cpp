@@ -1,6 +1,6 @@
 #include "graphics/descriptors/descriptor_set_layout.hpp"
 
-namespace PXTEngine {
+namespace pxt {
     DescriptorSetLayout::Builder& DescriptorSetLayout::Builder::addBinding(
         const uint32_t binding,
         const VkDescriptorType descriptorType,

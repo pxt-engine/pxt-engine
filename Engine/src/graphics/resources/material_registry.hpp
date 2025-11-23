@@ -8,7 +8,7 @@
 #include "graphics/resources/texture_registry.hpp"
 #include "graphics/swap_chain.hpp"
 
-namespace PXTEngine {
+namespace pxt {
 
 	/**
 	 * @struct MaterialData

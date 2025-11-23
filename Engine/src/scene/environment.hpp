@@ -3,7 +3,7 @@
 #include "core/pch.hpp"
 #include "scene/skybox.hpp"
 
-namespace PXTEngine {
+namespace pxt {
 
 	class Environment {
 	public:

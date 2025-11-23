@@ -1,6 +1,6 @@
 #include "graphics/context/logical_device.hpp"
 
-namespace PXTEngine {
+namespace pxt {
 
     LogicalDevice::LogicalDevice(Window& window, Instance& instance, Surface& surface, PhysicalDevice& physicalDevice)
 		: m_window{ window }, m_instance{ instance }, m_surface(surface), m_physicalDevice(physicalDevice) {

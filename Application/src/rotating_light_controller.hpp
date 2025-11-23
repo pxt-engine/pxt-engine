@@ -1,6 +1,6 @@
 #include "pxtengine.h"
 
-using namespace PXTEngine;
+using namespace pxt;
 
 class RotatingLightController : public Script {
 public:

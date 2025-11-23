@@ -5,7 +5,7 @@
 
 #include "scene/environment.hpp"
 
-namespace PXTEngine {
+namespace pxt {
 
     class Entity;
 
@@ -30,14 +30,14 @@ namespace PXTEngine {
 		 * @param id Optional UUID for the entity. If not provided, a new UUID is generated.
          * @return The created entity.
          */
-        Entity createEntity(const std::string& name = std::string(), UUID id = UUID());
+        Entity createEntity(const std::string& name = std::string(), core::UUID id = core::UUID());
         
         /**
          * @brief Retrieves an entity by its UUID.
-         * @param uuid The UUID of the entity.
+         * @param UUID The UUID of the entity.
          * @return The corresponding entity.
          */
-        Entity getEntity(UUID uuid);
+        Entity getEntity(core::UUID uuid);
         
         /**
          * @brief Destroys an entity and removes it from the scene.
@@ -82,7 +82,7 @@ namespace PXTEngine {
 
     private:
 		std::string m_name = "Unnamed-Scene";
-        std::unordered_map<UUID, entt::entity> m_entityMap;
+        std::unordered_map<core::UUID, entt::entity> m_entityMap;
         
         // The entity registry for managing components.
         entt::registry m_registry;

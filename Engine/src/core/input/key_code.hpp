@@ -1,6 +1,6 @@
 #pragma once
 
-namespace PXTEngine {
+namespace pxt::core {
 
     enum class KeyCode {
         Unknown,

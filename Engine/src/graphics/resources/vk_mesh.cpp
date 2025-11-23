@@ -2,7 +2,7 @@
 
 #include "application.hpp"
 
-namespace PXTEngine {
+namespace pxt {
 
     Unique<VulkanMesh> VulkanMesh::create(std::vector<Mesh::Vertex>& vertices, 
         std::vector<uint32_t>& indices) {

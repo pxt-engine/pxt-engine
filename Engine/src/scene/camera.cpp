@@ -1,6 +1,6 @@
 #include "scene/camera.hpp"
 
-namespace PXTEngine {
+namespace pxt {
 
     void Camera::setOrthographic() {
         m_projectionMatrix = glm::mat4{1.0f};

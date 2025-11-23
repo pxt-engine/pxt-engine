@@ -1,7 +1,7 @@
 #include "graphics/resources/cube_map.hpp"
 
 
-namespace PXTEngine {
+namespace pxt {
 	CubeMap::CubeMap(Context& context, const uint32_t size, const VkFormat format, const VkImageUsageFlags usageFlags)
 		: VulkanImage(context, {}, std::span<uint8_t>()), m_imageFormat(format), m_usageFlags(usageFlags),
 		  m_size(size) {

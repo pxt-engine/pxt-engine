@@ -4,7 +4,7 @@
 #include "graphics/window.hpp"
 #include "graphics/context/instance.hpp"
 
-namespace PXTEngine {
+namespace pxt {
 
     /**
      * @class Surface

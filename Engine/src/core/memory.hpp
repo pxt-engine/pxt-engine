@@ -2,7 +2,7 @@
 
 #include <memory>
 
-namespace PXTEngine {
+namespace pxt {
 
     /**
      * @brief Alias for std::unique_ptr to simplify usage.

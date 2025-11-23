@@ -6,7 +6,7 @@
 #include "core/events/mouse_event.hpp"
 #include "core/input/mapper/glfw_input_mapper.hpp"
 
-namespace PXTEngine {
+namespace pxt {
 
     Window::Window(const WindowData& props): m_data(props) {
         glfwInit();
@@ -38,7 +38,7 @@ namespace PXTEngine {
         glfwSetWindowCloseCallback(m_window, [](GLFWwindow* window) {
 			WindowData& data = *(WindowData*) glfwGetWindowUserPointer(window);
 
-			WindowCloseEvent event;
+			core::WindowCloseEvent event;
 			data.eventCallback(event);
 		});
 
@@ -49,31 +49,31 @@ namespace PXTEngine {
             data.height = static_cast<uint32_t>(height);
             data.frameBufferResized = true;
 
-            WindowResizeEvent event(width, height);
+			core::WindowResizeEvent event(width, height);
             data.eventCallback(event);
         });
 
         glfwSetKeyCallback(m_window, [](GLFWwindow* window, int glfwKey, int scancode, int action, int mods) {
 			WindowData& data = *(WindowData*) glfwGetWindowUserPointer(window);
 
-            KeyCode key = mapGLFWKey(glfwKey);
+			core::KeyCode key = core::mapGLFWKey(glfwKey);
 
 			switch (action) {
 				case GLFW_PRESS:
 				{
-					KeyPressEvent event(key);
+					core::KeyPressEvent event(key);
 					data.eventCallback(event);
 					break;
 				}
 				case GLFW_RELEASE:
 				{
-					KeyReleaseEvent event(key);
+					core::KeyReleaseEvent event(key);
 					data.eventCallback(event);
 					break;
 				}
 				case GLFW_REPEAT:
 				{
-					KeyPressEvent event(key, 1);
+					core::KeyPressEvent event(key, 1);
 					data.eventCallback(event);
 					break;
 				}
@@ -84,9 +84,9 @@ namespace PXTEngine {
 		{
 			WindowData& data = *(WindowData*) glfwGetWindowUserPointer(window);
 
-            KeyCode key = mapGLFWKey(glfwKey);
+			core::KeyCode key = core::mapGLFWKey(glfwKey);
 
-			KeyDownEvent event(key);
+			core::KeyDownEvent event(key);
 			data.eventCallback(event);
 		});
 
@@ -94,19 +94,19 @@ namespace PXTEngine {
 		{
 			WindowData& data = *(WindowData*) glfwGetWindowUserPointer(window);
             
-			MouseButton button = mapGLFWMouseButton(glfwButton);
+			core::MouseButton button = core::mapGLFWMouseButton(glfwButton);
 
 			switch (action)
 			{
 				case GLFW_PRESS:
 				{
-					MouseButtonPressEvent event(button);
+					core::MouseButtonPressEvent event(button);
 					data.eventCallback(event);
 					break;
 				}
 				case GLFW_RELEASE:
 				{
-					MouseButtonReleaseEvent event(button);
+					core::MouseButtonReleaseEvent event(button);
 					data.eventCallback(event);
 					break;
 				}
@@ -117,7 +117,7 @@ namespace PXTEngine {
 		{
 			WindowData& data = *(WindowData*) glfwGetWindowUserPointer(window);
 
-			MouseScrollEvent event(xOffset, yOffset);
+			core::MouseScrollEvent event(xOffset, yOffset);
 			data.eventCallback(event);
 		});
 
@@ -125,7 +125,7 @@ namespace PXTEngine {
 		{
 			WindowData& data = *(WindowData*) glfwGetWindowUserPointer(window);
 
-			MouseMoveEvent event(xPos, yPos);
+			core::MouseMoveEvent event(xPos, yPos);
 			data.eventCallback(event);
 		});
 

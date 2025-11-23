@@ -4,9 +4,9 @@
 #include "core/uuid.hpp"
 
 
-namespace PXTEngine {
+namespace pxt {
 
-	using ResourceId = UUID;
+	using ResourceId = core::UUID;
 
 	/**
 	 * @struct ResourceInfo

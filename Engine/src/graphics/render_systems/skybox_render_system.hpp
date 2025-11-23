@@ -9,7 +9,7 @@
 
 #include "scene/environment.hpp"
 
-namespace PXTEngine {
+namespace pxt {
 
     class SkyboxRenderSystem {
     public:

@@ -1,6 +1,6 @@
 #include "graphics/context/surface.hpp"
 
-namespace PXTEngine {
+namespace pxt {
 
     Surface::Surface(Window& window, Instance& instance) : m_window(window), m_instance(instance) {
 

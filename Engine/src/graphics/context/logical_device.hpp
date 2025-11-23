@@ -9,7 +9,7 @@
 
 #include "graphics/context/ray_tracing_vk_ext_func.hpp"
 
-namespace PXTEngine {
+namespace pxt {
 
     /**
      * @class LogicalDevice

@@ -2,7 +2,7 @@
 
 #include "scene/ecs/entity.hpp"
 
-namespace PXTEngine {
+namespace pxt {
 
     struct PointLightPushConstants {
         glm::vec4 position{};

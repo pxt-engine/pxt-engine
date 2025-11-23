@@ -4,7 +4,7 @@
 #include "scene/scene.hpp"
 #include "scene/ecs/component.hpp"
 
-namespace PXTEngine {
+namespace pxt {
 
     class Entity {
     public:
@@ -92,7 +92,7 @@ namespace PXTEngine {
          * 
          * @return UUID of the entity
          */
-        UUID getUUID() {
+        core::UUID getUUID() {
             return get<IDComponent>().uuid;
         }
 

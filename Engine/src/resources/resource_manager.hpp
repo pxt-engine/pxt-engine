@@ -6,7 +6,7 @@
 #include "resources/resource.hpp"
 #include "resources/importers/resource_importer.hpp"
 
-namespace PXTEngine {
+namespace pxt {
 
 	// forward declaration
 	class Material;
@@ -16,7 +16,7 @@ namespace PXTEngine {
 	 *
 	 * @brief Manages resources in the engine, allowing for retrieval and storage of resources.
 	 */
-	class ResourceManager : public Layer {
+	class ResourceManager : public core::Layer {
 	public:
 		ResourceManager();
 		~ResourceManager();

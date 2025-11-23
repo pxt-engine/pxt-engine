@@ -2,7 +2,7 @@
 #include "scene/scene_serializer.hpp"
 #include "application.hpp"
 
-namespace PXTEngine {
+namespace pxt {
 
 	UiRenderLayer::UiRenderLayer(Context& context, VkRenderPass renderPass) 
 		: Layer("UiRenderLayer"),
@@ -233,7 +233,7 @@ namespace PXTEngine {
 	void UiRenderLayer::registerComponents() {
 		// IDComponent
 		RegisterComponent<IDComponent>("IDComponent", [](auto& c) {
-			ImGui::Text("UUID: %s", c.uuid.toString().c_str());
+			ImGui::Text("core::UUID: %s", c.uuid.toString().c_str());
 		});
 
 		// NameComponent

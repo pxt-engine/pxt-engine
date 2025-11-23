@@ -4,7 +4,7 @@
 #include "graphics/resources/vk_shader.hpp"
 #include "graphics/frame_info.hpp"
 
-namespace PXTEngine {
+namespace pxt {
 
     struct SpecializationData {
         int32_t maxLights;

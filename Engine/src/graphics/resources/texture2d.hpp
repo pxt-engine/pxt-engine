@@ -4,7 +4,7 @@
 #include "graphics/resources/vk_image.hpp"
 
 
-namespace PXTEngine {
+namespace pxt {
 
 	/**
 	 * @class Texture2D

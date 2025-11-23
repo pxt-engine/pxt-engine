@@ -1,6 +1,6 @@
 #include "graphics/render_systems/raytracing_render_system.hpp"
 
-namespace PXTEngine {
+namespace pxt {
 	struct  alignas(16)RayTracingPushConstantData {
 		uint32_t noiseType = 0;
 		uint32_t blueNoiseTextureCount = 0; // Number of blue noise textures available

@@ -9,7 +9,7 @@
 #include "graphics/resources/texture_registry.hpp"
 #include "scene/scene.hpp"
 
-namespace PXTEngine {
+namespace pxt {
 
     class MaterialRenderSystem {
     public:

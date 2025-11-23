@@ -24,9 +24,9 @@
 #include "scene/environment.hpp"
 
 
-namespace PXTEngine {
+namespace pxt {
 
-	class RenderLayer : public Layer {
+	class RenderLayer : public core::Layer {
 	public:
 		RenderLayer(Context& context, Renderer& renderer, 
 						   Shared<DescriptorAllocatorGrowable> descriptorAllocator,

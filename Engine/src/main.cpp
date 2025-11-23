@@ -4,10 +4,10 @@
 
 int main() {
 
-    PXTEngine::Logger::init();
+    pxt::core::Logger::init();
 
     try {
-        PXTEngine::Unique<PXTEngine::Application> app(PXTEngine::initApplication());
+        pxt::Unique<pxt::Application> app(pxt::initApplication());
 
         app->start();
         app->run();

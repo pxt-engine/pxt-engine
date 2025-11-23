@@ -4,7 +4,7 @@
 
 #include "core/events/event.hpp"
 
-namespace PXTEngine {
+namespace pxt::core {
 
     /**
      * @class EventDispatcher

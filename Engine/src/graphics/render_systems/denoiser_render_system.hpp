@@ -8,7 +8,7 @@
 #include "graphics/resources/texture_registry.hpp"
 #include "graphics/resources/vk_image.hpp"
 
-namespace PXTEngine {
+namespace pxt {
 
     class DenoiserRenderSystem {
     public:

@@ -2,21 +2,21 @@
 
 #include "core/pch.hpp"
 
-namespace PXTEngine {
+namespace pxt::core {
 
-	UUID::UUID(const std::string& uuidString) {
+	UUID::UUID(const std::string& UUIDString) {
         // Length: 32 hex characters + 4 hyphens = 36 characters.
-        if (uuidString.length() != 36) return;
+        if (UUIDString.length() != 36) return;
         
 
         // Check hyphen positions.
-        if (uuidString[8]  != '-' || uuidString[13] != '-' || 
-            uuidString[18] != '-' || uuidString[23] != '-') {
+        if (UUIDString[8]  != '-' || UUIDString[13] != '-' || 
+            UUIDString[18] != '-' || UUIDString[23] != '-') {
             return;
         }
 
         // Create a copy of the string and remove the hyphens.
-        std::string hexString = uuidString;
+        std::string hexString = UUIDString;
         std::erase(hexString, '-');
 
         try {

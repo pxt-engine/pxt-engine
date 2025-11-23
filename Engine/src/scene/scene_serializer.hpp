@@ -6,7 +6,7 @@
 
 #include "yaml-cpp/yaml.h"
 
-namespace PXTEngine {
+namespace pxt {
 
 	class SceneSerializer {
 	public:
