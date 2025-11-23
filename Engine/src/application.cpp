@@ -289,6 +289,7 @@ namespace pxt {
 
         dispatcher.dispatch<core::WindowCloseEvent>([this](auto& event) {
             m_running = false;
+			return true;
         });
         // TODO: add window resize event and then refactor resizing code in Renderer and RenderLayer
 
