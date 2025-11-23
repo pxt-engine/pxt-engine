@@ -17,8 +17,6 @@
 #include "resources/types/material.hpp"
 #include "scene/scene.hpp"
 
-int main();
-
 namespace PXTEngine {
 
     class Application {
@@ -27,6 +25,9 @@ namespace PXTEngine {
         virtual ~Application();
 
         static Application& get() { return *m_instance; }
+
+        void start();
+        void run();
 
         Scene& getScene() {
             return m_scene;
@@ -94,8 +95,6 @@ namespace PXTEngine {
         void createDefaultResources();
         void registerResources();
 
-        void start();
-        void run();
         void onEvent(Event& event);
         bool isRunning();
 		void updateCamera(Camera& camera);
@@ -125,8 +124,6 @@ namespace PXTEngine {
 		BLASRegistry m_blasRegistry{m_context};
 
         static Application* m_instance;
-
-        friend int ::main();
     };
 
     Application* initApplication();

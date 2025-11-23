@@ -314,20 +314,3 @@ namespace PXTEngine {
 	}
 
 }
-
-int main() {
-
-	PXTEngine::Logger::init();
-
-   // TODO: what is happening here? indentation? missing try catch?
-
-        auto app = PXTEngine::initApplication();
-
-        app->start();
-        app->run();
-
-        delete app;
-    
-
-    return EXIT_SUCCESS;
-}
