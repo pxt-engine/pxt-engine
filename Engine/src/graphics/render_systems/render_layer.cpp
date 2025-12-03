@@ -1,5 +1,6 @@
 #include "graphics/render_systems/render_layer.hpp"
 #include "ui/widgets/space.hpp"
+#include "ui/context.hpp"
 
 #include "utils/vk_enum_str.h"
 
@@ -522,6 +523,9 @@ namespace pxt {
 		// we push a style var to remove the viewpoer window padding
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
 		ImGui::Begin("Viewport");
+
+		ui::s_isViewportHovered = ImGui::IsWindowHovered(ImGuiHoveredFlags_None);
+		ui::s_isViewportFocused = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
 
 		// we see the size of the window and we make the image fit the window with an aspect ratio
 		ImVec2 windowSize = ImGui::GetContentRegionAvail();

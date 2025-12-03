@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/pch.hpp"
+#include "core/events/event.hpp"
 #include "core/layer/layer.hpp"
 #include "graphics/swap_chain.hpp"
 #include "graphics/renderer.hpp"
@@ -26,6 +27,7 @@ namespace pxt {
 		UiRenderLayer(const UiRenderLayer&) = delete;
 		UiRenderLayer& operator=(const UiRenderLayer&) = delete;
 
+		void onEvent(core::Event& event) override;
 		void beginFrame(Scene& scene, Renderer& renderer, FrameInfo& frameInfo);
 		void render(FrameInfo& frameInfo, Renderer& renderer);
 

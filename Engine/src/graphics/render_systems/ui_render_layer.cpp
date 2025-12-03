@@ -1,5 +1,8 @@
 #include "graphics/render_systems/ui_render_layer.hpp"
 #include "scene/scene_serializer.hpp"
+#include "core/events/event_dispatcher.hpp"
+#include "core/events/mouse_event.hpp"
+#include "core/events/keyboard_event.hpp"
 #include "application.hpp"
 
 namespace pxt {
@@ -54,7 +57,8 @@ namespace pxt {
 		io.IniFilename = IMGUI_INI_FILEPATH.c_str();
 		PXT_INFO("ImGui .ini file set to: {}", io.IniFilename);
 
-		ImGui_ImplGlfw_InitForVulkan(m_context.getWindow().getBaseWindow(), true);
+		// here we pass false to not install callbacks, as we want to handle events ourselves
+		ImGui_ImplGlfw_InitForVulkan(m_context.getWindow().getBaseWindow(), false);
 		ImGui_ImplVulkan_InitInfo initInfo{};
 		initInfo.Instance = m_context.getInstance();
 		initInfo.PhysicalDevice = m_context.getPhysicalDevice();
@@ -151,6 +155,11 @@ namespace pxt {
 		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), frameInfo.commandBuffer);
 
 		renderer.endSwapChainRenderPass(frameInfo.commandBuffer);
+	}
+
+	void UiRenderLayer::onEvent(core::Event& event) {
+		// here we can add custom events (not glfw) like appRender, etc.
+		// normal inputs are handled with glfw callbacks (see window.cpp)
 	}
 
 	void UiRenderLayer::beginFrame(Scene& scene, Renderer& renderer, FrameInfo& frameInfo) {

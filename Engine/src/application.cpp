@@ -1,5 +1,6 @@
 #include "application.hpp"
 
+#include "core/input/input.hpp"
 #include "core/events/event_dispatcher.hpp"
 #include "core/events/window_event.hpp"
 #include "core/diagnostics.hpp"
@@ -224,6 +225,9 @@ namespace pxt {
         m_scene.onStart();
         uint32_t frameCount = 0;
         while (isRunning()) {
+            // reset temporary inputs
+			core::Input::getState().beginFrame();
+			// then poll events to update input state
             glfwPollEvents();
 
             auto newTime = std::chrono::high_resolution_clock::now();

@@ -5,6 +5,9 @@
 #include "core/events/keyboard_event.hpp"
 #include "core/events/mouse_event.hpp"
 #include "core/input/mapper/glfw_input_mapper.hpp"
+#include "core/input/input.hpp"
+#include "core/logger.hpp"
+#include "ui/context.hpp"
 
 namespace pxt {
 
@@ -54,25 +57,36 @@ namespace pxt {
         });
 
         glfwSetKeyCallback(m_window, [](GLFWwindow* window, int glfwKey, int scancode, int action, int mods) {
-			WindowData& data = *(WindowData*) glfwGetWindowUserPointer(window);
+			WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
+
+			// forward to ImGui backend
+			ImGui_ImplGlfw_KeyCallback(window, glfwKey, scancode, action, mods);
+
+			// let ImGui handle it if it wants
+			if (!ui::s_isViewportFocused)
+				return;
+			//else propagate to other layers
 
 			core::KeyCode key = core::mapGLFWKey(glfwKey);
 
 			switch (action) {
 				case GLFW_PRESS:
 				{
+					core::Input::getState().onKeyPress(key);
 					core::KeyPressEvent event(key);
 					data.eventCallback(event);
 					break;
 				}
 				case GLFW_RELEASE:
 				{
+					core::Input::getState().onKeyRelease(key);
 					core::KeyReleaseEvent event(key);
 					data.eventCallback(event);
 					break;
 				}
 				case GLFW_REPEAT:
 				{
+					core::Input::getState().onKeyRepeat(key);
 					core::KeyPressEvent event(key, 1);
 					data.eventCallback(event);
 					break;
@@ -83,8 +97,16 @@ namespace pxt {
         glfwSetCharCallback(m_window, [](GLFWwindow* window, unsigned int glfwKey)
 		{
 			WindowData& data = *(WindowData*) glfwGetWindowUserPointer(window);
+			ImGuiIO& io = ImGui::GetIO();
+
+			ImGui_ImplGlfw_CharCallback(window, glfwKey);
+
+			if (io.WantTextInput)
+				return;
 
 			core::KeyCode key = core::mapGLFWKey(glfwKey);
+
+			core::Input::getState().onChar(glfwKey);
 
 			core::KeyDownEvent event(key);
 			data.eventCallback(event);
@@ -93,19 +115,28 @@ namespace pxt {
 		glfwSetMouseButtonCallback(m_window, [](GLFWwindow* window, int glfwButton, int action, int mods)
 		{
 			WindowData& data = *(WindowData*) glfwGetWindowUserPointer(window);
-            
+
+			ImGui_ImplGlfw_MouseButtonCallback(window, glfwButton, action, mods);
+
+			if (!ui::s_isViewportFocused) {
+				core::Input::getState().reset();
+				return;
+			}
+
 			core::MouseButton button = core::mapGLFWMouseButton(glfwButton);
 
 			switch (action)
 			{
 				case GLFW_PRESS:
 				{
+					core::Input::getState().onMousePress(button);
 					core::MouseButtonPressEvent event(button);
 					data.eventCallback(event);
 					break;
 				}
 				case GLFW_RELEASE:
 				{
+					core::Input::getState().onMouseRelease(button);
 					core::MouseButtonReleaseEvent event(button);
 					data.eventCallback(event);
 					break;
@@ -117,6 +148,14 @@ namespace pxt {
 		{
 			WindowData& data = *(WindowData*) glfwGetWindowUserPointer(window);
 
+			ImGui_ImplGlfw_ScrollCallback(window, xOffset, yOffset);
+
+			if (!ui::s_isViewportFocused) {
+				core::Input::getState().reset();
+				return;
+			}
+
+			core::Input::getState().onScroll(xOffset, yOffset);
 			core::MouseScrollEvent event(xOffset, yOffset);
 			data.eventCallback(event);
 		});
@@ -125,10 +164,18 @@ namespace pxt {
 		{
 			WindowData& data = *(WindowData*) glfwGetWindowUserPointer(window);
 
+			ImGui_ImplGlfw_CursorPosCallback(window, xPos, yPos);
+
+			//PXT_INFO("Viewport Hovered: {}, Viewport Focused: {}", ui::s_isViewportHovered, ui::s_isViewportFocused);
+
+			if (!ui::s_isViewportFocused) {
+				core::Input::getState().reset();
+				return;
+			}
+
+			core::Input::getState().onMouseMove(xPos, yPos);
 			core::MouseMoveEvent event(xPos, yPos);
 			data.eventCallback(event);
 		});
-
-
     }
 }
