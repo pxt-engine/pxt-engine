@@ -39,7 +39,7 @@ namespace pxt::core {
          *
          * @tparam E The type of the event to dispatch.
 		 * @param eventFunction The function to call if the event type matches.
-		 * @return true if the event was dispatched and handled; false otherwise.
+		 * @return true if the event was dispatched; false otherwise.
          */
         template<typename E>
         requires(std::is_base_of_v<core::Event, E>)
@@ -51,8 +51,7 @@ namespace pxt::core {
                 if (eventFunction(static_cast<E&>(m_event))) {
                     m_event.markHandled();
 				}
-
-                return true;
+				return true;
             }
 
 			// Event type does not match or has already been handled
