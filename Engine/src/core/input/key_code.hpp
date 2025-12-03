@@ -152,6 +152,8 @@ namespace pxt::core {
         RightHyper,      // Right Hyper
         LeftFn,          // Left Fn
         RightFn,         // Right Fn
+
+		COUNT
     };
 
     enum class MouseButton {
@@ -166,6 +168,8 @@ namespace pxt::core {
         Button6,	      // Additional (or seventh) mouse button.
         Button7,	      // Additional (or eighth) mouse button.
         Button8,          // Additional (or ninth) mouse button.
+
+		COUNT
     };
 
     constexpr MouseButton LeftMouseButton   = MouseButton::Button0;
