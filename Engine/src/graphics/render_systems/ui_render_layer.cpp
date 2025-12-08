@@ -13,8 +13,6 @@ namespace pxt {
 		m_context(context)
 	{
 		initImGui(renderPass);
-
-		registerComponents();
 	}
 
 	UiRenderLayer::~UiRenderLayer() {
@@ -104,49 +102,6 @@ namespace pxt {
 		return descriptorSet;
 	}
 
-	void UiRenderLayer::drawSceneEntityList(Scene& scene)
-	{
-		ImGui::Begin("Scene Entities");
-
-		if (ImGui::Button("Add Entity")) {
-			scene.createEntity("New Entity");
-		}
-
-		ImGui::Separator();
-
-		// draw all entities in the scene
-		auto view = scene.getEntitiesWith<IDComponent, NameComponent>();
-		for (auto entityHandle : view) {
-			const auto& [idComponent, nameComponent] = view.get<IDComponent, NameComponent>(entityHandle);
-
-			bool selected = (m_selectedEntityID == idComponent.uuid);
-			if (ImGui::Selectable(nameComponent.name.c_str(), selected)) {
-				m_selectedEntityID = idComponent.uuid;
-				m_isAnEntitySelected = true;
-			}
-		}
-		ImGui::End();
-	}
-
-	void UiRenderLayer::drawEntityInspector(Scene& scene) {
-		ImGui::Begin("Entity Inspector");
-		if (m_isAnEntitySelected) {
-			Entity entity = scene.getEntity(m_selectedEntityID);
-
-			if (entity) {
-				// draw registered components
-				for (auto& info : m_componentUiRegistry) {
-					info.drawer(entity);
-				}
-			}
-		}
-		else {
-			ImGui::Text("No entity selected");
-		}
-
-		ImGui::End();
-	}
-
 	void UiRenderLayer::render(FrameInfo& frameInfo, Renderer& renderer) {
 		// TODO: move the ui functions of "buildUi" into "onUpdateUi" of other layers
 		buildUi(frameInfo.scene);
@@ -169,175 +124,11 @@ namespace pxt {
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
 
-		// MAIN MENU BAR (might become a method itself in the future)
-		if (ImGui::BeginMainMenuBar()) {
-			if (ImGui::BeginMenu("File")) {
-				if (ImGui::MenuItem("Open...")) {
-					// TODO: Implement "Open" logic here
-					printf("File -> Open... clicked!\n");
-				}
-				if (ImGui::MenuItem("Save Scene")) {
-					m_openSaveSceneDialog = true;
-				}
-				if (ImGui::MenuItem("Exit")) {
-					// TODO: Implement "Exit" logic here
-					printf("File -> Exit clicked!\n");
-				}
-				ImGui::EndMenu();
-			}
-			ImGui::EndMainMenuBar();
-		}
-
-		if (m_openSaveSceneDialog) {
-			ImGui::OpenPopup("Save Scene Dialog");
-			m_openSaveSceneDialog = false;
-		}
-
 		// IMPORTANT: This is required for docking to work in the main window (for customizations, view imgui_demo.cpp)
 		ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport(), ImGuiDockNodeFlags_PassthruCentralNode);
 	}
 
-	void UiRenderLayer::saveSceneUi(Scene& scene) {
-		// Always center this window when appearing
-		ImVec2 center = ImGui::GetMainViewport()->GetCenter();
-		ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
-
-		if (ImGui::BeginPopupModal("Save Scene Dialog", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
-			static char sceneNameBuffer[64] = "";
-			ImGui::Text("Enter Scene Name: (64 max)");
-			ImGui::InputText("##SceneName", sceneNameBuffer, IM_ARRAYSIZE(sceneNameBuffer));
-
-			if (ImGui::Button("OK", ImVec2(120, 0))) {
-				std::string sceneName = sceneNameBuffer;
-				if (!sceneName.empty()) {
-					scene.setName(sceneName);
-
-					auto rm = Application::get().getResourceManager();
-					SceneSerializer serializer(&scene, rm);
-					serializer.serialize(SCENES_PATH + sceneName + ".pxtscene");
-					PXT_INFO("Saving scene with name: {}\n", sceneName);
-				}
-
-				ImGui::CloseCurrentPopup();
-				memset(sceneNameBuffer, 0, sizeof(sceneNameBuffer));
-			}
-			ImGui::SetItemDefaultFocus();
-			ImGui::SameLine();
-			if (ImGui::Button("Cancel", ImVec2(120, 0))) {
-				ImGui::CloseCurrentPopup();
-			}
-			ImGui::EndPopup();
-		}
-	}
-
 	void UiRenderLayer::buildUi(Scene& scene) {
-		drawSceneEntityList(scene);
-		drawEntityInspector(scene);
-
-		saveSceneUi(scene);
-
 		ImGui::ShowMetricsWindow();
-	}
-
-	void UiRenderLayer::registerComponents() {
-		// IDComponent
-		RegisterComponent<IDComponent>("IDComponent", [](auto& c) {
-			ImGui::Text("core::UUID: %s", c.uuid.toString().c_str());
-		});
-
-		// NameComponent
-		RegisterComponent<NameComponent>("NameComponent", [](auto& c) {
-			char buffer[25];
-			memset(buffer, 0, sizeof(buffer));
-			strncpy(buffer, c.name.c_str(), sizeof(buffer) - 1);
-			if (ImGui::InputText("Name (max 25 chars)", buffer, sizeof(buffer))) {
-				c.name = buffer;
-			}
-		});
-
-		// ColorComponent
-		RegisterComponent<ColorComponent>("ColorComponent", [](auto& c) {
-			ImGui::ColorEdit3("Color", glm::value_ptr(c.color));
-		});
-
-		// VolumeComponent
-		RegisterComponent<VolumeComponent>("VolumeComponent", [](auto& c) {
-			ImGui::ColorEdit3("Absorption", glm::value_ptr(c.volume.absorption));
-			ImGui::ColorEdit3("Scattering", glm::value_ptr(c.volume.scattering));
-			ImGui::SliderFloat("PhaseFunctionG", &c.volume.phaseFunctionG, -1.0f, 1.0f, "%.2f");
-			ImGui::SeparatorText("Density Texture");
-			//TODO: volume textures
-			/*if (c.volume.densityTextureId == std::numeric_limits<uint32_t>::max()) {
-				ImGui::Text("Not selected");
-			}
-			else {
-				ImGui::Text("Texture ID: %u", c.volume.densityTextureId);
-			}
-
-			ImGui::SeparatorText("Detail Texture");
-			if (c.volume.detailTextureId == std::numeric_limits<uint32_t>::max()) {
-				ImGui::Text("Not selected");
-			}
-			else {
-				ImGui::Text("Texture ID: %u", c.volume.detailTextureId);
-			}*/
-		});
-
-		// MaterialComponent
-		RegisterComponent<MaterialComponent>("MaterialComponent", [](auto& c) {
-			if (c.material) {
-				ImGui::Text("Material: %s", c.material->alias.c_str());
-				c.material->drawMaterialUi();
-			}
-			else {
-				ImGui::Text("No Material assigned");
-			}
-
-			ImGui::SliderFloat("Texture Tiling Factor", &c.tilingFactor, 0.0f, 25.0f);
-			ImGui::ColorEdit3("Tint", glm::value_ptr(c.tint));
-		});
-
-		// Transform2dComponent
-		RegisterComponent<Transform2dComponent>("Transform2dComponent", [](auto& c) {
-			ImGui::DragFloat2("Translation", glm::value_ptr(c.translation), 0.01f);
-			ImGui::DragFloat2("Scale", glm::value_ptr(c.scale), 0.01f);
-			ImGui::DragFloat("Rotation", &c.rotation, 0.01f, -360.0f, 360.0f);
-		});
-
-		// TransformComponent
-		RegisterComponent<TransformComponent>("TransformComponent", [](auto& c) {
-			ImGui::DragFloat3("Translation", glm::value_ptr(c.translation), 0.01f);
-			ImGui::DragFloat3("Scale", glm::value_ptr(c.scale), 0.01f);
-			ImGui::DragFloat3("Rotation", glm::value_ptr(c.rotation), 0.01f);
-		});
-
-		// MeshComponent
-		RegisterComponent<MeshComponent>("MeshComponent", [](MeshComponent& c) {
-			ImGui::Text("Mesh name: %s", c.mesh->alias.c_str());
-		});
-
-		// ScriptComponent
-		RegisterComponent<ScriptComponent>("ScriptComponent", [](ScriptComponent& c) {
-			if (c.script) {
-				ImGui::Text("Script instance: %p", c.script);
-			}
-			else {
-				ImGui::Text("No script bound.");
-			}
-		});
-
-		// CameraComponent
-		RegisterComponent<CameraComponent>("CameraComponent", [](CameraComponent& c) {
-			ImGui::BeginDisabled(true); //TODO: remove when we can choose which camera to use
-			ImGui::Checkbox("Main Camera", &c.isMainCamera);
-			ImGui::EndDisabled();
-
-			c.camera.drawCameraUi();
-		});
-
-		// PointLightComponent
-		RegisterComponent<PointLightComponent>("PointLightComponent", [](PointLightComponent& c) {
-			ImGui::DragFloat("Intensity", &c.lightIntensity, 0.1f, 0.0f, 10.0f);
-		});
 	}
 }

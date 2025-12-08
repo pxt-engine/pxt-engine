@@ -244,12 +244,14 @@ namespace pxt {
                 FrameInfo frameInfo = {
                     frameIndex,
                     elapsedTime,
+                    m_renderer.getAspectRatio(),
                     commandBuffer,
                     camera,
                     m_globalDescriptorSets[frameIndex],
+                    m_renderLayerPtr->getImGuiSceneDescriptorSet(),
 					m_scene,
-                    m_renderer.getSwapChainCurrentFrameFence(),                                   // Frame fence
-                    m_renderer.getSwapChainImageAvailableSemaphore(),                             // Wait semaphore
+                    m_renderer.getSwapChainCurrentFrameFence(),          // Frame fence
+                    m_renderer.getSwapChainImageAvailableSemaphore(),    // Wait semaphore
                     m_renderer.getSwapChainRenderFinishedSemaphore(
                         m_renderer.getSwapChainCurrentImageIndex()
                     ),

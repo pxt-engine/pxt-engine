@@ -49,33 +49,32 @@ namespace pxt {
 			return m_descriptorAllocator;
 		}
 
-    protected:
-        virtual void loadScene() {}
+        // LAYERS
 
         // create the layer on the spot and push it
-		template<typename TLayer, typename ... Args>
-        requires(std::is_base_of_v<core::Layer, TLayer>)
+        template<typename TLayer, typename ... Args>
+            requires(std::is_base_of_v<core::Layer, TLayer>)
         TLayer* pushLayer(Args&& ... args) {
             return m_layerStack.pushLayer(std::move(createUnique<TLayer>(std::forward<Args>(args)...)));
         }
 
         // push an already created layer
         template<typename TLayer>
-        requires(std::is_base_of_v<core::Layer, TLayer>)
+            requires(std::is_base_of_v<core::Layer, TLayer>)
         TLayer* pushLayer(Unique<TLayer> layer) {
             return m_layerStack.pushLayer(std::move(layer));
         }
 
         // create the overlay on the spot and push it
         template<typename TLayer, typename ... Args>
-        requires(std::is_base_of_v<core::Layer, TLayer>)
+            requires(std::is_base_of_v<core::Layer, TLayer>)
         TLayer* pushOverlay(Args&& ... args) {
             return m_layerStack.pushOverlay(std::move(createUnique<TLayer>(std::forward<Args>(args)...)));
         }
 
         // push an already created overlay
         template<typename TLayer>
-        requires(std::is_base_of_v<core::Layer, TLayer>)
+            requires(std::is_base_of_v<core::Layer, TLayer>)
         TLayer* pushOverlay(Unique<TLayer> overlay) {
             return m_layerStack.pushOverlay(std::move(overlay));
         }
@@ -87,6 +86,9 @@ namespace pxt {
         void popOverlay(core::Layer& overlay) {
             m_layerStack.popOverlay(overlay);
         }
+
+    protected:
+        virtual void loadScene() {}
 
     private:
 		void createDescriptorPoolAllocator();
@@ -126,5 +128,5 @@ namespace pxt {
         static Application* m_instance;
     };
 
-    Application* initApplication();
+    extern Application* initApplication();
 }

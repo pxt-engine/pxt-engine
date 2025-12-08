@@ -1,6 +1,5 @@
 #include "graphics/render_systems/render_layer.hpp"
 #include "ui/widgets/space.hpp"
-#include "ui/context.hpp"
 
 #include "utils/vk_enum_str.h"
 
@@ -376,6 +375,9 @@ namespace pxt {
 			m_denoiserRenderSystem->updateImages(swapChainExtent);
 
 			m_lastFrameSwapChainExtent = swapChainExtent;
+
+			// update imgui scene descriptor set and aspect ratio inside frameInfo
+			frameInfo.sceneDescriptorSet = m_sceneDescriptorSet;
 		}
 
 		// check if the user asked for the shaders to be reloaded
@@ -495,62 +497,7 @@ namespace pxt {
 			.updateSet(m_sceneDescriptorSet);
 	}
 
-	ImVec2 RenderLayer::getImageSizeWithAspectRatioForImGuiWindow(
-		ImVec2 windowSize, float aspectRatio) {
-		ImVec2 ratioedExtent = { 0, 0 };
-
-		// Calculate the width if the image fills the height
-		float widthBasedOnHeight = windowSize.y * aspectRatio;
-
-		// If filling the height makes the width exceed the window's width,
-		// then the image must fill the width instead.
-		if (widthBasedOnHeight > windowSize.x) {
-			ratioedExtent.x = windowSize.x;
-			ratioedExtent.y = windowSize.x / aspectRatio;
-		}
-		else {
-			// Otherwise, fill the height
-			ratioedExtent.x = widthBasedOnHeight;
-			ratioedExtent.y = windowSize.y;
-		}
-
-		return ratioedExtent;
-	}
-
-	void RenderLayer::updateSceneUi() {
-		ImTextureID scene = (ImTextureID) m_sceneDescriptorSet;
-
-		// we push a style var to remove the viewpoer window padding
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-		ImGui::Begin("Viewport");
-
-		ui::s_isViewportHovered = ImGui::IsWindowHovered(ImGuiHoveredFlags_None);
-		ui::s_isViewportFocused = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
-
-		// we see the size of the window and we make the image fit the window with an aspect ratio
-		ImVec2 windowSize = ImGui::GetContentRegionAvail();
-		m_sceneImageExtentInWindow = getImageSizeWithAspectRatioForImGuiWindow(
-			windowSize,
-			m_sceneImage->getAspectRatio()
-		);
-
-		// Calculate the horizontal and vertical offsets for centering
-		float titleBarSize = ImGui::GetFrameHeight() * 2;
-		float offsetX = (windowSize.x - m_sceneImageExtentInWindow.x) * 0.5f;
-		float offsetY = (windowSize.y - m_sceneImageExtentInWindow.y + titleBarSize) * 0.5f;
-
-		// Move the cursor to the calculated position
-		// ImGui::SetCursorPos() sets the next drawing position relative to the top-left of the *content region*.
-		ImGui::SetCursorPos(ImVec2(offsetX, offsetY));
-
-		ImGui::Image(scene, m_sceneImageExtentInWindow);
-		ImGui::End();
-		ImGui::PopStyleVar();
-	}
-
 	void RenderLayer::onUpdateUi(FrameInfo& frameInfo) {
-		updateSceneUi();
-
 		ImGui::Begin("Raytracing Renderer");
 		ImGui::Checkbox("Enable Raytracing", &m_isRaytracingEnabled);
 

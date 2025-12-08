@@ -23,9 +23,11 @@ namespace pxt {
     struct FrameInfo {
         int frameIndex;
         float frameTime;
+        float sceneAspectRatio;
         VkCommandBuffer commandBuffer;
         Camera& camera;
         VkDescriptorSet globalDescriptorSet;
+		VkDescriptorSet sceneDescriptorSet;
         Scene& scene;
         VkFence frameFence;        // The fence signaled when the command buffer is complete
         VkSemaphore imageAvailable; // The semaphore signaled when the image is available

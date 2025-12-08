@@ -12,6 +12,7 @@
 #include "core/events/keyboard_event.hpp"
 #include "core/events/event.hpp"
 #include "core/input/input.hpp"
+#include "core/layer/layer.hpp"
 
 #include "resources/resource.hpp"
 #include "resources/types/image.hpp"

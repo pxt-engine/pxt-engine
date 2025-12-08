@@ -3,6 +3,7 @@
 #include "core/pch.hpp"
 
 namespace pxt::core {
+	UUID UUID::s_invalidId = UUID(0, 0);
 
 	UUID::UUID(const std::string& UUIDString) {
         // Length: 32 hex characters + 4 hyphens = 36 characters.

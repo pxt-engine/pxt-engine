@@ -92,7 +92,10 @@ target_link_libraries(imgui PUBLIC glfw Vulkan::Vulkan)
 
 ####
 
-file(GLOB_RECURSE SOURCES ${PROJECT_SOURCE_DIR}/Application/src/*.cpp ${PROJECT_SOURCE_DIR}/Engine/src/*.cpp)
+file(GLOB_RECURSE SOURCES 
+        ${PROJECT_SOURCE_DIR}/Application/src/*.cpp
+        ${PROJECT_SOURCE_DIR}/Engine/src/*.cpp
+        ${PROJECT_SOURCE_DIR}/Editor/src/*.cpp)
 
 add_executable(${PROJECT_NAME} ${SOURCES})
 
@@ -122,6 +125,7 @@ if (WIN32)
   target_include_directories(${PROJECT_NAME} PUBLIC
     ${PROJECT_SOURCE_DIR}/Engine/src
     ${PROJECT_SOURCE_DIR}/Application/src
+    ${PROJECT_SOURCE_DIR}/Editor/src
     ${Vulkan_INCLUDE_DIRS}
     ${PROJECT_SOURCE_DIR}/Engine/vendor/entt/single_include
   )

@@ -7,7 +7,6 @@
 #include "core/input/mapper/glfw_input_mapper.hpp"
 #include "core/input/input.hpp"
 #include "core/logger.hpp"
-#include "ui/context.hpp"
 
 namespace pxt {
 
@@ -57,13 +56,14 @@ namespace pxt {
         });
 
         glfwSetKeyCallback(m_window, [](GLFWwindow* window, int glfwKey, int scancode, int action, int mods) {
+			ImGuiIO& io = ImGui::GetIO();
 			WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
 
 			// forward to ImGui backend
 			ImGui_ImplGlfw_KeyCallback(window, glfwKey, scancode, action, mods);
 
 			// let ImGui handle it if it wants
-			if (!ui::s_isViewportFocused)
+			if (io.WantCaptureKeyboard)
 				return;
 			//else propagate to other layers
 
@@ -118,11 +118,6 @@ namespace pxt {
 
 			ImGui_ImplGlfw_MouseButtonCallback(window, glfwButton, action, mods);
 
-			if (!ui::s_isViewportFocused) {
-				core::Input::getState().reset();
-				return;
-			}
-
 			core::MouseButton button = core::mapGLFWMouseButton(glfwButton);
 
 			switch (action)
@@ -150,11 +145,6 @@ namespace pxt {
 
 			ImGui_ImplGlfw_ScrollCallback(window, xOffset, yOffset);
 
-			if (!ui::s_isViewportFocused) {
-				core::Input::getState().reset();
-				return;
-			}
-
 			core::Input::getState().onScroll(xOffset, yOffset);
 			core::MouseScrollEvent event(xOffset, yOffset);
 			data.eventCallback(event);
@@ -167,11 +157,6 @@ namespace pxt {
 			ImGui_ImplGlfw_CursorPosCallback(window, xPos, yPos);
 
 			//PXT_INFO("Viewport Hovered: {}, Viewport Focused: {}", ui::s_isViewportHovered, ui::s_isViewportFocused);
-
-			if (!ui::s_isViewportFocused) {
-				core::Input::getState().reset();
-				return;
-			}
 
 			core::Input::getState().onMouseMove(xPos, yPos);
 			core::MouseMoveEvent event(xPos, yPos);

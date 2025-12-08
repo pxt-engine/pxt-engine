@@ -9,7 +9,6 @@ int main() {
     try {
         pxt::Unique<pxt::Application> app(pxt::initApplication());
 
-        app->start();
         app->run();
 
     } catch (const std::exception& e) {

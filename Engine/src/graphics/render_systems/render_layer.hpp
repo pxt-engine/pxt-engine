@@ -43,6 +43,8 @@ namespace pxt {
 		RenderLayer(RenderLayer&&) = delete;
 		RenderLayer& operator=(RenderLayer&&) = delete;
 
+		VkDescriptorSet getImGuiSceneDescriptorSet() const { return m_sceneDescriptorSet; }
+
 		void onUpdate(FrameInfo& frameInfo, GlobalUbo& ubo) override;
 		void onUpdateUi(FrameInfo& frameInfo) override;
 		void onPostFrameUpdate(FrameInfo& frameInfo) override;
@@ -61,9 +63,6 @@ namespace pxt {
 
 		void createDescriptorSetsImGui();
 		void updateImguiDescriptorSet();
-
-		ImVec2 getImageSizeWithAspectRatioForImGuiWindow(ImVec2 windowSize, float aspectRatio);
-		void updateSceneUi();
 
 		Context& m_context;
 		Renderer& m_renderer;
@@ -99,7 +98,6 @@ namespace pxt {
 		Unique<DescriptorSetLayout> m_sceneDescriptorSetLayout = nullptr;
 
 		VkExtent2D m_lastFrameSwapChainExtent;
-		ImVec2 m_sceneImageExtentInWindow = { 960, 540 };
 
 		bool m_isDebugEnabled = false;
 		bool m_isRaytracingEnabled = true;

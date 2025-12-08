@@ -2,6 +2,7 @@
 
 #include "camera_controller.hpp"
 #include "rotating_light_controller.hpp"
+#include "editor_layer.hpp"
 
 #include <random>
 
@@ -384,10 +385,14 @@ public:
                 .setDensityTexture(rm->get<Image>(TEXTURES_PATH + "/noise/perlin_worley.png"))
                 .build());
     }
-
-    
 };
 
 pxt::Application* pxt::initApplication() {
-    return new App();
+    App* exampleApp = new App();
+    exampleApp->start();
+
+    // push layers if needed
+	exampleApp->pushLayer<pxt::editor::EditorLayer>();
+
+	return exampleApp;
 }

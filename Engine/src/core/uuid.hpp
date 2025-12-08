@@ -20,6 +20,7 @@ namespace pxt::core {
      */
     class UUID {
     public:
+        static UUID s_invalidId;
 
 	    /**
 		 * @brief Constructs a new UUID of version 7 (time-based).
