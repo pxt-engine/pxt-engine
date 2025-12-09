@@ -103,7 +103,9 @@ namespace pxt {
         auto result = m_swapChain->submitCommandBuffers(&commandBuffer, &m_currentImageIndex);
 
         if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || m_window.isWindowResized()) {
-			onWindowResize();
+            // this appears to not be called on window resizes anymore, probably because resizes are
+            // now handled by the event system.
+            onWindowResize();
         } else if (result != VK_SUCCESS) {
             throw std::runtime_error("failed to present swap chain image!");
         }
