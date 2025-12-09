@@ -20,6 +20,7 @@
 #include <unordered_set>    // For std::unordered_set, a hash table-based set
 #include <set>              // For std::set, a sorted associative container (balanced binary search tree)
 #include <map>              // For std::map, a sorted associative container of key-value pairs (balanced binary search tree)
+#include <queue>
 
 // Standard Library Headers - Low-level Utilities and C-style Compatibility
 // These headers offer lower-level functionalities, often inherited from C.
