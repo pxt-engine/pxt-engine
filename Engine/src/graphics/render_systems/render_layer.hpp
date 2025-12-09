@@ -99,7 +99,10 @@ namespace pxt {
 		VkDescriptorSet m_sceneDescriptorSet = VK_NULL_HANDLE;
 		Unique<DescriptorSetLayout> m_sceneDescriptorSetLayout = nullptr;
 
-		VkExtent2D m_lastFrameSwapChainExtent;
+		// this initial value will never be used, as it will be updated
+		// on the first ImGuiViewportResizeEvent. That will happen
+		// the first frame the ImGui viewport is created.
+		VkExtent2D m_sceneExtent{1600, 900};
 
 		bool m_isDebugEnabled = false;
 		bool m_isRaytracingEnabled = true;

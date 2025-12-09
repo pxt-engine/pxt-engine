@@ -1,4 +1,5 @@
 #include "editor_layer.hpp"
+#include "core/events/imgui_events.hpp"
 
 namespace pxt::editor {
 	EditorLayer::EditorLayer() : core::Layer("EditorLayer") {}
@@ -52,23 +53,33 @@ namespace pxt::editor {
 		m_isViewportHovered = ImGui::IsWindowHovered(ImGuiHoveredFlags_None);
 		m_isViewportFocused = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
 
-		// we see the size of the window and we make the image fit the window with an aspect ratio
-		ImVec2 windowSize = ImGui::GetContentRegionAvail();
-		m_sceneImageExtentInViewport = getImageSizeWithAspectRatioForImGuiWindow(
-			windowSize,
-			sceneAspectRatio
-		);
+		ImVec2 viewportSize = ImGui::GetContentRegionAvail();
 
+		// check if window size has changed
+		if (viewportSize.x != m_sceneImageExtent.x || viewportSize.y != m_sceneImageExtent.y) {
+			uint32_t width = static_cast<uint32_t>(std::max(1.0f, viewportSize.x));
+			uint32_t height = static_cast<uint32_t>(std::max(1.0f, viewportSize.y));
+			
+			Application::get().queueEvent(core::ImGuiViewportResizeEvent(
+				static_cast<uint32_t>(viewportSize.x),
+				static_cast<uint32_t>(viewportSize.y))
+			);
+
+			m_sceneImageExtent = viewportSize;
+		}
+
+		/*
 		// Calculate the horizontal and vertical offsets for centering
 		float titleBarSize = ImGui::GetFrameHeight() * 2;
-		float offsetX = (windowSize.x - m_sceneImageExtentInViewport.x) * 0.5f;
-		float offsetY = (windowSize.y - m_sceneImageExtentInViewport.y + titleBarSize) * 0.5f;
+		float offsetX = (viewportSize.x - m_sceneImageExtent.x) * 0.5f;
+		float offsetY = (viewportSize.y - m_sceneImageExtent.y + titleBarSize) * 0.5f;
 
 		// Move the cursor to the calculated position
 		// ImGui::SetCursorPos() sets the next drawing position relative to the top-left of the *content region*.
 		ImGui::SetCursorPos(ImVec2(offsetX, offsetY));
+		*/
 
-		ImGui::Image(scene, m_sceneImageExtentInViewport);
+		ImGui::Image(scene, m_sceneImageExtent);
 		ImGui::End();
 		ImGui::PopStyleVar();
 	}

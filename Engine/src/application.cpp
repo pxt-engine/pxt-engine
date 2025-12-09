@@ -303,12 +303,12 @@ namespace pxt {
 
         dispatcher.dispatch<core::WindowCloseEvent>([this](auto& event) {
             m_running = false;
-			return true; // TODO: this should be false to allow other layers to handle the event
+			return true; // TODO: this should be false to allow other layers to handle close event
         });
         
         dispatcher.dispatch<core::WindowResizeEvent>([this](auto& event) {
 			m_renderer.onWindowResize();
-			return false; // false to allow RenderLayer to handle the event too
+			return true;
         });
 
         m_layerStack.onEvent(event);

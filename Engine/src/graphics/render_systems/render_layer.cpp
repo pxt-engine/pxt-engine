@@ -1,7 +1,7 @@
 #include "graphics/render_systems/render_layer.hpp"
 #include "ui/widgets/space.hpp"
 #include "core/events/event_dispatcher.hpp"
-#include "core/events/window_event.hpp"
+#include "core/events/imgui_events.hpp"
 
 #include "utils/vk_enum_str.h"
 
@@ -37,10 +37,6 @@ namespace pxt {
 		if (m_offscreenColorFormat == VK_FORMAT_UNDEFINED) {
 			throw std::runtime_error("Failed to find a suitable offscreen color format for RenderLayer's render target!");
 		}
-
-		// to handle viewport resizing
-		VkExtent2D swapChainExtent = m_renderer.getSwapChainExtent();
-		m_lastFrameSwapChainExtent = swapChainExtent;
 
 		createRenderPass();
 		createSceneImage();
@@ -141,13 +137,11 @@ namespace pxt {
 	}
 
 	void RenderLayer::createSceneImage() {
-		VkExtent2D swapChainExtent = m_renderer.getSwapChainExtent();
-
 		VkImageCreateInfo sceneImageInfo{};
 		sceneImageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
 		sceneImageInfo.imageType = VK_IMAGE_TYPE_2D;
-		sceneImageInfo.extent.width = swapChainExtent.width;
-		sceneImageInfo.extent.height = swapChainExtent.height;
+		sceneImageInfo.extent.width = m_sceneExtent.width;
+		sceneImageInfo.extent.height = m_sceneExtent.height;
 		sceneImageInfo.extent.depth = 1;
 		sceneImageInfo.mipLevels = 1;
 		sceneImageInfo.arrayLayers = 1;
@@ -216,13 +210,12 @@ namespace pxt {
 	void RenderLayer::createOffscreenDepthResources() {
 		// DEPTH RESOURCE
 		VkFormat depthFormat = m_context.findDepthFormat();
-		VkExtent2D swapChainExtent = m_renderer.getSwapChainExtent();
 
 		VkImageCreateInfo imageInfo{};
 		imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
 		imageInfo.imageType = VK_IMAGE_TYPE_2D;
-		imageInfo.extent.width = swapChainExtent.width;
-		imageInfo.extent.height = swapChainExtent.height;
+		imageInfo.extent.width = m_sceneExtent.width;
+		imageInfo.extent.height = m_sceneExtent.height;
 		imageInfo.extent.depth = 1;
 		imageInfo.mipLevels = 1;
 		imageInfo.arrayLayers = 1;
@@ -256,15 +249,14 @@ namespace pxt {
 	void RenderLayer::createOffscreenFrameBuffer() {
 		// Create the offscreen framebuffer
 		std::array<VkImageView, 2> attachments = { m_sceneImage->getImageView(), m_offscreenDepthImage->getImageView() };
-		VkExtent2D swapChainExtent = m_renderer.getSwapChainExtent();
-
+		
 		VkFramebufferCreateInfo framebufferInfo = {};
 		framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 		framebufferInfo.renderPass = m_offscreenRenderPass->getHandle();
 		framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
 		framebufferInfo.pAttachments = attachments.data();
-		framebufferInfo.width = swapChainExtent.width;
-		framebufferInfo.height = swapChainExtent.height;
+		framebufferInfo.width = m_sceneExtent.width;
+		framebufferInfo.height = m_sceneExtent.height;
 		framebufferInfo.layers = 1;
 
 		m_offscreenFb = createUnique<FrameBuffer>(
@@ -452,18 +444,15 @@ namespace pxt {
 
 	void RenderLayer::onEvent(core::Event& event) {
 		core::EventDispatcher dispatcher(event);
-		dispatcher.dispatch<core::WindowResizeEvent>([this](auto& event) {
-			VkExtent2D swapChainExtent = m_renderer.getSwapChainExtent();
-			
+		dispatcher.dispatch<core::ImGuiViewportResizeEvent>([this](auto& event) {	
+			m_sceneExtent = { event.getWidth(), event.getHeight() };
 			recreateViewportResources();
 
 			// update scene image for raytracing
 			m_rayTracingRenderSystem->updateSceneImage(m_sceneImage);
 
 			// update the denoiser's images with new extent
-			m_denoiserRenderSystem->updateImages(swapChainExtent);
-
-			m_lastFrameSwapChainExtent = swapChainExtent;
+			m_denoiserRenderSystem->updateImages(m_sceneExtent);
 
 			return true;
 		});

@@ -36,6 +36,9 @@ namespace pxt::core {
             MouseButtonRelease, 
             MouseMove, 
             MouseScroll,
+
+            // ImGui events
+            ImGuiViewportResize,
         };
 
         virtual Event::Type getEventType() const = 0;

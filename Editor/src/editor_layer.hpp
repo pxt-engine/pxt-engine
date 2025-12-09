@@ -29,6 +29,6 @@ namespace pxt::editor {
 
 		core::UUID m_selectedEntityID = core::UUID::s_invalidId;
 
-		ImVec2 m_sceneImageExtentInViewport{ 0.0f, 0.0f };
+		ImVec2 m_sceneImageExtent{ 0.f, 0.f };
 	};
 }
