@@ -53,6 +53,10 @@ namespace pxt {
 
 		void doRenderPasses(FrameInfo& frameInfo);
 
+		float getSceneAspectRatio() const {
+			return static_cast<float>(m_sceneExtent.width) / static_cast<float>(m_sceneExtent.height);
+		}
+
 	private:
 		void recreateViewportResources();
 		void createRenderPass();

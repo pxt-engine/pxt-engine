@@ -314,8 +314,7 @@ namespace pxt {
         m_layerStack.onEvent(event);
     }
 
-    void Application::updateCamera(Camera& camera)
-	{
+    void Application::updateCamera(Camera& camera) {
         if (Entity mainCameraEntity = m_scene.getMainCameraEntity()) {
             const auto& cameraComponent = mainCameraEntity.get<CameraComponent>();
             const auto& transform = mainCameraEntity.get<TransformComponent>();
@@ -324,7 +323,7 @@ namespace pxt {
             camera.setViewYXZ(transform.translation, transform.rotation);
 
             if (camera.isPerspective()) {
-                camera.setPerspective(m_renderer.getAspectRatio());
+                camera.setPerspective(m_renderLayerPtr->getSceneAspectRatio());
             }
             else {
 				camera.setOrthographic();
