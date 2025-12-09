@@ -15,6 +15,9 @@ namespace pxt::editor {
 		core::EventDispatcher dispatcher(event);
 
 		dispatcher.dispatch<core::MouseButtonPressEvent>([this](core::MouseButtonPressEvent& e) {
+			// we dont care about mouse clicks outside of the viewport (for now)
+			if (!m_isViewportHovered)
+				return false;
 			return onMouseButtonPress(e);
 		});
 	}
