@@ -161,6 +161,8 @@ namespace pxt {
 		 */
         void endSwapChainRenderPass(VkCommandBuffer commandBuffer);
 
+		void onWindowResize();
+
     private:
         /**
          * @brief Creates the command buffers used for rendering.

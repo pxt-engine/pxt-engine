@@ -2,6 +2,7 @@
 
 #include "core/pch.hpp"
 #include "core/layer/layer.hpp"
+#include "core/events/event.hpp"
 #include "graphics/context/context.hpp"
 #include "graphics/renderer.hpp"
 #include "graphics/descriptors/descriptors.hpp"
@@ -48,6 +49,7 @@ namespace pxt {
 		void onUpdate(FrameInfo& frameInfo, GlobalUbo& ubo) override;
 		void onUpdateUi(FrameInfo& frameInfo) override;
 		void onPostFrameUpdate(FrameInfo& frameInfo) override;
+		void onEvent(core::Event& event) override;
 
 		void doRenderPasses(FrameInfo& frameInfo);
 

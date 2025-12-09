@@ -303,9 +303,13 @@ namespace pxt {
 
         dispatcher.dispatch<core::WindowCloseEvent>([this](auto& event) {
             m_running = false;
-			return true;
+			return true; // TODO: this should be false to allow other layers to handle the event
         });
-        // TODO: add window resize event and then refactor resizing code in Renderer and RenderLayer
+        
+        dispatcher.dispatch<core::WindowResizeEvent>([this](auto& event) {
+			m_renderer.onWindowResize();
+			return false; // false to allow RenderLayer to handle the event too
+        });
 
         m_layerStack.onEvent(event);
     }

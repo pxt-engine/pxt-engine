@@ -86,6 +86,11 @@ namespace pxt {
         return commandBuffer;
     }
 
+	void Renderer::onWindowResize() {
+        m_window.resetWindowResizedFlag();
+        recreateSwapChain();
+	}
+
     void Renderer::endFrame() {
         PXT_ASSERT(m_isFrameStarted, "Can't call endFrame while frame is not in progress.");
 
@@ -98,8 +103,7 @@ namespace pxt {
         auto result = m_swapChain->submitCommandBuffers(&commandBuffer, &m_currentImageIndex);
 
         if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || m_window.isWindowResized()) {
-            m_window.resetWindowResizedFlag();
-            recreateSwapChain();
+			onWindowResize();
         } else if (result != VK_SUCCESS) {
             throw std::runtime_error("failed to present swap chain image!");
         }

@@ -1,5 +1,7 @@
 #include "graphics/render_systems/render_layer.hpp"
 #include "ui/widgets/space.hpp"
+#include "core/events/event_dispatcher.hpp"
+#include "core/events/window_event.hpp"
 
 #include "utils/vk_enum_str.h"
 
@@ -56,8 +58,6 @@ namespace pxt {
 		vkDeviceWaitIdle(m_context.getDevice());
 
 		// destroy old resources: FrameBuffer will be destroyed by reassigning the unique_ptr
-
-		VkExtent2D swapChainExtent = m_renderer.getSwapChainExtent();
 
 		createSceneImage();
 		createOffscreenDepthResources();
@@ -362,24 +362,6 @@ namespace pxt {
 	}
 
 	void RenderLayer::onUpdate(FrameInfo& frameInfo, GlobalUbo& ubo) {
-		// check if viewport size has changed, if so recreate resources
-		VkExtent2D swapChainExtent = m_renderer.getSwapChainExtent();
-		if (swapChainExtent.width != m_lastFrameSwapChainExtent.width ||
-			swapChainExtent.height != m_lastFrameSwapChainExtent.height) {
-			recreateViewportResources();
-
-			// update scene image for raytracing
-			m_rayTracingRenderSystem->updateSceneImage(m_sceneImage);
-
-			// update the denoiser's images with new extent
-			m_denoiserRenderSystem->updateImages(swapChainExtent);
-
-			m_lastFrameSwapChainExtent = swapChainExtent;
-
-			// update imgui scene descriptor set and aspect ratio inside frameInfo
-			frameInfo.sceneDescriptorSet = m_sceneDescriptorSet;
-		}
-
 		// check if the user asked for the shaders to be reloaded
 		if (m_isReloadShadersButtonPressed) {
 			reloadShaders();
@@ -466,6 +448,25 @@ namespace pxt {
 
 	void RenderLayer::onPostFrameUpdate(FrameInfo& frameInfo) {
 		m_densityTextureSystem->postFrameUpdate(frameInfo.frameFence);
+	}
+
+	void RenderLayer::onEvent(core::Event& event) {
+		core::EventDispatcher dispatcher(event);
+		dispatcher.dispatch<core::WindowResizeEvent>([this](auto& event) {
+			VkExtent2D swapChainExtent = m_renderer.getSwapChainExtent();
+			
+			recreateViewportResources();
+
+			// update scene image for raytracing
+			m_rayTracingRenderSystem->updateSceneImage(m_sceneImage);
+
+			// update the denoiser's images with new extent
+			m_denoiserRenderSystem->updateImages(swapChainExtent);
+
+			m_lastFrameSwapChainExtent = swapChainExtent;
+
+			return true;
+		});
 	}
 
 	void RenderLayer::createDescriptorSetsImGui() {
