@@ -420,7 +420,7 @@ namespace pxt {
 
 			//begin offscreen render pass
 			m_renderer.beginRenderPass(frameInfo.commandBuffer, *m_offscreenRenderPass,
-				*m_offscreenFb, m_renderer.getSwapChainExtent());
+				*m_offscreenFb, m_sceneExtent);
 
 			m_skyboxRenderSystem->render(frameInfo);
 
