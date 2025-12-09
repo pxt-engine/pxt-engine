@@ -80,6 +80,13 @@ namespace pxt {
         m_window.setEventCallback([this]<typename E>(E&& event) {
             onEvent(std::forward<E>(event));
         });
+
+		// here the event is owned by the queue, we just pass it by reference
+		m_eventQueue.setMainCallbackFunction(
+			[this](core::Event& event) {
+				onEvent(event);
+			}
+		);
     }
 
 	void Application::createDescriptorPoolAllocator() {
@@ -229,6 +236,7 @@ namespace pxt {
 			core::Input::getState().beginFrame();
 			// then poll events to update input state
             glfwPollEvents();
+            m_eventQueue.pollEvents();
 
             auto newTime = std::chrono::high_resolution_clock::now();
             float elapsedTime = std::chrono::duration<float>(newTime - currentTime).count();

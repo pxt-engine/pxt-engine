@@ -2,6 +2,7 @@
 
 #include "core/pch.hpp"
 #include "core/events/event.hpp"
+#include "core/events/event_queue.hpp"
 #include "core/layer/layer_stack.hpp"
 #include "graphics/window.hpp"
 #include "graphics/context/context.hpp"
@@ -87,6 +88,22 @@ namespace pxt {
             m_layerStack.popOverlay(overlay);
         }
 
+        // EVENTS
+
+        /**
+		* @brief Queues an event to be processed by the application.
+        * 
+		* @param event The event to be queued.
+		* @tparam E The type of the event, must be derived from core::Event.
+        * 
+		* decay_t is used to remove references and cv-qualifiers from the type E
+        */
+        template<typename E>
+        requires (std::is_base_of_v<core::Event, std::decay_t<E>>)
+        void queueEvent(E&& event) {
+            m_eventQueue.queueEvent(std::forward<E>(event));
+        }
+
     protected:
         virtual void loadScene() {}
 
@@ -124,6 +141,8 @@ namespace pxt {
         TextureRegistry m_textureRegistry{m_context};
 		MaterialRegistry m_materialRegistry{m_context, m_textureRegistry};
 		BLASRegistry m_blasRegistry{m_context};
+
+        core::EventQueue m_eventQueue{};
 
         static Application* m_instance;
     };
