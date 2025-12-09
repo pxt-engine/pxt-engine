@@ -410,8 +410,8 @@ namespace pxt {
 			&m_missRegion,
 			&m_hitRegion,
 			&m_callableRegion,
-			renderer.getSwapChainExtent().width,
-			renderer.getSwapChainExtent().height,
+			m_sceneImage->getWidth(),
+			m_sceneImage->getHeight(),
 			1
 		);
 	}
