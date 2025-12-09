@@ -41,11 +41,12 @@ namespace pxt::core {
             ImGuiViewportResize,
         };
 
-        virtual Event::Type getEventType() const = 0;
-        virtual std::string getName() const = 0;
-        virtual std::string toString() const { return getName(); }
+        [[nodiscard]] virtual Event::Type getEventType() const = 0;
+        [[nodiscard]] virtual std::string getName() const = 0;
+        [[nodiscard]] virtual std::string toString() const { return getName(); }
 
-        bool isHandled() const { return m_handled; }
+        [[nodiscard]] bool isHandled() const { return m_handled; }
+
         void markHandled() { m_handled = true; }
 
     private:
