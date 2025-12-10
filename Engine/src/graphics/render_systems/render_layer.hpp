@@ -26,7 +26,6 @@
 
 
 namespace pxt {
-
 	class RenderLayer : public core::Layer {
 	public:
 		RenderLayer(Context& context, Renderer& renderer, 
@@ -112,5 +111,8 @@ namespace pxt {
 		bool m_isRaytracingEnabled = true;
 		bool m_isReloadShadersButtonPressed = false;
 		bool m_isDenoisingEnabled = true;
+
+		bool m_isObjectPickingRequested = false;
+		uivec2 m_objectPickPixelCoords{0.0f, 0.0f};
 	};
 }

@@ -49,6 +49,10 @@ namespace pxt::core {
 		bool isMouseButtonPressed(MouseButton button) const { return mousePressed[(size_t)button]; }
 		bool isMouseButtonReleased(MouseButton button) const { return mouseReleased[(size_t)button]; }
 		glm::vec2 getMousePosition() const { return mousePos; }
+		glm::vec2 getMousePositionImGui() const { 
+            ImVec2 imguiMousePos = ImGui::GetMousePos();
+			return glm::vec2(imguiMousePos.x, imguiMousePos.y);
+        }
         glm::vec2 getMouseDelta() const { return mouseDelta; }
     };
 } 

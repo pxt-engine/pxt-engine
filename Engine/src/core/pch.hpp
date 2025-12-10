@@ -54,6 +54,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/constants.hpp>
 #include <glm/gtc/type_ptr.hpp>
+using uivec2 = glm::highp_u32vec2;
 
 // Vulkan Headers - For using the Vulkan API, a low-level graphics API
 #include <vulkan/vulkan.h>

@@ -2,6 +2,7 @@
 #include "ui/widgets/space.hpp"
 #include "core/events/event_dispatcher.hpp"
 #include "core/events/imgui_events.hpp"
+#include "core/events/editor_events.hpp"
 
 #include "utils/vk_enum_str.h"
 
@@ -413,6 +414,12 @@ namespace pxt {
 
 			m_renderer.endRenderPass(frameInfo.commandBuffer);*/
 		} else {
+			// object picking
+			if (m_isObjectPickingRequested) {
+				// TODO: implement object picking system
+				m_isObjectPickingRequested = false;
+			}
+			
 			// render shadow cube map
 			// the render function of the shadow map render system will
 			// do how many passes it needs to do (6 in this case - 1 point light)
@@ -453,6 +460,18 @@ namespace pxt {
 
 			// update the denoiser's images with new extent
 			m_denoiserRenderSystem->updateImages(m_sceneExtent);
+
+			return true;
+		});
+
+		dispatcher.dispatch<core::PickObjectAtEvent>([this](auto& event) {
+			if (m_isRaytracingEnabled) {
+				PXT_WARN("Picking is only supported in Raster mode!");
+				return false;
+			}
+
+			m_objectPickPixelCoords = { event.getPixelX(), event.getPixelY()};
+			m_isObjectPickingRequested = true;
 
 			return true;
 		});

@@ -39,6 +39,9 @@ namespace pxt::core {
 
             // ImGui events
             ImGuiViewportResize,
+
+			// Editor events
+            PickObjectAt,
         };
 
         [[nodiscard]] virtual Event::Type getEventType() const = 0;

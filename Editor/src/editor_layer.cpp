@@ -1,5 +1,7 @@
 #include "editor_layer.hpp"
 #include "core/events/imgui_events.hpp"
+#include "core/events/editor_events.hpp"
+
 
 namespace pxt::editor {
 	EditorLayer::EditorLayer() : core::Layer("EditorLayer") {}
@@ -20,14 +22,29 @@ namespace pxt::editor {
 				return false;
 			return onMouseButtonPress(e);
 		});
+
+		dispatcher.dispatch<core::MouseButtonPressEvent>([this](core::MouseButtonPressEvent& e) {
+			// we dont care about mouse clicks outside of the viewport (for now)
+			if (!m_isViewportHovered)
+				return false;
+			return onMouseButtonPress(e);
+		});
 	}
 
 	bool EditorLayer::onMouseButtonPress(core::MouseButtonPressEvent& event) {
 		// handle mouse button press events here
-		m_lastClickMousePos = core::Input::getState().getMousePosition();
+		m_lastClickMousePosImGui = core::Input::getState().getMousePositionImGui();
 
-		PXT_INFO("Mouse Button Pressed at position: ({}, {})",
-			m_lastClickMousePos.x, m_lastClickMousePos.y);
+		float x = m_lastClickMousePosImGui.x - m_viewportUpperLeftScreenCoord.x;
+		float y = m_lastClickMousePosImGui.y - m_viewportUpperLeftScreenCoord.y;
+
+		uint32_t px = static_cast<uint32_t>(std::clamp(x, 0.0f, (float)(m_sceneImageExtent.x - 1)));
+		uint32_t py = static_cast<uint32_t>(std::clamp(y, 0.0f, (float)(m_sceneImageExtent.y - 1)));
+
+		PXT_INFO("Mouse Button Pressed at position: ({}, {}) (Realtive to upper-left corner of viewport)",
+			px, py);
+
+		Application::get().queueEvent(core::PickObjectAtEvent(px, py));
 
 		return false;
 	}
@@ -55,6 +72,7 @@ namespace pxt::editor {
 
 		m_isViewportHovered = ImGui::IsWindowHovered(ImGuiHoveredFlags_None);
 		m_isViewportFocused = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
+		m_viewportUpperLeftScreenCoord = ImGui::GetCursorScreenPos();
 
 		ImVec2 viewportSize = ImGui::GetContentRegionAvail();
 
@@ -70,17 +88,6 @@ namespace pxt::editor {
 
 			m_sceneImageExtent = viewportSize;
 		}
-
-		/*
-		// Calculate the horizontal and vertical offsets for centering
-		float titleBarSize = ImGui::GetFrameHeight() * 2;
-		float offsetX = (viewportSize.x - m_sceneImageExtent.x) * 0.5f;
-		float offsetY = (viewportSize.y - m_sceneImageExtent.y + titleBarSize) * 0.5f;
-
-		// Move the cursor to the calculated position
-		// ImGui::SetCursorPos() sets the next drawing position relative to the top-left of the *content region*.
-		ImGui::SetCursorPos(ImVec2(offsetX, offsetY));
-		*/
 
 		ImGui::Image(scene, m_sceneImageExtent);
 		ImGui::End();

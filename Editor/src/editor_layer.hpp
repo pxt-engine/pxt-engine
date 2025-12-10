@@ -21,7 +21,7 @@ namespace pxt::editor {
 		bool m_isViewportFocused = false;
 		bool m_isViewportHovered = false;
 
-		glm::vec2 m_lastClickMousePos = { 0.0f, 0.0f };
+		glm::vec2 m_lastClickMousePosImGui = { 0.0f, 0.0f };
 
 		SceneHierarchy m_sceneHierarchy{};
 		EntityInspector m_entityInspector{};
@@ -30,5 +30,6 @@ namespace pxt::editor {
 		core::UUID m_selectedEntityID = core::UUID::s_invalidId;
 
 		ImVec2 m_sceneImageExtent{ 0.f, 0.f };
+		ImVec2 m_viewportUpperLeftScreenCoord{ 0.f, 0.f };
 	};
 }
