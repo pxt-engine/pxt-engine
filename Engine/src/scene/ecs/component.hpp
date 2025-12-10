@@ -2,6 +2,7 @@
 
 #include "core/pch.hpp"
 #include "core/uuid.hpp"
+#include "core/obj_picking_id.hpp"
 #include "resources/types/mesh.hpp"
 #include "resources/types/material.hpp" 
 #include "scene/camera.hpp"       
@@ -18,6 +19,32 @@ namespace pxt
 		// Conversion operators
 		operator core::UUID& () { return uuid; }
 		operator const core::UUID& () const { return uuid; }
+	};
+
+	struct ObjPickingIdComponent {
+		core::ObjPickingId objPickingId;
+		glm::u8vec3 color;
+
+		ObjPickingIdComponent() : ObjPickingIdComponent(core::ObjPickingId()) {}
+
+		ObjPickingIdComponent(core::ObjPickingId id)
+			: objPickingId(id) {
+			color = objPickingId.getColorFromId();
+			PXT_INFO("Created ObjPickingIdComponent with ID: {} and Color: ({}, {}, {})",
+				objPickingId.getObjPickingId(), color.r, color.g, color.b);
+		}
+
+		glm::vec4 getColorAsVec4() const {
+			return glm::vec4(
+				static_cast<float>(color.r) / 255.0f,
+				static_cast<float>(color.g) / 255.0f,
+				static_cast<float>(color.b) / 255.0f,
+				1.0f
+			);
+		}
+
+		operator glm::u8vec3& () { return color; }
+		operator const glm::u8vec3& () const { return color; }
 	};
 
 	struct NameComponent {

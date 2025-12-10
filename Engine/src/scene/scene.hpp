@@ -2,6 +2,7 @@
 
 #include "core/pch.hpp"
 #include "core/uuid.hpp"
+#include "core/obj_picking_id.hpp"
 
 #include "scene/environment.hpp"
 
@@ -30,7 +31,11 @@ namespace pxt {
 		 * @param id Optional UUID for the entity. If not provided, a new UUID is generated.
          * @return The created entity.
          */
-        Entity createEntity(const std::string& name = std::string(), core::UUID id = core::UUID());
+        Entity createEntity(
+            const std::string& name = std::string(),
+            core::UUID id = core::UUID(),
+            core::ObjPickingId objPickingId = core::ObjPickingId()
+        );
         
         /**
          * @brief Retrieves an entity by its UUID.

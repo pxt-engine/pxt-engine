@@ -6,10 +6,11 @@
 
 namespace pxt {
 
-    Entity Scene::createEntity(const std::string& name, core::UUID id) {
+    Entity Scene::createEntity(const std::string& name, core::UUID id, core::ObjPickingId objPickingId) {
         Entity entity = { m_registry.create(), this };
 
         entity.add<IDComponent>(id);
+		entity.add<ObjPickingIdComponent>(objPickingId);
         entity.add<NameComponent>(name.empty() ? "Unnamed-Entity" : name);
 
         m_entityMap[entity.getUUID()] = entity;
