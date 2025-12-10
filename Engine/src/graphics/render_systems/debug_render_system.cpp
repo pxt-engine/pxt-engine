@@ -9,6 +9,8 @@ namespace pxt {
         glm::mat4 modelMatrix{1.f};
         glm::mat4 normalMatrix{1.f};
 		glm::vec4 color{ 1.f };
+		glm::vec4 objPickingColor{ 1.f };
+		uint32_t enableObjectPicking{0};
         uint32_t enableWireframe{0};
 		uint32_t enableNormals{0};
 		int textureIndex = 0;
@@ -107,10 +109,10 @@ namespace pxt {
             nullptr
         );
 
-        auto view = frameInfo.scene.getEntitiesWith<TransformComponent, MeshComponent, MaterialComponent>();
+        auto view = frameInfo.scene.getEntitiesWith<TransformComponent, MeshComponent, MaterialComponent, ObjPickingIdComponent>();
         for (auto entity : view) {
 
-            const auto&[transform, meshComponent, materialComponent] = view.get<TransformComponent, MeshComponent, MaterialComponent>(entity);
+            const auto&[transform, meshComponent, materialComponent, objPickingIdComponent] = view.get<TransformComponent, MeshComponent, MaterialComponent, ObjPickingIdComponent>(entity);
 
 			auto material = materialComponent.material;
             auto vulkanMesh = std::static_pointer_cast<VulkanMesh>(meshComponent.mesh);
@@ -119,6 +121,7 @@ namespace pxt {
             push.modelMatrix = transform.mat4();
             push.normalMatrix = transform.normalMatrix();
 			push.color = material->getAlbedoColor() * glm::vec4(materialComponent.tint, 1.0f);
+			push.objPickingColor = objPickingIdComponent.getColorAsVec4();
 			push.textureIndex = m_isAlbedoMapEnabled ? m_textureRegistry.getIndex(material->getAlbedoMap()->id) : -1;
 			push.normalMapIndex = m_isNormalMapEnabled ? m_textureRegistry.getIndex(material->getNormalMap()->id) : -1;
 			push.ambientOcclusionMapIndex = m_isAOMapEnabled ? m_textureRegistry.getIndex(material->getAmbientOcclusionMap()->id) : -1;
@@ -126,6 +129,7 @@ namespace pxt {
             push.blinnPhongSpecularIntensity = material->getBlinnPhongSpecularIntensity();
             push.blinnPhongSpecularShininess = material->getBlinnPhongSpecularShininess();
 
+			push.enableObjectPicking = (uint32_t)(m_renderMode == ObjectPickingID);
             push.enableWireframe = (uint32_t)(m_renderMode == Wireframe);
 			push.enableNormals = (uint32_t)m_isNormalColorEnabled;
             
@@ -148,7 +152,8 @@ namespace pxt {
 		ImGui::Text("Render Mode:");
 		ImGui::RadioButton("Wireframe", &m_renderMode, Wireframe);
         ImGui::RadioButton("Fill", &m_renderMode, Fill);
-        ImGui::BeginDisabled(m_renderMode == Wireframe);
+		ImGui::RadioButton("Object Picking ID", &m_renderMode, ObjectPickingID);
+        ImGui::BeginDisabled(m_renderMode != Fill);
 		ImGui::Checkbox("Show Normals as Color", &m_isNormalColorEnabled);
 		ImGui::Checkbox("Show Albedo Map", &m_isAlbedoMapEnabled);
 		ImGui::Checkbox("Show Normal Map", &m_isNormalMapEnabled);

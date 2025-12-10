@@ -12,7 +12,8 @@
 namespace pxt {
 	enum RenderMode {
 		Fill = 0,
-		Wireframe = 1
+		Wireframe = 1,
+		ObjectPickingID = 2
 	};
 
     class DebugRenderSystem {
