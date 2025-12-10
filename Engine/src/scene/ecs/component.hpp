@@ -32,6 +32,7 @@ namespace pxt
 			color = objPickingId.getColorFromId();
 			PXT_INFO("Created ObjPickingIdComponent with ID: {} and Color: ({}, {}, {})",
 				objPickingId.getObjPickingId(), color.r, color.g, color.b);
+			PXT_INFO("ID retrieved from color: {}", core::ObjPickingId::getIdFromColor(color));
 		}
 
 		glm::vec4 getColorAsVec4() const {

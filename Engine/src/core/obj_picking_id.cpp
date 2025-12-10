@@ -4,63 +4,119 @@ namespace pxt::core {
 	// 24-bit mask
 	constexpr uint32_t COLOR_MASK = 0xFFFFFF;
 
-	// Large prime for scrambling bits
-	constexpr uint32_t SCRAMBLING_PRIME = 11400007;
+    constexpr uint32_t rot_left(uint32_t v, unsigned r) {
+        return ((v << r) | (v >> (24 - r))) & COLOR_MASK;
+    }
 
-    // The pre-calculated inverse of 11400007 mod 2^24
-    constexpr uint32_t INVERSE_PRIME = 2330767;
+    constexpr uint32_t rot_right(uint32_t v, unsigned r) {
+        return ((v >> r) | ((v << (24 - r)) & COLOR_MASK)) & COLOR_MASK;
+    }
+
+    // Undo left-xor: x ^= (x << s) & MASK
+    constexpr uint32_t undo_left_xor(uint32_t x, unsigned s) {
+        // iterate doubling s until >= 24
+        unsigned shift = s;
+        while (shift < 24) {
+            x ^= ((x << shift) & COLOR_MASK);
+            shift *= 2;
+        }
+        return x & COLOR_MASK;
+    }
+
+    // Undo right-xor: x ^= (x >> s)
+    constexpr uint32_t undo_right_xor(uint32_t x, unsigned s) {
+        unsigned shift = s;
+        while (shift < 24) {
+            x ^= (x >> shift);
+            shift *= 2;
+        }
+        return x & COLOR_MASK;
+    }
+
+    // Gray-code inverse (for id ^= id >> 1; inverse done by series of right-xors)
+    constexpr uint32_t invert_gray(uint32_t v) {
+        uint32_t x = v;
+        x ^= (x >> 1);
+        x ^= (x >> 2);
+        x ^= (x >> 4);
+        x ^= (x >> 8);
+        x ^= (x >> 16);
+        return x & COLOR_MASK;
+    }
+
+    constexpr uint32_t scramble24(uint32_t id) {
+        id &= COLOR_MASK;
+
+        // Light reversible mix
+        id ^= ((id << 13) & COLOR_MASK);
+        id ^= (id >> 7);
+        id ^= ((id << 17) & COLOR_MASK);
+
+        // Rotate left 9 bits across 24-bit space
+        id = rot_left(id, 9);
+
+        // Mild Gray transform
+        id ^= (id >> 1);
+
+        return id & COLOR_MASK;
+    }
+
+    constexpr uint32_t unscramble24(uint32_t v) {
+        v &= COLOR_MASK;
+
+        // Reverse Gray transform (apply inverse)
+        uint32_t x = invert_gray(v);
+
+        // Reverse rotation (rotate right 9)
+        x = rot_right(x, 9);
+
+        // Reverse the XOR mix in reverse order of application:
+        // scramble: L13, R7, L17  ->  we must undo L17, R7, L13
+        x = undo_left_xor(x, 17);   // undo id ^= (id << 17)
+        x = undo_right_xor(x, 7);   // undo id ^= (id >> 7)
+        x = undo_left_xor(x, 13);   // undo id ^= (id << 13)
+
+        return x & COLOR_MASK;
+    }
 
 	ObjPickingId::ObjPickingId() : m_objPickingId(getNextId()) {}
 
 	uint32_t ObjPickingId::getIdFromColor(const glm::u8vec3& color) {
-        uint32_t u32color =
-            (static_cast<uint32_t>(color.r) << 16) |  // R is the most significant 8 bits
-            (static_cast<uint32_t>(color.g) << 8) |  // G is the middle 8 bits
-            (static_cast<uint32_t>(color.b));         // B is the least significant 8 bits
-
-        if ((u32color & COLOR_MASK) == 0) {
-            return 0; // Pure black maps back to ID 0
-        }
-
-        // Reverse the scrambling: Multiply by the inverse prime and mask.
-        uint32_t entityID = (u32color * INVERSE_PRIME) & COLOR_MASK;
-
-        return entityID;
+        uint32_t c =
+            (uint32_t(color.r) << 16) |
+            (uint32_t(color.g) << 8) |
+            color.b;
+        // zero is reserved for no object
+        return c == 0 ? 0 : unscramble24(c);
 	}
 
 	glm::u8vec3 ObjPickingId::getColorFromId(uint32_t id) {
-        if (id == 0) {
-            // reserved for no object
-            return { 0, 0, 0 };
-        }
+        // reserved for no object
+        if (id == 0) return { 0, 0, 0 };
 
-        // scramble the sequential ID to get a pseudo-random color integer.
-        uint32_t scrambledColor = (id * SCRAMBLING_PRIME) & COLOR_MASK;
+        uint32_t c = scramble24(id);
 
-        // map the 24-bit integer back to RGB components.
-        glm::u8vec3 color;
-        color.r = (scrambledColor >> 16) & 0xFF; // Top 8 bits (Red)
-        color.g = (scrambledColor >> 8) & 0xFF; // Middle 8 bits (Green)
-        color.b = (scrambledColor) & 0xFF; // Bottom 8 bits (Blue)
-
-        return color;
+        return {
+            uint8_t((c >> 16) & 0xFF),
+            uint8_t((c >> 8) & 0xFF),
+            uint8_t(c & 0xFF)
+        };
 	}
 
     glm::u8vec3 ObjPickingId::getColorFromId() {
-        if (m_objPickingId == 0) {
-            // reserved for no object
-            return { 0, 0, 0 };
-        }
+        // reserved for no object
+        if (m_objPickingId == 0) return { 0, 0, 0 };
 
-        // scramble the sequential ID to get a pseudo-random color integer.
-        uint32_t scrambledColor = (m_objPickingId * SCRAMBLING_PRIME) & COLOR_MASK;
+        uint32_t c = scramble24(m_objPickingId);
 
-        // map the 24-bit integer back to RGB components.
-        glm::u8vec3 color;
-        color.r = (scrambledColor >> 16) & 0xFF; // Top 8 bits (Red)
-        color.g = (scrambledColor >> 8) & 0xFF; // Middle 8 bits (Green)
-        color.b = (scrambledColor) & 0xFF; // Bottom 8 bits (Blue)
-
-        return color;
+        return {
+            uint8_t((c >> 16) & 0xFF),
+            uint8_t((c >> 8) & 0xFF),
+            uint8_t(c & 0xFF)
+        };
     }
+
+    static_assert(unscramble24(scramble24(1)) == 1);
+    static_assert(unscramble24(scramble24(123456)) == 123456);
+    static_assert(unscramble24(scramble24(0xFFFFFF)) == 0xFFFFFF);
 }

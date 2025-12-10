@@ -108,7 +108,7 @@ namespace pxt {
 		VkExtent2D m_sceneExtent{1600, 900};
 
 		bool m_isDebugEnabled = false;
-		bool m_isRaytracingEnabled = true;
+		bool m_isRaytracingEnabled = false;
 		bool m_isReloadShadersButtonPressed = false;
 		bool m_isDenoisingEnabled = true;
 
