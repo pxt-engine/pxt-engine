@@ -21,4 +21,21 @@ namespace pxt::core {
     private:
         uint32_t m_pixelX, m_pixelY;
     };
+
+    class SelectedEntityChangedEvent : public Event {
+    public:
+        SelectedEntityChangedEvent(UUID selectedEntityUUID)
+            : m_selectedEntityUUID(selectedEntityUUID) {
+        }
+
+		[[nodiscard]] UUID getSelectedEntityUUID() const { return m_selectedEntityUUID; }
+
+        Event::Type getEventType() const override { return Event::Type::SelectedEntityChanged; }
+        std::string getName() const override { return "SelectedEntityChanged"; }
+
+        static Event::Type getStaticType() { return Event::Type::SelectedEntityChanged; }
+
+    private:
+		UUID m_selectedEntityUUID;
+    };
 }

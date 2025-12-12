@@ -42,6 +42,7 @@ namespace pxt::core {
 
 			// Editor events
             PickObjectAt,
+            SelectedEntityChanged,
         };
 
         [[nodiscard]] virtual Event::Type getEventType() const = 0;
