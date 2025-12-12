@@ -96,6 +96,15 @@ namespace pxt {
             return get<IDComponent>().uuid;
         }
 
+		/**
+		* @brief Get the Object Picking ID of the entity
+        * 
+		* @return Object Picking ID of the entity
+        */
+		uint32_t getObjPickingId() {
+			return get<ObjPickingIdComponent>().objPickingId.getObjPickingId();
+		}
+
     private:
         entt::entity m_enttEntity{entt::null};
         Scene* m_scene = nullptr;

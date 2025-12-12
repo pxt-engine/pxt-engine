@@ -5,6 +5,10 @@
 #include "scene/script/script.hpp"
 
 namespace pxt {
+    Scene::Scene() {
+        // put invalid ids into m_objPickingIdToUUID map
+		m_objPickingIdToUUID[core::ObjPickingId::s_invalidId] = core::UUID::s_invalidId;
+    }
 
     Entity Scene::createEntity(const std::string& name, core::UUID id, core::ObjPickingId objPickingId) {
         Entity entity = { m_registry.create(), this };
@@ -14,6 +18,7 @@ namespace pxt {
         entity.add<NameComponent>(name.empty() ? "Unnamed-Entity" : name);
 
         m_entityMap[entity.getUUID()] = entity;
+		m_objPickingIdToUUID[objPickingId.getObjPickingId()] = entity.getUUID();
         
         return entity;
     }
@@ -24,8 +29,15 @@ namespace pxt {
         return { m_entityMap.at(uuid), this };
     }
 
+    core::UUID Scene::getEntityUUIDFromObjPickingId(uint32_t objPickingId) {
+        PXT_ASSERT(m_objPickingIdToUUID.contains(objPickingId), "UUID not found in map!");
+
+        return m_objPickingIdToUUID.at(objPickingId);
+    }
+
     void Scene::destroyEntity(Entity entity) {
         m_entityMap.erase(entity.getUUID());
+		m_objPickingIdToUUID.erase(entity.getObjPickingId());
         m_registry.destroy(entity);
     }
 
