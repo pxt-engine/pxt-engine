@@ -147,7 +147,7 @@ namespace pxt {
         vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
     }
 
-    void Renderer::beginRenderPass(VkCommandBuffer commandBuffer, RenderPass& renderPass, FrameBuffer& frameBuffer, VkExtent2D extent) {
+    void Renderer::beginRenderPass(VkCommandBuffer commandBuffer, RenderPass& renderPass, FrameBuffer& frameBuffer, VkExtent2D extent, VkClearColorValue clearColor) {
         PXT_ASSERT(m_isFrameStarted, "Can't begin render pass when frame is not in progress.");
         PXT_ASSERT(commandBuffer == getCurrentCommandBuffer(), "Can't begin render pass on command buffer from a different frame.");
 
@@ -160,7 +160,7 @@ namespace pxt {
 		renderPassInfo.renderArea.extent = extent;
 
 		std::array<VkClearValue, 2> clearValues{};
-		clearValues[0].color = { 1.0f, 1.0f, 1.0f, 1.0f };
+		clearValues[0].color = clearColor;
 		clearValues[1].depthStencil = { 1.0f, 0 };
 
 		renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());

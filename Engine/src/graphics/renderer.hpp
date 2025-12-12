@@ -138,7 +138,7 @@ namespace pxt {
         *
         * @throws std::runtime_error if called when frame is not in progress or command buffer is from a different frame.
         */
-        void beginRenderPass(VkCommandBuffer commandBuffer, RenderPass& renderPass, FrameBuffer& frameBuffer, VkExtent2D extent);
+        void beginRenderPass(VkCommandBuffer commandBuffer, RenderPass& renderPass, FrameBuffer& frameBuffer, VkExtent2D extent, VkClearColorValue clearColor = {1.0f, 1.0f, 1.0f, 1.0f});
 
         /**
          * @brief Ends the current render pass.
