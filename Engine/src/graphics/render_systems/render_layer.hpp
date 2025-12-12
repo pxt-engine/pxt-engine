@@ -34,7 +34,7 @@ namespace pxt {
 						   TextureRegistry& textureRegistry,
 						   MaterialRegistry& materialRegistry,
 						   BLASRegistry& blasRegistry,
-						   Shared<DescriptorSetLayout> globalSetLayout,
+						   DescriptorSetLayout& globalSetLayout,
 						   Shared<Environment> environment);
 
 		~RenderLayer();
@@ -78,7 +78,7 @@ namespace pxt {
 
 		DescriptorAllocatorGrowable& m_descriptorAllocator;
 
-		Shared<DescriptorSetLayout> m_globalSetLayout{};
+		DescriptorSetLayout& m_globalSetLayout;
 
 		Shared<Environment> m_environment;
 

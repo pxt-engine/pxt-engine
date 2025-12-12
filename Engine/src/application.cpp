@@ -63,7 +63,7 @@ namespace pxt {
             m_textureRegistry,
 			m_materialRegistry,
 			m_blasRegistry,
-            m_globalSetLayout,
+            *m_globalSetLayout,
             m_scene.getEnvironment()
         );
 

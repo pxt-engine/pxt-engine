@@ -13,7 +13,7 @@ namespace pxt {
 			DescriptorAllocatorGrowable& descriptorAllocator, 
 			TextureRegistry& textureRegistry, MaterialRegistry& materialRegistry, 
 			BLASRegistry& blasRegistry,
-			Shared<DescriptorSetLayout> globalSetLayout,
+			DescriptorSetLayout& globalSetLayout,
 			Shared<Environment> environment)
 		
 		:	Layer("RenderLayer"),
@@ -24,7 +24,7 @@ namespace pxt {
 			m_textureRegistry(textureRegistry),
 		    m_materialRegistry(materialRegistry),
 			m_blasRegistry(blasRegistry),
-			m_globalSetLayout(std::move(globalSetLayout)), // TODO: check ownership on this shared pointer (intended behavior here?)
+			m_globalSetLayout(globalSetLayout),
 			m_environment(std::move(environment))
 	{
 		m_offscreenColorFormat = m_context.findSupportedFormat(
@@ -275,20 +275,20 @@ namespace pxt {
 		m_pointLightSystem = createUnique<PointLightSystem>(
 			m_context,
 			m_offscreenRenderPass->getHandle(),
-			m_globalSetLayout->getDescriptorSetLayout()
+			m_globalSetLayout.getDescriptorSetLayout()
 		);
 
 		m_shadowMapRenderSystem = createUnique<ShadowMapRenderSystem>(
 			m_context,
 			m_descriptorAllocator,
-			*m_globalSetLayout
+			m_globalSetLayout
 		);
 
 		m_materialRenderSystem = createUnique<MaterialRenderSystem>(
 			m_context,
 			m_descriptorAllocator,
 			m_textureRegistry,
-			*m_globalSetLayout,
+			m_globalSetLayout,
 			m_offscreenRenderPass->getHandle(),
 			m_shadowMapRenderSystem->getShadowMapImageInfo()
 		);
@@ -298,13 +298,13 @@ namespace pxt {
 			m_descriptorAllocator,
 			m_textureRegistry,
 			m_offscreenRenderPass->getHandle(),
-			*m_globalSetLayout
+			m_globalSetLayout
 		);
 
 		m_skyboxRenderSystem = createUnique<SkyboxRenderSystem>(
 			m_context,
 			m_environment,
-			*m_globalSetLayout,
+			m_globalSetLayout,
 			m_offscreenRenderPass->getHandle()
 		);
 
@@ -328,7 +328,7 @@ namespace pxt {
 			m_materialRegistry,
 			m_blasRegistry,
 			m_environment,
-			*m_globalSetLayout,
+			m_globalSetLayout,
 			m_sceneImage,
 			*m_densityTextureSystem
 		);
@@ -336,7 +336,7 @@ namespace pxt {
 		m_objectPickingSystem = createUnique<ObjectPickingSystem>(
 			m_context,
 			m_descriptorAllocator,
-			*m_globalSetLayout,
+			m_globalSetLayout,
 			m_sceneExtent
 		);
 	}

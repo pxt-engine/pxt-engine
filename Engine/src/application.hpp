@@ -131,7 +131,8 @@ namespace pxt {
         ResourceManager* m_resourceManagerPtr = nullptr;
 
         Unique<DescriptorAllocatorGrowable> m_descriptorAllocator{};
-		Shared<DescriptorSetLayout> m_globalSetLayout{};
+		Unique<DescriptorSetLayout> m_globalSetLayout{};
+
 		std::vector<VkDescriptorSet> m_globalDescriptorSets{ SwapChain::MAX_FRAMES_IN_FLIGHT };
 
 		std::vector<Unique<VulkanBuffer>> m_uboBuffers{ SwapChain::MAX_FRAMES_IN_FLIGHT };
