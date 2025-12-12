@@ -46,8 +46,8 @@ namespace pxt {
             return m_resourceManagerPtr;
         }
 
-		Shared<DescriptorAllocatorGrowable> getDescriptorAllocator() {
-			return m_descriptorAllocator;
+		DescriptorAllocatorGrowable* getDescriptorAllocator() {
+			return m_descriptorAllocator.get();
 		}
 
         // LAYERS
@@ -130,7 +130,7 @@ namespace pxt {
         UiRenderLayer* m_uiRenderLayerPtr = nullptr;
         ResourceManager* m_resourceManagerPtr = nullptr;
 
-		Shared<DescriptorAllocatorGrowable> m_descriptorAllocator{};
+        Unique<DescriptorAllocatorGrowable> m_descriptorAllocator{};
 		Shared<DescriptorSetLayout> m_globalSetLayout{};
 		std::vector<VkDescriptorSet> m_globalDescriptorSets{ SwapChain::MAX_FRAMES_IN_FLIGHT };
 

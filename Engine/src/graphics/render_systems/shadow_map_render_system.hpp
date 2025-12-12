@@ -14,7 +14,7 @@
 namespace pxt {
     class ShadowMapRenderSystem {
     public:
-        ShadowMapRenderSystem(Context& context, Shared<DescriptorAllocatorGrowable> descriptorAllocator, DescriptorSetLayout& setLayout);
+        ShadowMapRenderSystem(Context& context, DescriptorAllocatorGrowable& descriptorAllocator, DescriptorSetLayout& setLayout);
         ~ShadowMapRenderSystem();
 
         ShadowMapRenderSystem(const ShadowMapRenderSystem&) = delete;
@@ -52,7 +52,7 @@ namespace pxt {
 
         Context& m_context;
 
-		Shared<DescriptorAllocatorGrowable> m_descriptorAllocator;
+		DescriptorAllocatorGrowable& m_descriptorAllocator;
 
         std::array<Unique<VulkanBuffer>, SwapChain::MAX_FRAMES_IN_FLIGHT> m_lightUniformBuffers;
         std::array<VkDescriptorSet, SwapChain::MAX_FRAMES_IN_FLIGHT> m_lightDescriptorSets;

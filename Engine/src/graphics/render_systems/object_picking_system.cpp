@@ -15,7 +15,7 @@ namespace pxt {
 
 	ObjectPickingSystem::ObjectPickingSystem(
 		Context& context,
-		Shared<DescriptorAllocatorGrowable> descriptorAllocator,
+		DescriptorAllocatorGrowable& descriptorAllocator,
 		DescriptorSetLayout& globalSetLayout,
 		VkExtent2D sceneImageExtent)
 		: m_context{ context },

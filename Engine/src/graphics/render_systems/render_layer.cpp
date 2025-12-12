@@ -10,7 +10,7 @@
 
 namespace pxt {
 	RenderLayer::RenderLayer(Context& context, Renderer& renderer, 
-			Shared<DescriptorAllocatorGrowable> descriptorAllocator, 
+			DescriptorAllocatorGrowable& descriptorAllocator, 
 			TextureRegistry& textureRegistry, MaterialRegistry& materialRegistry, 
 			BLASRegistry& blasRegistry,
 			Shared<DescriptorSetLayout> globalSetLayout,
@@ -20,7 +20,7 @@ namespace pxt {
 
 			m_context(context), 
 			m_renderer(renderer),
-			m_descriptorAllocator(std::move(descriptorAllocator)),
+			m_descriptorAllocator(descriptorAllocator),
 			m_textureRegistry(textureRegistry),
 		    m_materialRegistry(materialRegistry),
 			m_blasRegistry(blasRegistry),
@@ -518,7 +518,7 @@ namespace pxt {
 		imageInfo.imageView = m_sceneImage->getImageView();
 		imageInfo.sampler = m_sceneImage->getImageSampler();
 
-		m_descriptorAllocator->allocate(m_sceneDescriptorSetLayout->getDescriptorSetLayout(), m_sceneDescriptorSet);
+		m_descriptorAllocator.allocate(m_sceneDescriptorSetLayout->getDescriptorSetLayout(), m_sceneDescriptorSet);
 
 		DescriptorWriter(m_context, *m_sceneDescriptorSetLayout)
 			.writeImage(0, &imageInfo)

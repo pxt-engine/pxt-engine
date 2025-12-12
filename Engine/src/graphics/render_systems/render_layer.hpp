@@ -30,7 +30,7 @@ namespace pxt {
 	class RenderLayer : public core::Layer {
 	public:
 		RenderLayer(Context& context, Renderer& renderer, 
-						   Shared<DescriptorAllocatorGrowable> descriptorAllocator,
+						   DescriptorAllocatorGrowable& descriptorAllocator,
 						   TextureRegistry& textureRegistry,
 						   MaterialRegistry& materialRegistry,
 						   BLASRegistry& blasRegistry,
@@ -76,7 +76,7 @@ namespace pxt {
 		MaterialRegistry& m_materialRegistry;
 		BLASRegistry& m_blasRegistry;
 
-		Shared<DescriptorAllocatorGrowable> m_descriptorAllocator;
+		DescriptorAllocatorGrowable& m_descriptorAllocator;
 
 		Shared<DescriptorSetLayout> m_globalSetLayout{};
 

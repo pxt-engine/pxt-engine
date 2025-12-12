@@ -5,7 +5,7 @@
 
 namespace pxt {
 	RayTracingSceneManagerSystem::RayTracingSceneManagerSystem(Context& context, MaterialRegistry& materialRegistry, 
-		BLASRegistry& blasRegistry, TextureRegistry& textureRegistry, Shared<DescriptorAllocatorGrowable> allocator)
+		BLASRegistry& blasRegistry, TextureRegistry& textureRegistry, DescriptorAllocatorGrowable& allocator)
 		: m_context(context), 
 		m_materialRegistry(materialRegistry),
 		m_blasRegistry(blasRegistry), 
@@ -330,7 +330,7 @@ namespace pxt {
 			.build();
 
 		for (int i = 0; i < SwapChain::MAX_FRAMES_IN_FLIGHT; i++) {
-			m_descriptorAllocator->allocate(m_tlasDescriptorSetLayout->getDescriptorSetLayout(), m_tlasDescriptorSets[i]);
+			m_descriptorAllocator.allocate(m_tlasDescriptorSetLayout->getDescriptorSetLayout(), m_tlasDescriptorSets[i]);
 		}
 	}
 
@@ -368,7 +368,7 @@ namespace pxt {
 			.build();
 
 		for (int i = 0; i < SwapChain::MAX_FRAMES_IN_FLIGHT; i++) {
-			m_descriptorAllocator->allocate(
+			m_descriptorAllocator.allocate(
 				m_meshInstanceDescriptorSetLayout->getDescriptorSetLayout(),
 				m_meshInstanceDescriptorSets[i]
 			);
@@ -417,7 +417,7 @@ namespace pxt {
 			.build();
 
 		for (int i = 0; i < SwapChain::MAX_FRAMES_IN_FLIGHT; i++) {
-			m_descriptorAllocator->allocate(
+			m_descriptorAllocator.allocate(
 				m_emittersDescriptorSetLayout->getDescriptorSetLayout(),
 				m_emittersDescriptorSets[i]
 			);
@@ -465,7 +465,7 @@ namespace pxt {
 			.build();
 
 		for (int i = 0; i < SwapChain::MAX_FRAMES_IN_FLIGHT; i++) {
-			m_descriptorAllocator->allocate(
+			m_descriptorAllocator.allocate(
 				m_volumesDescriptorSetLayout->getDescriptorSetLayout(),
 				m_volumesDescriptorSets[i]
 			);

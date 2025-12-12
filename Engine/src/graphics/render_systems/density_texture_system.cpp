@@ -16,7 +16,7 @@ namespace pxt {
 
     DensityTextureRenderSystem::DensityTextureRenderSystem(
         Context& context,
-        Shared<DescriptorAllocatorGrowable> descriptorAllocator,
+        DescriptorAllocatorGrowable& descriptorAllocator,
         VkExtent3D densityTextureExtent,
         VkExtent3D majorantGridExtent)
         : m_context(context),
@@ -143,7 +143,7 @@ namespace pxt {
 			.addBinding(2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT) // Global Majorant Buffer
             .build();
 
-        m_descriptorAllocator->allocate(m_descriptorSetLayout->getDescriptorSetLayout(), m_descriptorSet);
+        m_descriptorAllocator.allocate(m_descriptorSetLayout->getDescriptorSetLayout(), m_descriptorSet);
 
         // Update descriptor set immediately since the images don't change
         VkDescriptorImageInfo densityImageInfo = m_densityTexture->getImageInfo(false);
@@ -172,7 +172,7 @@ namespace pxt {
                 VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR)
 			.build();
 
-		m_descriptorAllocator->allocate(m_samplingDescriptorSetLayout->getDescriptorSetLayout(), m_samplingDescriptorSet);
+		m_descriptorAllocator.allocate(m_samplingDescriptorSetLayout->getDescriptorSetLayout(), m_samplingDescriptorSet);
 
         // TODO: manage this automatically, with the method provided by VulkanImage abstraction
         // Update descriptor set immediately since the images don't change
@@ -195,7 +195,7 @@ namespace pxt {
         // DENSITY TEXTURE IMGUI
         densityImageInfo.imageView = m_densitySliceImageView;
 
-        m_descriptorAllocator->allocate(m_imGuiDescriptorSetLayout->getDescriptorSetLayout(), m_imGuiDensityDescriptorSet);
+        m_descriptorAllocator.allocate(m_imGuiDescriptorSetLayout->getDescriptorSetLayout(), m_imGuiDensityDescriptorSet);
 
         DescriptorWriter(m_context, *m_imGuiDescriptorSetLayout)
             .writeImage(0, &densityImageInfo)
@@ -204,7 +204,7 @@ namespace pxt {
         // MAJORANT GRID TEXTURE IMGUI
         majorantImageInfo.imageView = m_majorantGridSliceImageView;
 
-        m_descriptorAllocator->allocate(m_imGuiDescriptorSetLayout->getDescriptorSetLayout(), m_imGuiMajorantDescriptorSet);
+        m_descriptorAllocator.allocate(m_imGuiDescriptorSetLayout->getDescriptorSetLayout(), m_imGuiMajorantDescriptorSet);
 
         DescriptorWriter(m_context, *m_imGuiDescriptorSetLayout)
             .writeImage(0, &majorantImageInfo)

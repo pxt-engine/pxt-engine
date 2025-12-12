@@ -114,13 +114,13 @@ namespace pxt {
         );
 	}
 
-    void VulkanSkybox::createDescriptorSet(Shared<DescriptorAllocatorGrowable> descriptorAllocator) {
+    void VulkanSkybox::createDescriptorSet(DescriptorAllocatorGrowable& descriptorAllocator) {
         m_skyboxDescriptorSetLayout = DescriptorSetLayout::Builder(m_context)
             .addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                 VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_MISS_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR)
             .build();
 
-        descriptorAllocator->allocate(m_skyboxDescriptorSetLayout->getDescriptorSetLayout(), m_skyboxDescriptorSet);
+        descriptorAllocator.allocate(m_skyboxDescriptorSetLayout->getDescriptorSetLayout(), m_skyboxDescriptorSet);
 
         // Get the VkDescriptorImageInfo from the Skybox object
         VkDescriptorImageInfo skyboxImageInfo = getDescriptorImageInfo();

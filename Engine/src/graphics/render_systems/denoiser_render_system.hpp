@@ -12,7 +12,7 @@ namespace pxt {
 
     class DenoiserRenderSystem {
     public:
-        DenoiserRenderSystem(Context& context, Shared<DescriptorAllocatorGrowable> descriptorAllocator, VkExtent2D swapChainExtent);
+        DenoiserRenderSystem(Context& context, DescriptorAllocatorGrowable& descriptorAllocator, VkExtent2D swapChainExtent);
         ~DenoiserRenderSystem();
 
         DenoiserRenderSystem(const DenoiserRenderSystem&) = delete;
@@ -46,7 +46,7 @@ namespace pxt {
         void copyDenoisedIntoSceneImage(VkCommandBuffer commandBuffer, Shared<VulkanImage> sceneImage);
 
         Context& m_context;
-        Shared<DescriptorAllocatorGrowable> m_descriptorAllocator;
+        DescriptorAllocatorGrowable& m_descriptorAllocator;
 
         VkExtent2D m_extent;
 

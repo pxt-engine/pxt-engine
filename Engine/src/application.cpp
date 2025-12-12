@@ -40,11 +40,11 @@ namespace pxt {
         createGlobalDescriptorSet();
 
 		// create the descriptor sets for the textures
-        m_textureRegistry.setDescriptorAllocator(m_descriptorAllocator);
+        m_textureRegistry.setDescriptorAllocator(m_descriptorAllocator.get());
 		m_textureRegistry.createDescriptorSet();
 
 		// create the descriptor sets for the materials
-		m_materialRegistry.setDescriptorAllocator(m_descriptorAllocator);
+		m_materialRegistry.setDescriptorAllocator(m_descriptorAllocator.get());
 		m_materialRegistry.createDescriptorSets();
 		// materials descriptor set will be updated every frame
         // in the master render system update method
@@ -52,14 +52,14 @@ namespace pxt {
 		// create descriptor set for skybox
         if (m_scene.getEnvironment()->getSkybox()) {
 			auto skybox = std::static_pointer_cast<VulkanSkybox>(m_scene.getEnvironment()->getSkybox());
-            skybox->createDescriptorSet(m_descriptorAllocator);
+            skybox->createDescriptorSet(*m_descriptorAllocator);
         }
 
 		// create the render layer
         auto renderLayer = createUnique<RenderLayer>(
             m_context,
             m_renderer,
-            m_descriptorAllocator,
+            *m_descriptorAllocator,
             m_textureRegistry,
 			m_materialRegistry,
 			m_blasRegistry,
@@ -99,7 +99,7 @@ namespace pxt {
 			{VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, 2.0f}
 		};
 
-		m_descriptorAllocator = createShared<DescriptorAllocatorGrowable>(m_context, SwapChain::MAX_FRAMES_IN_FLIGHT, ratios);
+		m_descriptorAllocator = createUnique<DescriptorAllocatorGrowable>(m_context, SwapChain::MAX_FRAMES_IN_FLIGHT, ratios);
 	}
 
 	void Application::createUboBuffers() {

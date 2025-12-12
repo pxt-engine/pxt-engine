@@ -17,7 +17,7 @@ namespace pxt {
     public:
         ObjectPickingSystem(
             Context& context,
-            Shared<DescriptorAllocatorGrowable> descriptorAllocator,
+            DescriptorAllocatorGrowable& descriptorAllocator,
 			DescriptorSetLayout& globalSetLayout,
             VkExtent2D sceneImageExtent);
         ~ObjectPickingSystem();
@@ -43,7 +43,7 @@ namespace pxt {
         void createPipeline(bool useCompiledSpirvFiles = true);
 
         Context& m_context;
-        Shared<DescriptorAllocatorGrowable> m_descriptorAllocator = nullptr;
+        DescriptorAllocatorGrowable& m_descriptorAllocator;
 
         Unique<RenderPass> m_offscreenRenderPass = nullptr;
         Unique<FrameBuffer> m_offscreenFb = nullptr;

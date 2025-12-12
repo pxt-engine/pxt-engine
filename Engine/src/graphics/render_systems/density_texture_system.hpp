@@ -14,7 +14,7 @@ namespace pxt {
     public:
         DensityTextureRenderSystem(
             Context& context,
-            Shared<DescriptorAllocatorGrowable> descriptorAllocator,
+            DescriptorAllocatorGrowable& descriptorAllocator,
             VkExtent3D densityTextureExtent,
             VkExtent3D majorantGridExtent);
         ~DensityTextureRenderSystem();
@@ -57,7 +57,7 @@ namespace pxt {
         void findMaxDensity(VkCommandBuffer commandBuffer);
 
         Context& m_context;
-        Shared<DescriptorAllocatorGrowable> m_descriptorAllocator;
+        DescriptorAllocatorGrowable& m_descriptorAllocator;
 
         VkExtent3D m_densityTextureExtent;
         VkExtent3D m_majorantGridExtent;

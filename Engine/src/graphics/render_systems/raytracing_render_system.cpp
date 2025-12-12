@@ -12,7 +12,7 @@ namespace pxt {
 	};
 
 	RayTracingRenderSystem::RayTracingRenderSystem(
-		Context& context, Shared<DescriptorAllocatorGrowable> descriptorAllocator,
+		Context& context, DescriptorAllocatorGrowable& descriptorAllocator,
 		TextureRegistry& textureRegistry, MaterialRegistry& materialRegistry,
 		BLASRegistry& blasRegistry, Shared<Environment> environment,
 		DescriptorSetLayout& globalSetLayout, Shared<VulkanImage> sceneImage,
@@ -53,7 +53,7 @@ namespace pxt {
 		descriptorImageInfo.imageView = m_sceneImage->getImageView();
 		descriptorImageInfo.sampler = VK_NULL_HANDLE;
 
-		m_descriptorAllocator->allocate(m_storageImageDescriptorSetLayout->getDescriptorSetLayout(), m_storageImageDescriptorSet);
+		m_descriptorAllocator.allocate(m_storageImageDescriptorSetLayout->getDescriptorSetLayout(), m_storageImageDescriptorSet);
 
 		DescriptorWriter(m_context, *m_storageImageDescriptorSetLayout)
 			.writeImage(0, &descriptorImageInfo)
@@ -67,7 +67,7 @@ namespace pxt {
 			.addBinding(0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_RAYGEN_BIT_KHR, 1)
 			.build();
 
-		m_descriptorAllocator->allocate(m_blueNoiseDescriptorSetLayout->getDescriptorSetLayout(), m_blueNoiseDescriptorSet);
+		m_descriptorAllocator.allocate(m_blueNoiseDescriptorSetLayout->getDescriptorSetLayout(), m_blueNoiseDescriptorSet);
 
 		VkDeviceSize bufferSize = sizeof(m_blueNoiseTextureIndeces);
 

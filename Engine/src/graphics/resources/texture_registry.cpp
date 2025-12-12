@@ -9,7 +9,7 @@ namespace pxt {
 		m_descriptorAllocator = nullptr;
 	}
 
-	void TextureRegistry::setDescriptorAllocator(Shared<DescriptorAllocatorGrowable> descriptorAllocator) {
+	void TextureRegistry::setDescriptorAllocator(DescriptorAllocatorGrowable* descriptorAllocator) {
 		m_descriptorAllocator = descriptorAllocator;
 	}
 

@@ -51,9 +51,9 @@ namespace pxt {
 		/**
 		 * @brief Sets the descriptor allocator used to allocate descriptor sets.
 		 *
-		 * @param descriptorAllocator Shared pointer to a growable descriptor allocator.
+		 * @param descriptorAllocator pointer to a growable descriptor allocator.
 		 */
-		void setDescriptorAllocator(Shared<DescriptorAllocatorGrowable> descriptorAllocator);
+		void setDescriptorAllocator(DescriptorAllocatorGrowable* descriptorAllocator);
 
 		/**
 		 * @brief Adds a material to the registry.
@@ -109,7 +109,7 @@ namespace pxt {
 
 		Context& m_context;
 		TextureRegistry& m_textureRegistry;
-		Shared<DescriptorAllocatorGrowable> m_descriptorAllocator;
+		DescriptorAllocatorGrowable* m_descriptorAllocator;
 
 		std::vector<Shared<Material>> m_materials;
 		std::unordered_map<ResourceId, uint32_t> m_idToIndex;

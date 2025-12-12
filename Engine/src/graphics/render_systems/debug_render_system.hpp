@@ -18,7 +18,7 @@ namespace pxt {
 
     class DebugRenderSystem {
     public:
-        DebugRenderSystem(Context& context, Shared<DescriptorAllocatorGrowable> descriptorAllocator, TextureRegistry& textureRegistry, VkRenderPass renderPass, DescriptorSetLayout& globalSetLayout);
+        DebugRenderSystem(Context& context, DescriptorAllocatorGrowable& descriptorAllocator, TextureRegistry& textureRegistry, VkRenderPass renderPass, DescriptorSetLayout& globalSetLayout);
         ~DebugRenderSystem();
 
         DebugRenderSystem(const DebugRenderSystem&) = delete;
@@ -40,7 +40,7 @@ namespace pxt {
 		Unique<Pipeline> m_pipelineSolid;
         VkPipelineLayout m_pipelineLayout;
 
-		Shared<DescriptorAllocatorGrowable> m_descriptorAllocator;
+		DescriptorAllocatorGrowable& m_descriptorAllocator;
 
 		int m_renderMode = Fill;
 

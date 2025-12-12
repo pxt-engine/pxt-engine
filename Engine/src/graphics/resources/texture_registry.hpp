@@ -20,9 +20,9 @@ namespace pxt {
 		/**
 		 * @brief Sets the descriptor allocator for the registry.
 		 *
-		 * @param descriptorAllocator Shared pointer to a growable descriptor allocator.
+		 * @param descriptorAllocator pointer to a growable descriptor allocator.
 		 */
-		void setDescriptorAllocator(Shared<DescriptorAllocatorGrowable> descriptorAllocator);
+		void setDescriptorAllocator(DescriptorAllocatorGrowable* descriptorAllocator);
 
 		/**
 		 * @brief Adds a texture to the registry.
@@ -86,7 +86,7 @@ namespace pxt {
 		std::unordered_map<std::string, uint32_t> m_aliasToIndex;
 
 		Context& m_context;
-		Shared<DescriptorAllocatorGrowable> m_descriptorAllocator;
+		DescriptorAllocatorGrowable* m_descriptorAllocator;
 		Shared<DescriptorSetLayout> m_textureDescriptorSetLayout;
 		VkDescriptorSet m_textureDescriptorSet;
 	};

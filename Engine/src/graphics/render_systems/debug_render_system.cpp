@@ -21,7 +21,7 @@ namespace pxt {
         float blinnPhongSpecularShininess = 1.0f;
     };
 
-    DebugRenderSystem::DebugRenderSystem(Context& context, Shared<DescriptorAllocatorGrowable> descriptorAllocator, TextureRegistry& textureRegistry, VkRenderPass renderPass, DescriptorSetLayout& globalSetLayout)
+    DebugRenderSystem::DebugRenderSystem(Context& context, DescriptorAllocatorGrowable& descriptorAllocator, TextureRegistry& textureRegistry, VkRenderPass renderPass, DescriptorSetLayout& globalSetLayout)
 		: m_context(context), m_descriptorAllocator(descriptorAllocator), m_textureRegistry(textureRegistry),
 		m_renderPassHandle(renderPass) {
         createPipelineLayout(globalSetLayout);

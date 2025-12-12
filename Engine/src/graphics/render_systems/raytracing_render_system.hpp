@@ -18,7 +18,7 @@ namespace pxt {
 
     class RayTracingRenderSystem {
     public:
-        RayTracingRenderSystem(Context& context, Shared<DescriptorAllocatorGrowable> descriptorAllocator, TextureRegistry& textureRegistry, MaterialRegistry& materialRegistry, BLASRegistry& blasRegistry, Shared<Environment> environment, DescriptorSetLayout& globalSetLayout, Shared<VulkanImage> sceneImage, DensityTextureRenderSystem& densityTextureSystem);
+        RayTracingRenderSystem(Context& context, DescriptorAllocatorGrowable& descriptorAllocator, TextureRegistry& textureRegistry, MaterialRegistry& materialRegistry, BLASRegistry& blasRegistry, Shared<Environment> environment, DescriptorSetLayout& globalSetLayout, Shared<VulkanImage> sceneImage, DensityTextureRenderSystem& densityTextureSystem);
         ~RayTracingRenderSystem();
 
         RayTracingRenderSystem(const RayTracingRenderSystem&) = delete;
@@ -49,7 +49,7 @@ namespace pxt {
 		Shared<Environment> m_environment = nullptr;
 		Shared<VulkanSkybox> m_skybox = nullptr;
         
-        Shared<DescriptorAllocatorGrowable> m_descriptorAllocator = nullptr;
+        DescriptorAllocatorGrowable& m_descriptorAllocator;
         
         RayTracingSceneManagerSystem m_rtSceneManager{m_context, m_materialRegistry, m_blasRegistry, m_textureRegistry, m_descriptorAllocator};
 		DensityTextureRenderSystem& m_densityTextureSystem;

@@ -15,7 +15,7 @@ namespace pxt {
         VkBool32 isSpatialEnabled;
     };
 
-    DenoiserRenderSystem::DenoiserRenderSystem(Context& context, Shared<DescriptorAllocatorGrowable> descriptorAllocator, VkExtent2D swapChainExtent)
+    DenoiserRenderSystem::DenoiserRenderSystem(Context& context, DescriptorAllocatorGrowable& descriptorAllocator, VkExtent2D swapChainExtent)
         : m_context(context), m_descriptorAllocator(descriptorAllocator), m_extent(swapChainExtent) {
 
         createImages(swapChainExtent);
@@ -132,7 +132,7 @@ namespace pxt {
             .addBinding(1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_COMPUTE_BIT)
             .build();
 
-        m_descriptorAllocator->allocate(m_accumulationDescriptorSetLayout->getDescriptorSetLayout(), m_accumulationDescriptorSet);
+        m_descriptorAllocator.allocate(m_accumulationDescriptorSetLayout->getDescriptorSetLayout(), m_accumulationDescriptorSet);
 
         // The descriptor set will be updated at runtime with the new frame's image info
         // and the accumulation buffer's image info.
@@ -150,7 +150,7 @@ namespace pxt {
             .addBinding(3, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_COMPUTE_BIT)
             .build();
 
-        m_descriptorAllocator->allocate(m_temporalFilterDescriptorSetLayout->getDescriptorSetLayout(), m_temporalFilterDescriptorSet);
+        m_descriptorAllocator.allocate(m_temporalFilterDescriptorSetLayout->getDescriptorSetLayout(), m_temporalFilterDescriptorSet);
     }
 
     void DenoiserRenderSystem::createSpatialFilterDescriptorSet() {
@@ -163,7 +163,7 @@ namespace pxt {
             .addBinding(2, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_COMPUTE_BIT)
             .build();
 
-        m_descriptorAllocator->allocate(m_spatialFilterDescriptorSetLayout->getDescriptorSetLayout(), m_spatialFilterDescriptorSet);
+        m_descriptorAllocator.allocate(m_spatialFilterDescriptorSetLayout->getDescriptorSetLayout(), m_spatialFilterDescriptorSet);
     }
 
 

@@ -19,7 +19,7 @@ namespace pxt {
 		float tilingFactor = 1.0f;
     };
 
-    MaterialRenderSystem::MaterialRenderSystem(Context& context, Shared<DescriptorAllocatorGrowable> descriptorAllocator,
+    MaterialRenderSystem::MaterialRenderSystem(Context& context, DescriptorAllocatorGrowable& descriptorAllocator,
     	TextureRegistry& textureRegistry, DescriptorSetLayout& globalSetLayout,
     	VkRenderPass renderPass, VkDescriptorImageInfo shadowMapImageInfo)
         : m_context(context),
@@ -42,7 +42,7 @@ namespace pxt {
 			.addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
 			.build();
 
-		m_descriptorAllocator->allocate(m_shadowMapDescriptorSetLayout->getDescriptorSetLayout(), m_shadowMapDescriptorSet);
+		m_descriptorAllocator.allocate(m_shadowMapDescriptorSetLayout->getDescriptorSetLayout(), m_shadowMapDescriptorSet);
 
 		DescriptorWriter(m_context, *m_shadowMapDescriptorSetLayout)
 			.writeImage(0, &shadowMapImageInfo)

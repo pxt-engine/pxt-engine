@@ -15,7 +15,7 @@ namespace pxt {
 
 		~VulkanSkybox() override = default;
 
-		void createDescriptorSet(Shared<DescriptorAllocatorGrowable> descriptorAllocator);
+		void createDescriptorSet(DescriptorAllocatorGrowable& descriptorAllocator);
 
 		VkDescriptorImageInfo getDescriptorImageInfo() const;
 		VkDescriptorSet getDescriptorSet() const { return m_skyboxDescriptorSet; }

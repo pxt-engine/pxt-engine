@@ -13,7 +13,7 @@ namespace pxt {
 
     class MaterialRenderSystem {
     public:
-        MaterialRenderSystem(Context& context, Shared<DescriptorAllocatorGrowable> descriptorAllocator, TextureRegistry& textureRegistry, DescriptorSetLayout& globalSetLayout, VkRenderPass renderPass, VkDescriptorImageInfo shadowMapImageInfo);
+        MaterialRenderSystem(Context& context, DescriptorAllocatorGrowable& descriptorAllocator, TextureRegistry& textureRegistry, DescriptorSetLayout& globalSetLayout, VkRenderPass renderPass, VkDescriptorImageInfo shadowMapImageInfo);
         ~MaterialRenderSystem();
 
         MaterialRenderSystem(const MaterialRenderSystem&) = delete;
@@ -34,7 +34,7 @@ namespace pxt {
         Unique<Pipeline> m_pipeline;
         VkPipelineLayout m_pipelineLayout;
 
-		Shared<DescriptorAllocatorGrowable> m_descriptorAllocator;
+		DescriptorAllocatorGrowable& m_descriptorAllocator;
 
         Unique<DescriptorSetLayout> m_shadowMapDescriptorSetLayout{};
         VkDescriptorSet m_shadowMapDescriptorSet{};

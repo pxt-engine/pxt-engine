@@ -37,7 +37,7 @@ namespace pxt {
 
 	class RayTracingSceneManagerSystem {
 	public:
-		RayTracingSceneManagerSystem(Context& context, MaterialRegistry& materialRegistry, BLASRegistry& blasRegistry, TextureRegistry& textureRegistry, Shared<DescriptorAllocatorGrowable> allocator);
+		RayTracingSceneManagerSystem(Context& context, MaterialRegistry& materialRegistry, BLASRegistry& blasRegistry, TextureRegistry& textureRegistry, DescriptorAllocatorGrowable& allocator);
 		~RayTracingSceneManagerSystem();
 
 		// Delete the copy constructor and copy assignment operator
@@ -83,7 +83,7 @@ namespace pxt {
 		VkAccelerationStructureBuildSizesInfoKHR m_buildSizeInfo{};
 		VkAccelerationStructureCreateInfoKHR m_createInfo{};
 
-		Shared<DescriptorAllocatorGrowable> m_descriptorAllocator;
+		DescriptorAllocatorGrowable& m_descriptorAllocator;
 		Shared<DescriptorSetLayout> m_tlasDescriptorSetLayout = nullptr;
 		std::vector<VkDescriptorSet> m_tlasDescriptorSets{ SwapChain::MAX_FRAMES_IN_FLIGHT };
 
