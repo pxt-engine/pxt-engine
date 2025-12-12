@@ -1,4 +1,5 @@
 #include "ui/scene_hierarchy.hpp"
+#include "core/events/editor_events.hpp"
 
 namespace pxt::editor {
 	void SceneHierarchy::onUpdateUi(FrameInfo& frameInfo, core::UUID& selectedEntityId) {
@@ -6,6 +7,8 @@ namespace pxt::editor {
 	}
 
 	void SceneHierarchy::drawSceneEntityList(Scene& scene, core::UUID& selectedEntityId) {
+		core::UUID prevSelectedEntityId = selectedEntityId;
+		
 		ImGui::Begin("Scene Entities");
 
 		if (ImGui::Button("Add Entity")) {
@@ -24,6 +27,14 @@ namespace pxt::editor {
 				selectedEntityId = idComponent.uuid;
 			}
 		}
+
+		// deselect if background clicked
+		if (ImGui::IsWindowHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+			if (!ImGui::IsAnyItemHovered()) {
+				selectedEntityId = core::UUID::s_invalidId;
+			}
+		}
+
 		ImGui::End();
 	}
 }

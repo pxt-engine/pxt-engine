@@ -6,6 +6,8 @@
 
 #include "utils/vk_enum_str.h"
 
+#include "application.hpp"
+
 namespace pxt {
 	RenderLayer::RenderLayer(Context& context, Renderer& renderer, 
 			Shared<DescriptorAllocatorGrowable> descriptorAllocator, 
@@ -330,6 +332,13 @@ namespace pxt {
 			m_sceneImage,
 			*m_densityTextureSystem
 		);
+
+		m_objectPickingSystem = createUnique<ObjectPickingSystem>(
+			m_context,
+			m_descriptorAllocator,
+			*m_globalSetLayout,
+			m_sceneExtent
+		);
 	}
 
 	void RenderLayer::reloadShaders() {
@@ -350,6 +359,7 @@ namespace pxt {
 			m_shadowMapRenderSystem->reloadShaders();
 		}
 		m_densityTextureSystem->reloadShaders();
+		m_objectPickingSystem->reloadShaders();
 
 		PXT_INFO("Shaders reloaded successfully.");
 	}
@@ -388,6 +398,14 @@ namespace pxt {
 			m_densityTextureSystem->generate(frameInfo.commandBuffer);
 		}
 
+		// object picking
+		if (m_isObjectPickingRequested) {
+			// here we render the scene to an offscreen buffer with object IDs as colors
+			// and save the pixel color at the mouse coords inside a buffer. 
+			// we will read the buffer in the post frame update and reset the bool.
+			m_objectPickingSystem->render(frameInfo, m_renderer, m_objectPickPixelCoords);
+		}
+
 		// render to offscreen main render pass
 		if (m_isRaytracingEnabled) {
 			m_rayTracingRenderSystem->render(frameInfo, m_renderer);
@@ -414,12 +432,6 @@ namespace pxt {
 
 			m_renderer.endRenderPass(frameInfo.commandBuffer);*/
 		} else {
-			// object picking
-			if (m_isObjectPickingRequested) {
-				// TODO: implement object picking system
-				m_isObjectPickingRequested = false;
-			}
-			
 			// render shadow cube map
 			// the render function of the shadow map render system will
 			// do how many passes it needs to do (6 in this case - 1 point light)
@@ -431,7 +443,7 @@ namespace pxt {
 
 			m_skyboxRenderSystem->render(frameInfo);
 
-			// choose if debug or not
+			// choose if debug view or not
 			if (m_isDebugEnabled) {
 				m_debugRenderSystem->render(frameInfo);
 			}
@@ -447,10 +459,25 @@ namespace pxt {
 
 	void RenderLayer::onPostFrameUpdate(FrameInfo& frameInfo) {
 		m_densityTextureSystem->postFrameUpdate(frameInfo.frameFence);
+
+		if (m_isObjectPickingRequested) {
+			uint32_t objPickingId = m_objectPickingSystem->postFrameUpdate(frameInfo.frameFence);
+			core::UUID newSelectedEntityUUID = Application::get().getScene().getEntityUUIDFromObjPickingId(objPickingId);
+
+			if (newSelectedEntityUUID != m_selectedEntityUUID) {
+				// notify about the new selection
+				m_selectedEntityUUID = newSelectedEntityUUID;
+
+				Application::get().queueEvent(core::SelectedEntityChangedEvent(m_selectedEntityUUID));
+			}
+			
+			m_isObjectPickingRequested = false;
+		}
 	}
 
 	void RenderLayer::onEvent(core::Event& event) {
 		core::EventDispatcher dispatcher(event);
+
 		dispatcher.dispatch<core::ImGuiViewportResizeEvent>([this](auto& event) {	
 			m_sceneExtent = { event.getWidth(), event.getHeight() };
 			recreateViewportResources();
@@ -461,19 +488,22 @@ namespace pxt {
 			// update the denoiser's images with new extent
 			m_denoiserRenderSystem->updateImages(m_sceneExtent);
 
+			// update object picking system with new extent
+			m_objectPickingSystem->updateImage(m_sceneExtent);
+
 			return true;
 		});
 
 		dispatcher.dispatch<core::PickObjectAtEvent>([this](auto& event) {
-			if (m_isRaytracingEnabled) {
-				PXT_WARN("Picking is only supported in Raster mode!");
-				return false;
-			}
-
 			m_objectPickPixelCoords = { event.getPixelX(), event.getPixelY()};
 			m_isObjectPickingRequested = true;
 
 			return true;
+		});
+
+		dispatcher.dispatch<core::SelectedEntityChangedEvent>([this](core::SelectedEntityChangedEvent& e) {
+			m_selectedEntityUUID = e.getSelectedEntityUUID();
+			return false;
 		});
 	}
 

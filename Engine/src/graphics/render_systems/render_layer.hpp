@@ -19,6 +19,7 @@
 #include "graphics/render_systems/raytracing_render_system.hpp"
 #include "graphics/render_systems/denoiser_render_system.hpp"
 #include "graphics/render_systems/density_texture_system.hpp"
+#include "graphics/render_systems/object_picking_system.hpp"
 #include "graphics/render_pass.hpp"
 #include "graphics/frame_buffer.hpp"
 
@@ -91,6 +92,7 @@ namespace pxt {
 		Unique<RayTracingRenderSystem> m_rayTracingRenderSystem = nullptr;
 		Unique<DenoiserRenderSystem> m_denoiserRenderSystem = nullptr;
 		Unique<DensityTextureRenderSystem> m_densityTextureSystem = nullptr;
+		Unique<ObjectPickingSystem> m_objectPickingSystem = nullptr;
 
 		Unique<RenderPass> m_offscreenRenderPass;
 		Unique<FrameBuffer> m_offscreenFb;
@@ -113,6 +115,8 @@ namespace pxt {
 		bool m_isDenoisingEnabled = true;
 
 		bool m_isObjectPickingRequested = false;
-		uivec2 m_objectPickPixelCoords{0.0f, 0.0f};
+		u32vec2 m_objectPickPixelCoords{0, 0};
+
+		core::UUID m_selectedEntityUUID{ core::UUID::s_invalidId };
 	};
 }

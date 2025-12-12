@@ -7,21 +7,21 @@ namespace pxt::editor {
 	EditorLayer::EditorLayer() : core::Layer("EditorLayer") {}
 
 	void EditorLayer::onEvent(core::Event& event) {
+		core::EventDispatcher dispatcher(event);
+
+		dispatcher.dispatch<core::SelectedEntityChangedEvent>([this](core::SelectedEntityChangedEvent& e) {
+			m_selectedEntityUUID = e.getSelectedEntityUUID();
+			return false;
+		});
+
+		// I/O Events
+
 		// here we have to decide which events to forward (not handled) if
-		// the viewport is not focused (for now everything is blocked)
+		// the viewport is not focused (for now everything regarding inputs is blocked)
 		if (!m_isViewportFocused) {
 			core::Input::getState().reset();
 			return;
 		}
-		
-		core::EventDispatcher dispatcher(event);
-
-		dispatcher.dispatch<core::MouseButtonPressEvent>([this](core::MouseButtonPressEvent& e) {
-			// we dont care about mouse clicks outside of the viewport (for now)
-			if (!m_isViewportHovered)
-				return false;
-			return onMouseButtonPress(e);
-		});
 
 		dispatcher.dispatch<core::MouseButtonPressEvent>([this](core::MouseButtonPressEvent& e) {
 			// we dont care about mouse clicks outside of the viewport (for now)
@@ -41,8 +41,8 @@ namespace pxt::editor {
 		uint32_t px = static_cast<uint32_t>(std::clamp(x, 0.0f, (float)(m_sceneImageExtent.x - 1)));
 		uint32_t py = static_cast<uint32_t>(std::clamp(y, 0.0f, (float)(m_sceneImageExtent.y - 1)));
 
-		PXT_INFO("Mouse Button Pressed at position: ({}, {}) (Realtive to upper-left corner of viewport)",
-			px, py);
+		//PXT_INFO("Mouse Button Pressed at position: ({}, {}) (Realtive to upper-left corner of viewport)",
+		//	px, py);
 
 		Application::get().queueEvent(core::PickObjectAtEvent(px, py));
 
@@ -51,10 +51,16 @@ namespace pxt::editor {
 
 	void EditorLayer::onUpdateUi(FrameInfo& frameInfo) {
 		// first update scene hierarchy ui (an entity might be selected)
-		m_sceneHierarchy.onUpdateUi(frameInfo, m_selectedEntityID);
+		m_sceneHierarchy.onUpdateUi(frameInfo, m_selectedEntityUUID);
 		
+		// only fire event if selection changed
+		if (m_prevSelectedEntityUUID != m_selectedEntityUUID) {
+			Application::get().queueEvent(core::SelectedEntityChangedEvent(m_selectedEntityUUID));
+			m_prevSelectedEntityUUID = m_selectedEntityUUID;
+		}
+
 		// then update entity inspector ui
-		m_entityInspector.onUpdateUi(frameInfo, m_selectedEntityID);
+		m_entityInspector.onUpdateUi(frameInfo, m_selectedEntityUUID);
 
 		// main menu bar
 		m_mainMenuBar.onUpdateUi(frameInfo);
