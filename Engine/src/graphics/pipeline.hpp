@@ -77,7 +77,7 @@ namespace pxt {
      * pipeline layout, and render pass. It provides methods for binding the pipeline to a command buffer.
      */
     class Pipeline {
-       public:
+    public:
         Pipeline(Context& context, const std::vector<std::string>& shaderFilePaths,
                  const RasterizationPipelineConfigInfo& configInfo);
 		Pipeline(Context& context, const RayTracingPipelineConfigInfo& configInfo);
@@ -95,9 +95,7 @@ namespace pxt {
 
 		VkPipeline getHandle() const { return m_pipeline; }
 
-       private:
-        static std::vector<char> readFile(const std::string& filename);
-
+    private:
         void createGraphicsPipeline(
             const std::vector<std::string>& shaderFilePaths,
             const RasterizationPipelineConfigInfo& configInfo);
