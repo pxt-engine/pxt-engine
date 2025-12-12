@@ -79,6 +79,8 @@ namespace pxt::core {
         return x & COLOR_MASK;
     }
 
+	uint32_t ObjPickingId::s_invalidId = 0;
+
 	ObjPickingId::ObjPickingId() : m_objPickingId(getNextId()) {}
 
 	uint32_t ObjPickingId::getIdFromColor(const glm::u8vec3& color) {

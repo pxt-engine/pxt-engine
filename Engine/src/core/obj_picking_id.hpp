@@ -6,6 +6,8 @@ namespace pxt::core {
 	class ObjPickingId {
 	public:
 		ObjPickingId();
+
+		static uint32_t s_invalidId;
 		
 		static uint32_t getIdFromColor(const glm::u8vec3& color);
 		static glm::u8vec3 getColorFromId(uint32_t id);
