@@ -357,7 +357,7 @@ void main()
                         p_pathTrace.pdf = evalHenyeyGreenstein(cosTheta, phaseFunctionG); 
 
                         // NEE for volumes
-                        //directLighting(p_pathTrace.origin);
+                        directLighting(p_pathTrace.origin);
                         
                         // TODO: separate scattering and absorption -> easier emissive volumes integration
                         p_pathTrace.throughput *= scatteringAlbedo;
