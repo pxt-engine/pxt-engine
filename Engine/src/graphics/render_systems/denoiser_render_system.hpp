@@ -48,35 +48,35 @@ namespace pxt {
         Context& m_context;
         DescriptorAllocatorGrowable& m_descriptorAllocator;
 
-        VkExtent2D m_extent;
+        VkExtent2D m_extent{ 0, 0 };
 
         // Compute pipelines for each stage
-        Unique<Pipeline> m_accumulationPipeline;
-        Unique<Pipeline> m_temporalFilterPipeline;
-        Unique<Pipeline> m_spatialFilterPipeline; // For low-pass or bilateral filter
+        Unique<Pipeline> m_accumulationPipeline = nullptr;
+        Unique<Pipeline> m_temporalFilterPipeline = nullptr;
+        Unique<Pipeline> m_spatialFilterPipeline = nullptr; // For low-pass or bilateral filter
 
         // Pipeline layouts
-        VkPipelineLayout m_accumulationPipelineLayout;
-        VkPipelineLayout m_temporalFilterPipelineLayout;
-        VkPipelineLayout m_spatialFilterPipelineLayout;
+        VkPipelineLayout m_accumulationPipelineLayout = VK_NULL_HANDLE;
+        VkPipelineLayout m_temporalFilterPipelineLayout = VK_NULL_HANDLE;
+        VkPipelineLayout m_spatialFilterPipelineLayout = VK_NULL_HANDLE;
 
         // Descriptor set layouts
-        Unique<DescriptorSetLayout> m_accumulationDescriptorSetLayout{};
-        Unique<DescriptorSetLayout> m_temporalFilterDescriptorSetLayout{};
-        Unique<DescriptorSetLayout> m_spatialFilterDescriptorSetLayout{};
+        Unique<DescriptorSetLayout> m_accumulationDescriptorSetLayout = nullptr;
+        Unique<DescriptorSetLayout> m_temporalFilterDescriptorSetLayout = nullptr;
+        Unique<DescriptorSetLayout> m_spatialFilterDescriptorSetLayout = nullptr;
 
         // Descriptor sets for binding resources to shaders
-        VkDescriptorSet m_accumulationDescriptorSet{};
-        VkDescriptorSet m_temporalFilterDescriptorSet{};
-        VkDescriptorSet m_spatialFilterDescriptorSet{};
+        VkDescriptorSet m_accumulationDescriptorSet = VK_NULL_HANDLE;
+        VkDescriptorSet m_temporalFilterDescriptorSet = VK_NULL_HANDLE;
+        VkDescriptorSet m_spatialFilterDescriptorSet = VK_NULL_HANDLE;
 
         // Resources needed for denoising
-        Unique<VulkanImage> m_accumulationImage;
-        Unique<VulkanImage> m_temporalHistoryImage; // For temporal filtering
-        Unique<VulkanImage> m_tempTemporalOutputImage;
+        Unique<VulkanImage> m_accumulationImage = nullptr;
+        Unique<VulkanImage> m_temporalHistoryImage = nullptr; // For temporal filtering
+        Unique<VulkanImage> m_tempTemporalOutputImage = nullptr;
 
 		// Sampler for images (with nearest filtering)
-		VkSampler m_imageSamplerNearest;
+		VkSampler m_imageSamplerNearest = VK_NULL_HANDLE;
 
         std::string m_accumulationShaderPath = "accumulation.comp";
         std::string m_temporalShaderPath = "temporal.comp";
