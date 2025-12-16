@@ -51,6 +51,13 @@ namespace pxt {
 		 */
         core::UUID getEntityUUIDFromObjPickingId(uint32_t objPickingId);
         
+		/**
+		* @brief Retrieves the object picking ID of an entity based on its UUID.
+		* @param uuid The UUID of the entity.
+		* @return The object picking ID of the corresponding entity.
+        */
+        uint32_t getObjPickingIdFromEntityUUID(core::UUID uuid);
+
         /**
          * @brief Destroys an entity and removes it from the scene.
          * @param entity The entity to be destroyed.
@@ -96,6 +103,7 @@ namespace pxt {
 		std::string m_name = "Unnamed-Scene";
         std::unordered_map<core::UUID, entt::entity> m_entityMap;
         std::unordered_map<uint32_t, core::UUID> m_objPickingIdToUUID;
+		std::unordered_map<core::UUID, uint32_t> m_uuidToObjPickingId;
         
         // The entity registry for managing components.
         entt::registry m_registry;

@@ -8,6 +8,7 @@ namespace pxt {
     Scene::Scene() {
         // put invalid ids into m_objPickingIdToUUID map
 		m_objPickingIdToUUID[core::ObjPickingId::s_invalidId] = core::UUID::s_invalidId;
+		m_uuidToObjPickingId[core::UUID::s_invalidId] = core::ObjPickingId::s_invalidId;
     }
 
     Entity Scene::createEntity(const std::string& name, core::UUID id, core::ObjPickingId objPickingId) {
@@ -19,6 +20,7 @@ namespace pxt {
 
         m_entityMap[entity.getUUID()] = entity;
 		m_objPickingIdToUUID[objPickingId.getObjPickingId()] = entity.getUUID();
+		m_uuidToObjPickingId[entity.getUUID()] = objPickingId.getObjPickingId();
         
         return entity;
     }
@@ -35,9 +37,16 @@ namespace pxt {
         return m_objPickingIdToUUID.at(objPickingId);
     }
 
+    uint32_t Scene::getObjPickingIdFromEntityUUID(core::UUID uuid) {
+        PXT_ASSERT(m_uuidToObjPickingId.contains(uuid), "ObjPickingId not found in map!");
+
+        return m_uuidToObjPickingId.at(uuid);
+    }
+
     void Scene::destroyEntity(Entity entity) {
         m_entityMap.erase(entity.getUUID());
 		m_objPickingIdToUUID.erase(entity.getObjPickingId());
+		m_uuidToObjPickingId.erase(entity.getUUID());
         m_registry.destroy(entity);
     }
 
