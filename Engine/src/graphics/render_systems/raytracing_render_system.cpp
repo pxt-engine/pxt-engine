@@ -416,13 +416,17 @@ namespace pxt {
 		);
 	}
 
-	void RayTracingRenderSystem::transitionImageToShaderReadOnlyOptimal(FrameInfo& frameInfo, VkPipelineStageFlagBits lastStage) {
+	void RayTracingRenderSystem::transitionImageToShaderReadOnlyOptimal(
+		FrameInfo& frameInfo,
+		VkPipelineStageFlagBits prevStage,
+		VkPipelineStageFlagBits nextStage
+	) {
 		// transition output image to shader read only layout for imgui
 		m_sceneImage->transitionImageLayout(
 			frameInfo.commandBuffer,
 			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-			lastStage,
-			VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT
+			prevStage,
+			nextStage
 		);
 	}
 

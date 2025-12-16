@@ -26,7 +26,11 @@ namespace pxt {
 
         void update(FrameInfo& frameInfo);
         void render(FrameInfo& frameInfo, Renderer& renderer);
-		void transitionImageToShaderReadOnlyOptimal(FrameInfo& frameInfo, VkPipelineStageFlagBits lastStage);
+		void transitionImageToShaderReadOnlyOptimal(
+			FrameInfo& frameInfo, 
+			VkPipelineStageFlagBits prevStage,
+			VkPipelineStageFlagBits nextStage
+		);
 		void reloadShaders();
 
 		void updateUi();
