@@ -62,16 +62,17 @@ namespace pxt {
 			// forward to ImGui backend
 			ImGui_ImplGlfw_KeyCallback(window, glfwKey, scancode, action, mods);
 
-			// let ImGui handle it if it wants
-			if (io.WantCaptureKeyboard)
-				return;
-			//else propagate to other layers
+			// let ImGui handle it if it wants (only press and repeat events)
+			bool imguiWantCaptureKeyboard = io.WantCaptureKeyboard;
 
 			core::KeyCode key = core::mapGLFWKey(glfwKey);
 
 			switch (action) {
 				case GLFW_PRESS:
 				{
+					if (imguiWantCaptureKeyboard)
+						return;
+
 					core::Input::getState().onKeyPress(key);
 					core::KeyPressEvent event(key);
 					data.eventCallback(event);
@@ -79,6 +80,8 @@ namespace pxt {
 				}
 				case GLFW_RELEASE:
 				{
+					// we always proecess key release events since
+					// imgui could eat them and bug the input state
 					core::Input::getState().onKeyRelease(key);
 					core::KeyReleaseEvent event(key);
 					data.eventCallback(event);
@@ -86,6 +89,9 @@ namespace pxt {
 				}
 				case GLFW_REPEAT:
 				{
+					if (imguiWantCaptureKeyboard)
+						return;
+
 					core::Input::getState().onKeyRepeat(key);
 					core::KeyPressEvent event(key, 1);
 					data.eventCallback(event);
