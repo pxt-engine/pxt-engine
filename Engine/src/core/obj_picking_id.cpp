@@ -105,6 +105,19 @@ namespace pxt::core {
         };
 	}
 
+    glm::vec4 ObjPickingId::getColorVec4FromId(uint32_t id) {
+        if (id == 0) return { 0, 0, 0, 0 };
+
+		glm::u8vec3 color = getColorFromId(id);
+
+		return {
+			static_cast<float>(color.r) / 255.0f,
+			static_cast<float>(color.g) / 255.0f,
+			static_cast<float>(color.b) / 255.0f,
+			1.0f
+		};
+    }
+
     glm::u8vec3 ObjPickingId::getColorFromId() {
         // reserved for no object
         if (m_objPickingId == 0) return { 0, 0, 0 };

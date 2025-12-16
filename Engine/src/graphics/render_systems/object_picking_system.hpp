@@ -31,6 +31,14 @@ namespace pxt {
         void reloadShaders();
         [[nodiscard]] uint32_t postFrameUpdate(VkFence frameFence);
 
+		void transitionImageToShaderReadOnlyOptimal(
+            FrameInfo& frameInfo,
+            VkPipelineStageFlagBits prevStage,
+            VkPipelineStageFlagBits nextStage
+        );
+
+		[[nodiscard]] VulkanImage& getObjectIdImage() const { return *m_sceneWithColorIds; }
+
     private:
         void createRenderPass();
         void createSceneColorIdsImage();

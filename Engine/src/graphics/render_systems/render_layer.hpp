@@ -20,6 +20,7 @@
 #include "graphics/render_systems/denoiser_render_system.hpp"
 #include "graphics/render_systems/density_texture_system.hpp"
 #include "graphics/render_systems/object_picking_system.hpp"
+#include "graphics/render_systems/composition_render_system.hpp"
 #include "graphics/render_pass.hpp"
 #include "graphics/frame_buffer.hpp"
 
@@ -44,7 +45,7 @@ namespace pxt {
 		RenderLayer(RenderLayer&&) = delete;
 		RenderLayer& operator=(RenderLayer&&) = delete;
 
-		VkDescriptorSet getImGuiSceneDescriptorSet() const { return m_sceneDescriptorSet; }
+		VkDescriptorSet getImGuiSceneDescriptorSet() const { return m_finalImageDescriptorSet; }
 
 		void onUpdate(FrameInfo& frameInfo, GlobalUbo& ubo) override;
 		void onUpdateUi(FrameInfo& frameInfo) override;
@@ -54,13 +55,14 @@ namespace pxt {
 		void doRenderPasses(FrameInfo& frameInfo);
 
 		float getSceneAspectRatio() const {
-			return static_cast<float>(m_sceneExtent.width) / static_cast<float>(m_sceneExtent.height);
+			return static_cast<float>(m_viewportExtent.width) / static_cast<float>(m_viewportExtent.height);
 		}
 
 	private:
 		void recreateViewportResources();
 		void createRenderPass();
 		void createSceneImage();
+		void createFinalImage();
 		void createOffscreenDepthResources();
 		void createOffscreenFrameBuffer();
 		void createRenderSystems();
@@ -93,21 +95,25 @@ namespace pxt {
 		Unique<DenoiserRenderSystem> m_denoiserRenderSystem = nullptr;
 		Unique<DensityTextureRenderSystem> m_densityTextureSystem = nullptr;
 		Unique<ObjectPickingSystem> m_objectPickingSystem = nullptr;
+		Unique<CompositionRenderSystem> m_compositionRenderSystem = nullptr;
 
 		Unique<RenderPass> m_offscreenRenderPass;
 		Unique<FrameBuffer> m_offscreenFb;
 
 		Shared<VulkanImage> m_sceneImage;
 		VkFormat m_offscreenColorFormat;
+
 		Shared<VulkanImage> m_offscreenDepthImage;
 
-		VkDescriptorSet m_sceneDescriptorSet = VK_NULL_HANDLE;
-		Unique<DescriptorSetLayout> m_sceneDescriptorSetLayout = nullptr;
+		Unique<VulkanImage> m_finalImage = nullptr;
+
+		VkDescriptorSet m_finalImageDescriptorSet = VK_NULL_HANDLE;
+		Unique<DescriptorSetLayout> m_finalImageDescriptorSetLayout = nullptr;
 
 		// this initial value will never be used, as it will be updated
 		// on the first ImGuiViewportResizeEvent. That will happen
 		// the first frame the ImGui viewport is created.
-		VkExtent2D m_sceneExtent{1600, 900};
+		VkExtent2D m_viewportExtent{1600, 900};
 
 		bool m_isDebugEnabled = false;
 		bool m_isRaytracingEnabled = false;

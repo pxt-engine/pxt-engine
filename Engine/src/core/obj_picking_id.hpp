@@ -11,6 +11,7 @@ namespace pxt::core {
 		
 		static uint32_t getIdFromColor(const glm::u8vec3& color);
 		static glm::u8vec3 getColorFromId(uint32_t id);
+		static glm::vec4 getColorVec4FromId(uint32_t id);
 
 		glm::u8vec3 getColorFromId();
 		

@@ -43,6 +43,7 @@ namespace pxt {
 
 		createRenderPass();
 		createSceneImage();
+		createFinalImage();
 		createOffscreenDepthResources();
 		createOffscreenFrameBuffer();
 		createRenderSystems();
@@ -59,6 +60,7 @@ namespace pxt {
 		// destroy old resources: FrameBuffer will be destroyed by reassigning the unique_ptr
 
 		createSceneImage();
+		createFinalImage();
 		createOffscreenDepthResources();
 		createOffscreenFrameBuffer();
 
@@ -143,8 +145,8 @@ namespace pxt {
 		VkImageCreateInfo sceneImageInfo{};
 		sceneImageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
 		sceneImageInfo.imageType = VK_IMAGE_TYPE_2D;
-		sceneImageInfo.extent.width = m_sceneExtent.width;
-		sceneImageInfo.extent.height = m_sceneExtent.height;
+		sceneImageInfo.extent.width = m_viewportExtent.width;
+		sceneImageInfo.extent.height = m_viewportExtent.height;
 		sceneImageInfo.extent.depth = 1;
 		sceneImageInfo.mipLevels = 1;
 		sceneImageInfo.arrayLayers = 1;
@@ -210,6 +212,76 @@ namespace pxt {
 		m_sceneImage->createSampler(samplerInfo);
 	}
 
+	void RenderLayer::createFinalImage() {
+		VkImageCreateInfo finalImageInfo{};
+		finalImageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+		finalImageInfo.imageType = VK_IMAGE_TYPE_2D;
+		finalImageInfo.extent.width = m_viewportExtent.width;
+		finalImageInfo.extent.height = m_viewportExtent.height;
+		finalImageInfo.extent.depth = 1;
+		finalImageInfo.mipLevels = 1;
+		finalImageInfo.arrayLayers = 1;
+		finalImageInfo.format = m_offscreenColorFormat;
+		finalImageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+		finalImageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		finalImageInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | // to be writable in a renderpass
+			VK_IMAGE_USAGE_SAMPLED_BIT |			 // to be readable in a shader
+			VK_IMAGE_USAGE_STORAGE_BIT;			 // to be writable for raytracing shaders
+		finalImageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+		finalImageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+		m_finalImage = createUnique<VulkanImage>(
+			m_context,
+			finalImageInfo,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+		);
+
+		// transition once to VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL layout
+		m_finalImage->transitionImageLayoutSingleTimeCmd(
+			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+			VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+			VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT
+		);
+
+		VkImageViewCreateInfo colorViewInfo{};
+		colorViewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+		colorViewInfo.image = m_finalImage->getVkImage();
+		colorViewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+		colorViewInfo.format = m_offscreenColorFormat;
+		colorViewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		colorViewInfo.subresourceRange.baseMipLevel = 0;
+		colorViewInfo.subresourceRange.levelCount = 1;
+		colorViewInfo.subresourceRange.baseArrayLayer = 0;
+		colorViewInfo.subresourceRange.layerCount = 1;
+
+		m_finalImage->createImageView(colorViewInfo);
+
+		// sampler for later imgui access
+		VkSamplerCreateInfo samplerInfo{};
+		samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+		samplerInfo.magFilter = VK_FILTER_LINEAR;
+		samplerInfo.minFilter = VK_FILTER_LINEAR;
+		// Addressing Mode: Clamp to edge is usually best for render targets
+		// This prevents "wrapping" artifacts if the sampling coordinates go slightly outside [0,1]
+		samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		samplerInfo.anisotropyEnable = VK_TRUE;
+		samplerInfo.maxAnisotropy = m_context.getPhysicalDeviceProperties().limits.maxSamplerAnisotropy;
+		// Unnormalized coordinates: Use normalized UVs (0.0 to 1.0)
+		samplerInfo.unnormalizedCoordinates = VK_FALSE;
+		// Comparison: Not for texture sampling, leave disabled
+		samplerInfo.compareEnable = VK_FALSE;
+		samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+
+		samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+		samplerInfo.mipLodBias = 0.0f;
+		samplerInfo.minLod = 0.0f;
+		samplerInfo.maxLod = 0.0f; // Only use base mip level
+
+		m_finalImage->createSampler(samplerInfo);
+	}
+
 	void RenderLayer::createOffscreenDepthResources() {
 		// DEPTH RESOURCE
 		VkFormat depthFormat = m_context.findDepthFormat();
@@ -217,8 +289,8 @@ namespace pxt {
 		VkImageCreateInfo imageInfo{};
 		imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
 		imageInfo.imageType = VK_IMAGE_TYPE_2D;
-		imageInfo.extent.width = m_sceneExtent.width;
-		imageInfo.extent.height = m_sceneExtent.height;
+		imageInfo.extent.width = m_viewportExtent.width;
+		imageInfo.extent.height = m_viewportExtent.height;
 		imageInfo.extent.depth = 1;
 		imageInfo.mipLevels = 1;
 		imageInfo.arrayLayers = 1;
@@ -258,8 +330,8 @@ namespace pxt {
 		framebufferInfo.renderPass = m_offscreenRenderPass->getHandle();
 		framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
 		framebufferInfo.pAttachments = attachments.data();
-		framebufferInfo.width = m_sceneExtent.width;
-		framebufferInfo.height = m_sceneExtent.height;
+		framebufferInfo.width = m_viewportExtent.width;
+		framebufferInfo.height = m_viewportExtent.height;
 		framebufferInfo.layers = 1;
 
 		m_offscreenFb = createUnique<FrameBuffer>(
@@ -337,7 +409,12 @@ namespace pxt {
 			m_context,
 			m_descriptorAllocator,
 			m_globalSetLayout,
-			m_sceneExtent
+			m_viewportExtent
+		);
+
+		m_compositionRenderSystem = createUnique<CompositionRenderSystem>(
+			m_context,
+			m_descriptorAllocator
 		);
 	}
 
@@ -360,6 +437,7 @@ namespace pxt {
 		}
 		m_densityTextureSystem->reloadShaders();
 		m_objectPickingSystem->reloadShaders();
+		m_compositionRenderSystem->reloadShaders();
 
 		PXT_INFO("Shaders reloaded successfully.");
 	}
@@ -399,11 +477,15 @@ namespace pxt {
 		}
 
 		// object picking
-		if (m_isObjectPickingRequested) {
+		if (m_isObjectPickingRequested || m_selectedEntityUUID != core::UUID::s_invalidId) {
 			// here we render the scene to an offscreen buffer with object IDs as colors
 			// and save the pixel color at the mouse coords inside a buffer. 
 			// we will read the buffer in the post frame update and reset the bool.
 			m_objectPickingSystem->render(frameInfo, m_renderer, m_objectPickPixelCoords);
+			m_objectPickingSystem->transitionImageToShaderReadOnlyOptimal(frameInfo,
+				VK_PIPELINE_STAGE_TRANSFER_BIT,
+				VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT
+			);
 		}
 
 		// render to offscreen main render pass
@@ -411,7 +493,9 @@ namespace pxt {
 			m_rayTracingRenderSystem->render(frameInfo, m_renderer);
 
 			// transition the scene image to shader_read_only_optimal layout for denoiser sampling
-			m_rayTracingRenderSystem->transitionImageToShaderReadOnlyOptimal(frameInfo, VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR);
+			m_rayTracingRenderSystem->transitionImageToShaderReadOnlyOptimal(frameInfo,
+				VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR,
+				VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
 
 			if (m_isDenoisingEnabled) {
 				m_denoiserRenderSystem->denoise(
@@ -421,7 +505,9 @@ namespace pxt {
 
 				// this transitions the scene image back to shader_read_only_optimal for the next
 				// renderpass (for now only point light billboards or ImGui Presentation)
-				m_rayTracingRenderSystem->transitionImageToShaderReadOnlyOptimal(frameInfo, VK_PIPELINE_STAGE_TRANSFER_BIT);
+				m_rayTracingRenderSystem->transitionImageToShaderReadOnlyOptimal(frameInfo,
+					VK_PIPELINE_STAGE_TRANSFER_BIT,
+					VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
 			}
 			
 			//begin offscreen render pass for point light billboards
@@ -439,7 +525,7 @@ namespace pxt {
 
 			//begin offscreen render pass
 			m_renderer.beginRenderPass(frameInfo.commandBuffer, *m_offscreenRenderPass,
-				*m_offscreenFb, m_sceneExtent);
+				*m_offscreenFb, m_viewportExtent);
 
 			m_skyboxRenderSystem->render(frameInfo);
 
@@ -455,6 +541,15 @@ namespace pxt {
 
 			m_renderer.endRenderPass(frameInfo.commandBuffer, *m_offscreenRenderPass, *m_offscreenFb);
 		}
+
+		// composition pass (compute shader)
+		m_compositionRenderSystem->render(
+			frameInfo,
+			*m_sceneImage,
+			m_objectPickingSystem->getObjectIdImage(),
+			*m_finalImage,
+			frameInfo.scene.getObjPickingIdFromEntityUUID(m_selectedEntityUUID)
+		);
 	}
 
 	void RenderLayer::onPostFrameUpdate(FrameInfo& frameInfo) {
@@ -462,7 +557,7 @@ namespace pxt {
 
 		if (m_isObjectPickingRequested) {
 			uint32_t objPickingId = m_objectPickingSystem->postFrameUpdate(frameInfo.frameFence);
-			core::UUID newSelectedEntityUUID = Application::get().getScene().getEntityUUIDFromObjPickingId(objPickingId);
+			core::UUID newSelectedEntityUUID = frameInfo.scene.getEntityUUIDFromObjPickingId(objPickingId);
 
 			if (newSelectedEntityUUID != m_selectedEntityUUID) {
 				// notify about the new selection
@@ -479,17 +574,17 @@ namespace pxt {
 		core::EventDispatcher dispatcher(event);
 
 		dispatcher.dispatch<core::ImGuiViewportResizeEvent>([this](auto& event) {	
-			m_sceneExtent = { event.getWidth(), event.getHeight() };
+			m_viewportExtent = { event.getWidth(), event.getHeight() };
 			recreateViewportResources();
 
 			// update scene image for raytracing
 			m_rayTracingRenderSystem->updateSceneImage(m_sceneImage);
 
 			// update the denoiser's images with new extent
-			m_denoiserRenderSystem->updateImages(m_sceneExtent);
+			m_denoiserRenderSystem->updateImages(m_viewportExtent);
 
 			// update object picking system with new extent
-			m_objectPickingSystem->updateImage(m_sceneExtent);
+			m_objectPickingSystem->updateImage(m_viewportExtent);
 
 			return true;
 		});
@@ -509,7 +604,7 @@ namespace pxt {
 
 	void RenderLayer::createDescriptorSetsImGui() {
 		// DESCRIPTOR SET FOR IMGUI VIEWPORT
-		m_sceneDescriptorSetLayout = DescriptorSetLayout::Builder(m_context)
+		m_finalImageDescriptorSetLayout = DescriptorSetLayout::Builder(m_context)
 			.addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 1)
 			.build();
 
@@ -518,22 +613,22 @@ namespace pxt {
 		imageInfo.imageView = m_sceneImage->getImageView();
 		imageInfo.sampler = m_sceneImage->getImageSampler();
 
-		m_descriptorAllocator.allocate(m_sceneDescriptorSetLayout->getDescriptorSetLayout(), m_sceneDescriptorSet);
+		m_descriptorAllocator.allocate(m_finalImageDescriptorSetLayout->getDescriptorSetLayout(), m_finalImageDescriptorSet);
 
-		DescriptorWriter(m_context, *m_sceneDescriptorSetLayout)
+		DescriptorWriter(m_context, *m_finalImageDescriptorSetLayout)
 			.writeImage(0, &imageInfo)
-			.updateSet(m_sceneDescriptorSet);
+			.updateSet(m_finalImageDescriptorSet);
 	}
 
 	void RenderLayer::updateImguiDescriptorSet() {
 		VkDescriptorImageInfo imageInfo;
 		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		imageInfo.imageView = m_sceneImage->getImageView();
-		imageInfo.sampler = m_sceneImage->getImageSampler();
+		imageInfo.imageView = m_finalImage->getImageView();
+		imageInfo.sampler = m_finalImage->getImageSampler();
 
-		DescriptorWriter(m_context, *m_sceneDescriptorSetLayout)
+		DescriptorWriter(m_context, *m_finalImageDescriptorSetLayout)
 			.writeImage(0, &imageInfo)
-			.updateSet(m_sceneDescriptorSet);
+			.updateSet(m_finalImageDescriptorSet);
 	}
 
 	void RenderLayer::onUpdateUi(FrameInfo& frameInfo) {

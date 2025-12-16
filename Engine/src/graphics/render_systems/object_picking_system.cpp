@@ -105,7 +105,8 @@ namespace pxt {
 		sceneImageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 		sceneImageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 		sceneImageInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | // to be writable in a renderpass
-							   VK_IMAGE_USAGE_TRANSFER_SRC_BIT;		 // to transfer the pixel data to a buffer
+							   VK_IMAGE_USAGE_TRANSFER_SRC_BIT |	 // to transfer the pixel data to a buffer
+							   VK_IMAGE_USAGE_SAMPLED_BIT;			 // to be readable in a shader (composition pass)
 		sceneImageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 		sceneImageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
@@ -113,6 +114,13 @@ namespace pxt {
 			m_context,
 			sceneImageInfo,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+		);
+
+		// in case we need to read from it before ever selecting an object
+		m_sceneWithColorIds->transitionImageLayoutSingleTimeCmd(
+			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+			VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+			VK_PIPELINE_STAGE_ALL_COMMANDS_BIT
 		);
 
 		VkImageViewCreateInfo colorViewInfo{};
@@ -354,5 +362,18 @@ namespace pxt {
 		uint32_t pickedObjectId = core::ObjPickingId::getIdFromColor(glm::u8vec3(color.r, color.g, color.b));
 
 		return pickedObjectId;
+	}
+
+	void ObjectPickingSystem::transitionImageToShaderReadOnlyOptimal(
+		FrameInfo& frameInfo,
+		VkPipelineStageFlagBits prevStage,
+		VkPipelineStageFlagBits nextStage
+	) {
+		m_sceneWithColorIds->transitionImageLayout(
+			frameInfo.commandBuffer,
+			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+			prevStage,
+			nextStage
+		);
 	}
 }
