@@ -74,6 +74,10 @@ namespace pxt {
 		void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties,
 						  VkBuffer& buffer, VkDeviceMemory& bufferMemory);
 
+		bool supportsAnisotropy();
+
+		float getMaxSamplerAnisotropy();
+
 		/**
 		* @brief Begins single-time commands.
 		*

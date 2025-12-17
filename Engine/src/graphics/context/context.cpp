@@ -84,6 +84,14 @@ namespace pxt {
         vkBindBufferMemory(m_device.getDevice(), buffer, bufferMemory, 0);
     }
 
+    bool Context::supportsAnisotropy() {
+		return m_physicalDevice.properties.limits.maxSamplerAnisotropy > 1.0f;
+    }
+
+	float Context::getMaxSamplerAnisotropy() {
+		return m_physicalDevice.properties.limits.maxSamplerAnisotropy;
+	}
+
     VkCommandBuffer Context::beginSingleTimeCommands() {
         VkCommandBufferAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
