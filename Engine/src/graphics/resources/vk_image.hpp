@@ -2,6 +2,7 @@
 
 #include "core/pch.hpp"
 #include "resources/types/image.hpp"
+#include "graphics/resources/vk_sampler.hpp"
 #include "graphics/context/context.hpp"
 
 namespace pxt {
@@ -100,9 +101,10 @@ namespace pxt {
 			return Type::Image;
 		}
 
-		VkDescriptorImageInfo getImageInfo(bool useSampler = true) {
+		VkDescriptorImageInfo getImageInfo(bool useOwnSampler = true) {
+			PXT_ASSERT(useOwnSampler == false || m_sampler != nullptr, "Trying to get image info with sampler but sampler is null!");
 			return VkDescriptorImageInfo{
-				.sampler = useSampler ? m_sampler : VK_NULL_HANDLE,
+				.sampler = useOwnSampler ? m_sampler->getHandle() : VK_NULL_HANDLE,
 				.imageView = m_imageView,
 				.imageLayout = m_currentLayout
 			};
@@ -118,8 +120,8 @@ namespace pxt {
 
 		VkImage getVkImage() { return m_vkImage; }
 		const VkImageView getImageView() { return m_imageView; }
-		const VkSampler getImageSampler() { return m_sampler; }
-		const void setImageSampler(const VkSampler sampler) { m_sampler = sampler; }
+		const VkSampler getSamplerHandle() { return m_sampler->getHandle(); }
+		const void setSampler(const Shared<VulkanSampler> sampler) { m_sampler = sampler; }
 		const VkFormat getImageFormat() { return m_imageFormat; }
 
 		const VkImageLayout getCurrentLayout() const { return m_currentLayout; }
@@ -162,10 +164,10 @@ namespace pxt {
 		VkFormat m_imageFormat;
 
 		ImageInfo m_info;
-		VkImage m_vkImage; // the raw image pixels
-		VkDeviceMemory m_imageMemory; // the memory occupied by the image
-		VkImageView m_imageView; // an abstraction to view the same raw image in different "ways"
-		VkSampler m_sampler; // an abstraction (and tool) to help fragment shader pick the right color and
+		VkImage m_vkImage = VK_NULL_HANDLE; // the raw image pixels
+		VkDeviceMemory m_imageMemory = VK_NULL_HANDLE; // the memory occupied by the image
+		VkImageView m_imageView = VK_NULL_HANDLE; // an abstraction to view the same raw image in different "ways"
+		Shared<VulkanSampler> m_sampler = nullptr; // an abstraction (and tool) to help fragment shader pick the right color and
 									// apply useful transformations (e.g. bilinear filtering, anisotropic filtering etc.)
 
 		VkImageLayout m_currentLayout = VK_IMAGE_LAYOUT_UNDEFINED;

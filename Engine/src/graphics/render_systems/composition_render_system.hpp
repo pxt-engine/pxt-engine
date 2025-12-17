@@ -5,6 +5,7 @@
 #include "graphics/pipeline.hpp"
 #include "graphics/descriptors/descriptors.hpp"
 #include "graphics/resources/vk_image.hpp"
+#include "graphics/resources/vk_sampler.hpp"
 #include "graphics/frame_info.hpp"
 
 namespace pxt {
@@ -30,7 +31,6 @@ namespace pxt {
         void reloadShaders();
 
     private:
-        void createNearestSampler();
         void createDescriptorSet();
         void createPipelineLayout();
         void createPipeline(bool useCompiledSpirvFiles = true);
@@ -46,9 +46,9 @@ namespace pxt {
         Unique<DescriptorSetLayout> m_descriptorSetLayout;
 
         VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
-        Unique<Pipeline> m_pipeline;
+        Unique<Pipeline> m_pipeline = nullptr;
 
-        VkSampler m_nearestSampler = VK_NULL_HANDLE;
+        Shared<VulkanSampler> m_nearestSampler = nullptr;
 
         const std::string m_shaderPath = "obj_outline.comp";
     };

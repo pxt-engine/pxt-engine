@@ -14,7 +14,9 @@ namespace pxt {
         DescriptorAllocatorGrowable& descriptorAllocator)
         : m_context(context),
         m_descriptorAllocator(descriptorAllocator) {
-        createNearestSampler();
+
+		m_nearestSampler = VulkanSampler::createSimpleNearestSampler(m_context);
+        
         createDescriptorSet();
         createPipelineLayout();
         createPipeline();
@@ -22,21 +24,6 @@ namespace pxt {
 
     CompositionRenderSystem::~CompositionRenderSystem() {
         vkDestroyPipelineLayout(m_context.getDevice(), m_pipelineLayout, nullptr);
-		vkDestroySampler(m_context.getDevice(), m_nearestSampler, nullptr);
-    }
-
-    void CompositionRenderSystem::createNearestSampler() {
-        // we create a single sampler for every image
-        VkSamplerCreateInfo samplerCreateInfo = {};
-        samplerCreateInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-        samplerCreateInfo.magFilter = VK_FILTER_NEAREST;
-        samplerCreateInfo.minFilter = VK_FILTER_NEAREST;
-        samplerCreateInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE; // Clamp to edge to avoid artifacts on the borders
-        samplerCreateInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-        samplerCreateInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE; // Not used, but set for completeness
-        samplerCreateInfo.unnormalizedCoordinates = VK_TRUE; // We use unnormalized coordinates for direct texel access
-
-        m_nearestSampler = m_context.createSampler(samplerCreateInfo);
     }
 
     void CompositionRenderSystem::createDescriptorSet() {
@@ -102,12 +89,12 @@ namespace pxt {
             VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT
         );
 
-        VkDescriptorImageInfo sceneInfo = sceneColor.getImageInfo();
-        VkDescriptorImageInfo idInfo = objectIdImage.getImageInfo();
+        VkDescriptorImageInfo sceneInfo = sceneColor.getImageInfo(false);
+        VkDescriptorImageInfo idInfo = objectIdImage.getImageInfo(false);
 		VkDescriptorImageInfo outputInfo = outputImage.getImageInfo(false);
 
-		sceneInfo.sampler = m_nearestSampler;
-		idInfo.sampler = m_nearestSampler;
+		sceneInfo.sampler = m_nearestSampler->getHandle();
+		idInfo.sampler = m_nearestSampler->getHandle();
 
         DescriptorWriter(m_context, *m_descriptorSetLayout)
             .writeImage(0, &sceneInfo)

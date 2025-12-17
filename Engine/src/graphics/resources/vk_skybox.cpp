@@ -132,7 +132,7 @@ namespace pxt {
 
     VkDescriptorImageInfo VulkanSkybox::getDescriptorImageInfo() const {
         VkDescriptorImageInfo imageInfo{};
-        imageInfo.sampler = m_cubeMap->getImageSampler();
+        imageInfo.sampler = m_cubeMap->getSamplerHandle();
         imageInfo.imageView = m_cubeMap->getImageView();
         imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         return imageInfo;

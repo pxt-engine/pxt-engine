@@ -611,7 +611,7 @@ namespace pxt {
 		VkDescriptorImageInfo imageInfo;
 		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		imageInfo.imageView = m_sceneImage->getImageView();
-		imageInfo.sampler = m_sceneImage->getImageSampler();
+		imageInfo.sampler = m_sceneImage->getSamplerHandle();
 
 		m_descriptorAllocator.allocate(m_finalImageDescriptorSetLayout->getDescriptorSetLayout(), m_finalImageDescriptorSet);
 
@@ -624,7 +624,7 @@ namespace pxt {
 		VkDescriptorImageInfo imageInfo;
 		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		imageInfo.imageView = m_finalImage->getImageView();
-		imageInfo.sampler = m_finalImage->getImageSampler();
+		imageInfo.sampler = m_finalImage->getSamplerHandle();
 
 		DescriptorWriter(m_context, *m_finalImageDescriptorSetLayout)
 			.writeImage(0, &imageInfo)

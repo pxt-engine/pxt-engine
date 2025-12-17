@@ -86,7 +86,7 @@ namespace pxt {
 		sampler.maxLod = 1.0f;
 		sampler.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
 
-		m_sampler = m_context.createSampler(sampler);
+		m_sampler = createShared<VulkanSampler>(m_context, sampler);
 	}
 
 	

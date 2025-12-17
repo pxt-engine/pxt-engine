@@ -24,13 +24,6 @@ namespace pxt {
 			vkDestroyImageView(m_context.getDevice(), m_imageView, nullptr);
 		}
 
-		// TODO: Samplers should be a separate resource, not tied to the image.
-		// because then if the image is destroyed, the sampler is also destroyed and
-		// could be still used/destroyed_twice in other images.
-		if (m_sampler != VK_NULL_HANDLE) {
-			vkDestroySampler(m_context.getDevice(), m_sampler, nullptr);
-		}
-
 		vkDestroyImage(m_context.getDevice(), m_vkImage, nullptr);
 		vkFreeMemory(m_context.getDevice(), m_imageMemory, nullptr);
 	}
@@ -47,11 +40,7 @@ namespace pxt {
 	}
 
 	VulkanImage& VulkanImage::createSampler(const VkSamplerCreateInfo& samplerInfo) {
-		if (m_sampler != VK_NULL_HANDLE) {
-			vkDestroySampler(m_context.getDevice(), m_sampler, nullptr);
-		}
-
-		m_sampler = m_context.createSampler(samplerInfo);
+		m_sampler = createShared<VulkanSampler>(m_context, samplerInfo);
 
 		return *this;
 	}

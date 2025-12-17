@@ -7,6 +7,7 @@
 #include "graphics/descriptors/descriptors.hpp"
 #include "graphics/resources/texture_registry.hpp"
 #include "graphics/resources/vk_image.hpp"
+#include "graphics/resources/vk_sampler.hpp"
 
 namespace pxt {
 
@@ -29,6 +30,7 @@ namespace pxt {
 
     private:
         // Helper methods for pipeline setup
+        void createSharedSampler();
         void createImages(VkExtent2D swapChainExtent);
         void createAccumulationPipelineLayout();
         void createTemporalFilterPipelineLayout();
@@ -76,7 +78,7 @@ namespace pxt {
         Unique<VulkanImage> m_tempTemporalOutputImage = nullptr;
 
 		// Sampler for images (with nearest filtering)
-		VkSampler m_imageSamplerNearest = VK_NULL_HANDLE;
+		Shared<VulkanSampler> m_imageSamplerNearest = nullptr;
 
         std::string m_accumulationShaderPath = "accumulation.comp";
         std::string m_temporalShaderPath = "temporal.comp";

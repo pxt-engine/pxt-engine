@@ -179,8 +179,6 @@ namespace pxt {
 		samplerInfo.minLod = 0.0f;
 		samplerInfo.maxLod = 0.0f;
 
-		if (vkCreateSampler(m_context.getDevice(), &samplerInfo, nullptr, &m_sampler) != VK_SUCCESS) {
-			throw std::runtime_error("failed to create texture sampler!");
-		}
+		m_sampler = createShared<VulkanSampler>(m_context, samplerInfo);
 	}
 }

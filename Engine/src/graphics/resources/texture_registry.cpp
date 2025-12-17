@@ -63,7 +63,7 @@ namespace pxt {
 			VkDescriptorImageInfo imageInfo{};
 			imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 			imageInfo.imageView = texture->getImageView();
-			imageInfo.sampler = texture->getImageSampler();
+			imageInfo.sampler = texture->getSamplerHandle();
 			imageInfos.push_back(imageInfo);
 		}
 

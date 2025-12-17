@@ -18,6 +18,7 @@ namespace pxt {
     DenoiserRenderSystem::DenoiserRenderSystem(Context& context, DescriptorAllocatorGrowable& descriptorAllocator, VkExtent2D swapChainExtent)
         : m_context(context), m_descriptorAllocator(descriptorAllocator), m_extent(swapChainExtent) {
 
+        createSharedSampler();
         createImages(swapChainExtent);
 
         createAccumulationDescriptorSet();
@@ -38,6 +39,23 @@ namespace pxt {
         vkDestroyPipelineLayout(m_context.getDevice(), m_temporalFilterPipelineLayout, nullptr);
         vkDestroyPipelineLayout(m_context.getDevice(), m_spatialFilterPipelineLayout, nullptr);
     }
+
+	void DenoiserRenderSystem::createSharedSampler() {
+        // we create a single sampler for every image
+        VkSamplerCreateInfo samplerCreateInfo = {};
+        samplerCreateInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+        samplerCreateInfo.magFilter = VK_FILTER_NEAREST;
+        samplerCreateInfo.minFilter = VK_FILTER_NEAREST;
+        samplerCreateInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE; // Clamp to edge to avoid artifacts on the borders
+        samplerCreateInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+        samplerCreateInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE; // Not used, but set for completeness
+        samplerCreateInfo.unnormalizedCoordinates = VK_TRUE; // We use unnormalized coordinates for direct texel access
+
+        m_imageSamplerNearest = createShared<VulkanSampler>(
+            m_context,
+            samplerCreateInfo
+        );
+	}
 
     void DenoiserRenderSystem::createImages(VkExtent2D extent) {
 		// imagecreateinfo for accumulation, history, and temporary output images
@@ -69,18 +87,6 @@ namespace pxt {
 		imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
 		imageViewCreateInfo.subresourceRange.layerCount = 1;
 
-        // we create a single sampler for every image
-		VkSamplerCreateInfo samplerCreateInfo = {};
-		samplerCreateInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-		samplerCreateInfo.magFilter = VK_FILTER_NEAREST;
-		samplerCreateInfo.minFilter = VK_FILTER_NEAREST;
-		samplerCreateInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE; // Clamp to edge to avoid artifacts on the borders
-		samplerCreateInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-		samplerCreateInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE; // Not used, but set for completeness
-		samplerCreateInfo.unnormalizedCoordinates = VK_TRUE; // We use unnormalized coordinates for direct texel access
-
-        m_imageSamplerNearest = m_context.createSampler(samplerCreateInfo);
-
         // Create an accumulation buffer
         // This buffer accumulates raw path-traced samples.
         m_accumulationImage = createUnique<VulkanImage>(
@@ -92,7 +98,7 @@ namespace pxt {
 
         m_accumulationImage->
              createImageView(imageViewCreateInfo)
-            .setImageSampler(m_imageSamplerNearest);
+            .setSampler(m_imageSamplerNearest);
 
         // Create a temporary buffer for the output of the temporal filter.
         // This serves as input for the spatial filter.
@@ -105,7 +111,7 @@ namespace pxt {
 
         m_tempTemporalOutputImage->
             createImageView(imageViewCreateInfo)
-            .setImageSampler(m_imageSamplerNearest);
+            .setSampler(m_imageSamplerNearest);
 
         // Create a history buffer for temporal filtering.
         // This buffer stores the final denoised output of the PREVIOUS frame,
@@ -121,7 +127,7 @@ namespace pxt {
 
         m_temporalHistoryImage->
              createImageView(imageViewCreateInfo)
-            .setImageSampler(m_imageSamplerNearest);
+            .setSampler(m_imageSamplerNearest);
     }
 
     void DenoiserRenderSystem::createAccumulationDescriptorSet() {
@@ -291,7 +297,7 @@ namespace pxt {
         VkCommandBuffer commandBuffer = frameInfo.commandBuffer;
 
 		VkDescriptorImageInfo newFrameImageInfo = sceneImage->getImageInfo();
-		newFrameImageInfo.sampler = m_imageSamplerNearest; // Use nearest sampler for denoising
+		newFrameImageInfo.sampler = m_imageSamplerNearest->getHandle(); // Use nearest sampler for denoising
 
         VkDescriptorImageInfo accumulationImageInfo;
 		VkDescriptorImageInfo temporalHistoryImageInfo;

@@ -220,13 +220,13 @@ namespace pxt {
 		// Create image descriptor info for shadow map
 		m_shadowMapDescriptorInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		m_shadowMapDescriptorInfo.imageView = m_shadowCubeMap->getImageView();
-		m_shadowMapDescriptorInfo.sampler = m_shadowCubeMap->getImageSampler();
+		m_shadowMapDescriptorInfo.sampler = m_shadowCubeMap->getSamplerHandle();
 
 		// Create image descriptor info for debug view
 		for (uint16_t i = 0; i < 6; i++) {
 			m_debugImageDescriptorInfos[i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 			m_debugImageDescriptorInfos[i].imageView = m_shadowCubeMap->getFaceImageView(i);
-			m_debugImageDescriptorInfos[i].sampler = m_shadowCubeMap->getImageSampler();
+			m_debugImageDescriptorInfos[i].sampler = m_shadowCubeMap->getSamplerHandle();
 		}
 	}
 
