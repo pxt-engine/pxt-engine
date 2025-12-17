@@ -1,0 +1,27 @@
+## PXT Engine clang format configuration file ##
+
+BasedOnStyle: LLVM
+IndentWidth: 4
+ColumnLimit: 120
+
+Language: Cpp
+
+
+# The extra indent or outdent of access modifiers, e.g. public:.
+AccessModifierOffset: -4
+
+# Force pointers to the type for C++.
+DerivePointerAlignment: false
+PointerAlignment: Left
+
+SeparateDefinitionBlocks: Always
+
+NamespaceIndentation: All
+MaxEmptyLinesToKeep: 1
+KeepEmptyLinesAtTheStartOfBlocks: true
+
+IndentRequiresClause: false
+
+IndentPPDirectives: AfterHash
+TabWidth: 4
+UseTab: Never
