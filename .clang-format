@@ -23,3 +23,5 @@ KeepEmptyLinesAtTheStartOfBlocks: true
 
 # Indentation for require clause (requires for template parameters)
 IndentRequiresClause: false
+
+AlwaysBreakTemplateDeclarations: Yes
