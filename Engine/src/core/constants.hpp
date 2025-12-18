@@ -23,12 +23,12 @@ const uint32_t BLUE_NOISE_TEXTURE_COUNT = 64;
 const uint32_t BLUE_NOISE_TEXTURE_SIZE = 128;
 
 namespace CubeFace {
-	constexpr uint32_t RIGHT = 0;
-	constexpr uint32_t LEFT = 1;
-	constexpr uint32_t TOP = 2;
-	constexpr uint32_t BOTTOM = 3;
-	constexpr uint32_t BACK = 4;
-	constexpr uint32_t FRONT = 5;
-}
+    constexpr uint32_t RIGHT = 0;
+    constexpr uint32_t LEFT = 1;
+    constexpr uint32_t TOP = 2;
+    constexpr uint32_t BOTTOM = 3;
+    constexpr uint32_t BACK = 4;
+    constexpr uint32_t FRONT = 5;
+} // namespace CubeFace
 
 const int MAX_LIGHTS = 10; // Maximum number of point lights in the scene

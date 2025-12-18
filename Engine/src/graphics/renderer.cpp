@@ -7,14 +7,12 @@ namespace pxt {
         createCommandBuffers();
     }
 
-    Renderer::~Renderer() { 
-        freeCommandBuffers(); 
-    }
+    Renderer::~Renderer() { freeCommandBuffers(); }
 
     void Renderer::recreateSwapChain() {
         auto extent = m_window.getExtent();
 
-        //TODO: fix when using ShowDesktop (Windows + D)
+        // TODO: fix when using ShowDesktop (Windows + D)
         while (extent.width == 0 || extent.height == 0) {
             extent = m_window.getExtent();
             glfwWaitEvents();
@@ -28,7 +26,8 @@ namespace pxt {
             m_swapChain = createUnique<SwapChain>(m_context, extent, oldSwapChain);
 
             if (!oldSwapChain->compareSwapFormats(*m_swapChain.get())) {
-                throw std::runtime_error("Swap chain image (format, color space, or size) has changed, not handled yet!");
+                throw std::runtime_error(
+                    "Swap chain image (format, color space, or size) has changed, not handled yet!");
             }
         }
     }
@@ -48,12 +47,9 @@ namespace pxt {
     }
 
     void Renderer::freeCommandBuffers() {
-        vkFreeCommandBuffers(
-            m_context.getDevice(),
-            m_context.getCommandPool(),
-            static_cast<uint32_t>(m_commandBuffers.size()),
-            m_commandBuffers.data());
-        
+        vkFreeCommandBuffers(m_context.getDevice(), m_context.getCommandPool(),
+                             static_cast<uint32_t>(m_commandBuffers.size()), m_commandBuffers.data());
+
         m_commandBuffers.clear();
     }
 
@@ -86,16 +82,16 @@ namespace pxt {
         return commandBuffer;
     }
 
-	void Renderer::onWindowResize() {
+    void Renderer::onWindowResize() {
         m_window.resetWindowResizedFlag();
         recreateSwapChain();
-	}
+    }
 
     void Renderer::endFrame() {
         PXT_ASSERT(m_isFrameStarted, "Can't call endFrame while frame is not in progress.");
 
         auto commandBuffer = getCurrentCommandBuffer();
-        
+
         if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
             throw std::runtime_error("failed to record command buffer!");
         }
@@ -116,7 +112,8 @@ namespace pxt {
 
     void Renderer::beginSwapChainRenderPass(VkCommandBuffer commandBuffer) {
         PXT_ASSERT(m_isFrameStarted, "Can't begin render pass when frame is not in progress.");
-        PXT_ASSERT(commandBuffer == getCurrentCommandBuffer(), "Can't begin render pass on command buffer from a different frame.");
+        PXT_ASSERT(commandBuffer == getCurrentCommandBuffer(),
+                   "Can't begin render pass on command buffer from a different frame.");
 
         VkRenderPassBeginInfo renderPassInfo{};
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -147,26 +144,28 @@ namespace pxt {
         vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
     }
 
-    void Renderer::beginRenderPass(VkCommandBuffer commandBuffer, RenderPass& renderPass, FrameBuffer& frameBuffer, VkExtent2D extent, VkClearColorValue clearColor) {
+    void Renderer::beginRenderPass(VkCommandBuffer commandBuffer, RenderPass& renderPass, FrameBuffer& frameBuffer,
+                                   VkExtent2D extent, VkClearColorValue clearColor) {
         PXT_ASSERT(m_isFrameStarted, "Can't begin render pass when frame is not in progress.");
-        PXT_ASSERT(commandBuffer == getCurrentCommandBuffer(), "Can't begin render pass on command buffer from a different frame.");
+        PXT_ASSERT(commandBuffer == getCurrentCommandBuffer(),
+                   "Can't begin render pass on command buffer from a different frame.");
 
-		VkRenderPassBeginInfo renderPassInfo{};
-		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-		renderPassInfo.renderPass = renderPass.getHandle();
-		renderPassInfo.framebuffer = frameBuffer.getHandle();
+        VkRenderPassBeginInfo renderPassInfo{};
+        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        renderPassInfo.renderPass = renderPass.getHandle();
+        renderPassInfo.framebuffer = frameBuffer.getHandle();
 
-		renderPassInfo.renderArea.offset = { 0, 0 };
-		renderPassInfo.renderArea.extent = extent;
+        renderPassInfo.renderArea.offset = {0, 0};
+        renderPassInfo.renderArea.extent = extent;
 
-		std::array<VkClearValue, 2> clearValues{};
-		clearValues[0].color = clearColor;
-		clearValues[1].depthStencil = { 1.0f, 0 };
+        std::array<VkClearValue, 2> clearValues{};
+        clearValues[0].color = clearColor;
+        clearValues[1].depthStencil = {1.0f, 0};
 
-		renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-		renderPassInfo.pClearValues = clearValues.data();
+        renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+        renderPassInfo.pClearValues = clearValues.data();
 
-		vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+        vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
         VkViewport viewport{};
         viewport.x = 0.0f;
@@ -175,12 +174,12 @@ namespace pxt {
         viewport.height = static_cast<float>(extent.height);
         viewport.minDepth = 0.0f;
         viewport.maxDepth = 1.0f;
-        VkRect2D scissor{ {0, 0}, extent };
+        VkRect2D scissor{{0, 0}, extent};
         vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
         vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
         // renderPass begins, so the image will be transitioned to the initial layout
-		frameBuffer.getColorAttachment()->setImageLayout(renderPass.getColorAttachmentInitialLayout());
+        frameBuffer.getColorAttachment()->setImageLayout(renderPass.getColorAttachmentInitialLayout());
 
         if (frameBuffer.hasDepthAttachment()) {
             frameBuffer.getDepthAttachment()->setImageLayout(renderPass.getDepthAttachmentInitialLayout());
@@ -189,11 +188,12 @@ namespace pxt {
 
     void Renderer::endRenderPass(VkCommandBuffer commandBuffer, RenderPass& renderPass, FrameBuffer& frameBuffer) {
         PXT_ASSERT(m_isFrameStarted, "Can't call endRenderPass when frame is not in progress.");
-        PXT_ASSERT(commandBuffer == getCurrentCommandBuffer(), "Can't end render pass on command buffer from a different frame.");
+        PXT_ASSERT(commandBuffer == getCurrentCommandBuffer(),
+                   "Can't end render pass on command buffer from a different frame.");
 
         vkCmdEndRenderPass(commandBuffer);
 
-		// After the render pass ends, the image will be transitioned to the final layout
+        // After the render pass ends, the image will be transitioned to the final layout
         frameBuffer.getColorAttachment()->setImageLayout(renderPass.getColorAttachmentFinalLayout());
 
         if (frameBuffer.hasDepthAttachment()) {
@@ -203,8 +203,9 @@ namespace pxt {
 
     void Renderer::endSwapChainRenderPass(VkCommandBuffer commandBuffer) {
         PXT_ASSERT(m_isFrameStarted, "Can't call endSwapChainRenderPass when frame is not in progress.");
-        PXT_ASSERT(commandBuffer == getCurrentCommandBuffer(), "Can't end render pass on command buffer from a different frame.");
+        PXT_ASSERT(commandBuffer == getCurrentCommandBuffer(),
+                   "Can't end render pass on command buffer from a different frame.");
 
         vkCmdEndRenderPass(commandBuffer);
     }
-}
+} // namespace pxt

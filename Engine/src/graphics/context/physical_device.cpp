@@ -2,14 +2,14 @@
 
 namespace pxt {
 
-	/**
-	 * @struct DeviceScore
-	 * @brief Holds a Vulkan physical device and its suitability score.
-	 *
-	 * This structure is used to evaluate and rank physical devices based on their capabilities
-	 * and suitability for the application's requirements. The score is used to select the best
-	 * device for rendering operations.
-	 */
+    /**
+     * @struct DeviceScore
+     * @brief Holds a Vulkan physical device and its suitability score.
+     *
+     * This structure is used to evaluate and rank physical devices based on their capabilities
+     * and suitability for the application's requirements. The score is used to select the best
+     * device for rendering operations.
+     */
     struct DeviceScore {
         static constexpr uint32_t DISCRETE_GPU_SCORING_POINTS = 150;
         static constexpr uint32_t INTEGRATED_GPU_SCORING_POINTS = 30;
@@ -20,12 +20,9 @@ namespace pxt {
 
         DeviceScore() = default;
 
-        DeviceScore(const VkPhysicalDevice device, const uint32_t score)
-    		: device(device), score(score) {}
+        DeviceScore(const VkPhysicalDevice device, const uint32_t score) : device(device), score(score) {}
 
-        bool operator<(const DeviceScore& other) const {
-            return score < other.score;
-        }
+        bool operator<(const DeviceScore& other) const { return score < other.score; }
     };
 
     PhysicalDevice::PhysicalDevice(Instance& instance, Surface& surface) : m_instance(instance), m_surface(surface) {
@@ -58,11 +55,11 @@ namespace pxt {
             vkGetPhysicalDeviceProperties(device, &currentDeviceProperties);
 
             if (!isDeviceSuitable(device)) {
-				PXT_WARN("{} is not suitable.", currentDeviceProperties.deviceName);
-				continue;
+                PXT_WARN("{} is not suitable.", currentDeviceProperties.deviceName);
+                continue;
             }
 
-			uint32_t currentScore = scoreDevice(device);
+            uint32_t currentScore = scoreDevice(device);
 
             PXT_INFO("{}, Score: {}", currentDeviceProperties.deviceName, currentScore);
 
@@ -79,7 +76,7 @@ namespace pxt {
             throw std::runtime_error("Failed to find a suitable GPU!");
         }
 
-        // This function retrieves detailed properties of the selected GPU, 
+        // This function retrieves detailed properties of the selected GPU,
         // including its name, vendor, and supported Vulkan version.
         vkGetPhysicalDeviceProperties(m_physicalDevice, &properties);
 
@@ -161,42 +158,41 @@ namespace pxt {
         std::stringstream ss;
         ss << "Required extensions not supported are:\n";
 
-		std::vector<const char*> extensionsToCheck = deviceExtensions;
+        std::vector<const char*> extensionsToCheck = deviceExtensions;
 
         extensionsToCheck.erase(
-			// this is a functional approach. It iterates from begin to end and
+            // this is a functional approach. It iterates from begin to end and
             // removes all the elements that satisfy the predicate (lamba function returning bool)
             std::remove_if(extensionsToCheck.begin(), extensionsToCheck.end(),
-                [&](const char* extNameCStr) {
-                    // Convert const char* to std::string for easier comparison and checks
-                    std::string extNameStr(extNameCStr);
+                           [&](const char* extNameCStr) {
+                               // Convert const char* to std::string for easier comparison and checks
+                               std::string extNameStr(extNameCStr);
 
-                    // Check if this extension is available on the physical device
-                    if (availableExtensionNames.count(extNameStr) == 0) {
-                        // This extension is requested but NOT supported by the physical device
+                               // Check if this extension is available on the physical device
+                               if (availableExtensionNames.count(extNameStr) == 0) {
+                                   // This extension is requested but NOT supported by the physical device
 
-                        // Check if it's the NVIDIA-specific ray tracing validation extension
-                        if (extNameStr.find("VK_NV") != std::string::npos) {
-                            ss << extNameStr << " (OPTIONAL - Nvidia ext not supported, removed)\n";
-                            return true; // Return true to mark this element for removal
-                        }
-                        else {
-                            // This is a REQUIRED extension that is not supported
-                            ss << extNameStr << " (REQUIRED - NOT SUPPORTED)\n";
-                            allRequiredSupported = false; 
-                            return false; // Keep this in the list so vkCreateDevice fails with its error
-                        }
-                    }
-                    // If the extension IS available, we don't want to remove it
-                    return false;
-                }),
+                                   // Check if it's the NVIDIA-specific ray tracing validation extension
+                                   if (extNameStr.find("VK_NV") != std::string::npos) {
+                                       ss << extNameStr << " (OPTIONAL - Nvidia ext not supported, removed)\n";
+                                       return true; // Return true to mark this element for removal
+                                   } else {
+                                       // This is a REQUIRED extension that is not supported
+                                       ss << extNameStr << " (REQUIRED - NOT SUPPORTED)\n";
+                                       allRequiredSupported = false;
+                                       return false; // Keep this in the list so vkCreateDevice fails with its error
+                                   }
+                               }
+                               // If the extension IS available, we don't want to remove it
+                               return false;
+                           }),
             extensionsToCheck.end());
 
         if (allRequiredSupported) {
             deviceExtensions = extensionsToCheck;
         }
 
-		PXT_WARN(ss.str());
+        PXT_WARN(ss.str());
 
         return allRequiredSupported;
     }
@@ -265,10 +261,11 @@ namespace pxt {
         // If the count is not zero, resize the presentModes vector and populate it with the available present modes.
         if (presentModeCount != 0) {
             details.presentModes.resize(presentModeCount);
-            vkGetPhysicalDeviceSurfacePresentModesKHR(device, m_surface.getSurface(), &presentModeCount, details.presentModes.data());
+            vkGetPhysicalDeviceSurfacePresentModesKHR(device, m_surface.getSurface(), &presentModeCount,
+                                                      details.presentModes.data());
         }
 
         return details;
     }
 
-}
+} // namespace pxt

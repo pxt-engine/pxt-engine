@@ -1,19 +1,19 @@
 #pragma once
 
-#include "core/pch.hpp"
 #include "core/events/event.hpp"
 #include "core/events/event_queue.hpp"
 #include "core/layer/layer_stack.hpp"
-#include "graphics/window.hpp"
+#include "core/pch.hpp"
 #include "graphics/context/context.hpp"
-#include "graphics/renderer.hpp"
 #include "graphics/descriptors/descriptors.hpp"
 #include "graphics/frame_info.hpp"
 #include "graphics/render_systems/render_layer.hpp"
 #include "graphics/render_systems/ui_render_layer.hpp"
-#include "graphics/resources/texture_registry.hpp"
-#include "graphics/resources/material_registry.hpp"
+#include "graphics/renderer.hpp"
 #include "graphics/resources/blas_registry.hpp"
+#include "graphics/resources/material_registry.hpp"
+#include "graphics/resources/texture_registry.hpp"
+#include "graphics/window.hpp"
 #include "resources/resource_manager.hpp"
 #include "resources/types/material.hpp"
 #include "scene/scene.hpp"
@@ -30,76 +30,62 @@ namespace pxt {
         void start();
         void run();
 
-        Scene& getScene() {
-            return m_scene;
-        }
+        Scene& getScene() { return m_scene; }
 
-        Context& getContext() {
-            return m_context;
-        }
+        Context& getContext() { return m_context; }
 
-        Window& getWindow() {
-            return m_window;
-        }
+        Window& getWindow() { return m_window; }
 
-        ResourceManager* getResourceManager() {
-            return m_resourceManagerPtr;
-        }
+        ResourceManager* getResourceManager() { return m_resourceManagerPtr; }
 
-		DescriptorAllocatorGrowable* getDescriptorAllocator() {
-			return m_descriptorAllocator.get();
-		}
+        DescriptorAllocatorGrowable* getDescriptorAllocator() { return m_descriptorAllocator.get(); }
 
         // LAYERS
 
         // create the layer on the spot and push it
-        template<typename TLayer, typename ... Args>
-            requires(std::is_base_of_v<core::Layer, TLayer>)
-        TLayer* pushLayer(Args&& ... args) {
+        template <typename TLayer, typename... Args>
+        requires(std::is_base_of_v<core::Layer, TLayer>)
+        TLayer* pushLayer(Args&&... args) {
             return m_layerStack.pushLayer(std::move(createUnique<TLayer>(std::forward<Args>(args)...)));
         }
 
         // push an already created layer
-        template<typename TLayer>
-            requires(std::is_base_of_v<core::Layer, TLayer>)
+        template <typename TLayer>
+        requires(std::is_base_of_v<core::Layer, TLayer>)
         TLayer* pushLayer(Unique<TLayer> layer) {
             return m_layerStack.pushLayer(std::move(layer));
         }
 
         // create the overlay on the spot and push it
-        template<typename TLayer, typename ... Args>
-            requires(std::is_base_of_v<core::Layer, TLayer>)
-        TLayer* pushOverlay(Args&& ... args) {
+        template <typename TLayer, typename... Args>
+        requires(std::is_base_of_v<core::Layer, TLayer>)
+        TLayer* pushOverlay(Args&&... args) {
             return m_layerStack.pushOverlay(std::move(createUnique<TLayer>(std::forward<Args>(args)...)));
         }
 
         // push an already created overlay
-        template<typename TLayer>
-            requires(std::is_base_of_v<core::Layer, TLayer>)
+        template <typename TLayer>
+        requires(std::is_base_of_v<core::Layer, TLayer>)
         TLayer* pushOverlay(Unique<TLayer> overlay) {
             return m_layerStack.pushOverlay(std::move(overlay));
         }
 
-        void popLayer(core::Layer& layer) {
-            m_layerStack.popLayer(layer);
-        }
+        void popLayer(core::Layer& layer) { m_layerStack.popLayer(layer); }
 
-        void popOverlay(core::Layer& overlay) {
-            m_layerStack.popOverlay(overlay);
-        }
+        void popOverlay(core::Layer& overlay) { m_layerStack.popOverlay(overlay); }
 
         // EVENTS
 
         /**
-		* @brief Queues an event to be processed by the application.
-        * 
-		* @param event The event to be queued.
-		* @tparam E The type of the event, must be derived from core::Event.
-        * 
-		* decay_t is used to remove references and cv-qualifiers from the type E
-        */
-        template<typename E>
-        requires (std::is_base_of_v<core::Event, std::decay_t<E>>)
+         * @brief Queues an event to be processed by the application.
+         *
+         * @param event The event to be queued.
+         * @tparam E The type of the event, must be derived from core::Event.
+         *
+         * decay_t is used to remove references and cv-qualifiers from the type E
+         */
+        template <typename E>
+        requires(std::is_base_of_v<core::Event, std::decay_t<E>>)
         void queueEvent(E&& event) {
             m_eventQueue.queueEvent(std::forward<E>(event));
         }
@@ -108,15 +94,15 @@ namespace pxt {
         virtual void loadScene() {}
 
     private:
-		void createDescriptorPoolAllocator();
-		void createUboBuffers();
+        void createDescriptorPoolAllocator();
+        void createUboBuffers();
         void createGlobalDescriptorSet();
         void createDefaultResources();
         void registerResources();
 
         void onEvent(core::Event& event);
         bool isRunning();
-		void updateCamera(Camera& camera);
+        void updateCamera(Camera& camera);
 
         bool m_running = true;
 
@@ -131,17 +117,17 @@ namespace pxt {
         ResourceManager* m_resourceManagerPtr = nullptr;
 
         Unique<DescriptorAllocatorGrowable> m_descriptorAllocator{};
-		Unique<DescriptorSetLayout> m_globalSetLayout{};
+        Unique<DescriptorSetLayout> m_globalSetLayout{};
 
-		std::vector<VkDescriptorSet> m_globalDescriptorSets{ SwapChain::MAX_FRAMES_IN_FLIGHT };
+        std::vector<VkDescriptorSet> m_globalDescriptorSets{SwapChain::MAX_FRAMES_IN_FLIGHT};
 
-		std::vector<Unique<VulkanBuffer>> m_uboBuffers{ SwapChain::MAX_FRAMES_IN_FLIGHT };
+        std::vector<Unique<VulkanBuffer>> m_uboBuffers{SwapChain::MAX_FRAMES_IN_FLIGHT};
 
         Scene m_scene{};
 
         TextureRegistry m_textureRegistry{m_context};
-		MaterialRegistry m_materialRegistry{m_context, m_textureRegistry};
-		BLASRegistry m_blasRegistry{m_context};
+        MaterialRegistry m_materialRegistry{m_context, m_textureRegistry};
+        BLASRegistry m_blasRegistry{m_context};
 
         core::EventQueue m_eventQueue{};
 
@@ -149,4 +135,4 @@ namespace pxt {
     };
 
     extern Application* initApplication();
-}
+} // namespace pxt

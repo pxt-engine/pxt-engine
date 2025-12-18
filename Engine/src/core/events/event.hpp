@@ -7,46 +7,46 @@ namespace pxt::core {
     /**
      * @class Event
      * @brief Base class for all event types.
-     * 
-     * The Event class is the base class for all event types in the engine. 
+     *
+     * The Event class is the base class for all event types in the engine.
      * It provides an interface for getting the event type, name, and string representation.
      */
     class Event {
     public:
         virtual ~Event() = default;
 
-        enum class Type
-        {
+        enum class Type {
             None = 0,
 
             // Window events
-            WindowClose, 
-            WindowResize, 
-            WindowMoved, 
-            WindowFocus, 
+            WindowClose,
+            WindowResize,
+            WindowMoved,
+            WindowFocus,
             WindowLostFocus,
 
             // Keyboard events
-            KeyPress, 
-            KeyRelease, 
+            KeyPress,
+            KeyRelease,
             KeyDown,
 
             // Mouse events
-            MouseButtonPress, 
-            MouseButtonRelease, 
-            MouseMove, 
+            MouseButtonPress,
+            MouseButtonRelease,
+            MouseMove,
             MouseScroll,
 
             // ImGui events
             ImGuiViewportResize,
 
-			// Editor events
+            // Editor events
             PickObjectAt,
             SelectedEntityChanged,
         };
 
         [[nodiscard]] virtual Event::Type getEventType() const = 0;
         [[nodiscard]] virtual std::string getName() const = 0;
+
         [[nodiscard]] virtual std::string toString() const { return getName(); }
 
         [[nodiscard]] bool isHandled() const { return m_handled; }
@@ -55,7 +55,6 @@ namespace pxt::core {
 
     private:
         bool m_handled = false;
-
     };
 
-}
+} // namespace pxt::core

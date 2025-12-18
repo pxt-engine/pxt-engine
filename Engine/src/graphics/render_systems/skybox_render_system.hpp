@@ -2,10 +2,10 @@
 
 #include "core/pch.hpp"
 #include "graphics/context/context.hpp"
-#include "graphics/pipeline.hpp"
-#include "graphics/resources/vk_skybox.hpp"
 #include "graphics/descriptors/descriptors.hpp"
 #include "graphics/frame_info.hpp"
+#include "graphics/pipeline.hpp"
+#include "graphics/resources/vk_skybox.hpp"
 
 #include "scene/environment.hpp"
 
@@ -13,12 +13,8 @@ namespace pxt {
 
     class SkyboxRenderSystem {
     public:
-        SkyboxRenderSystem(
-            Context& context,
-			Shared<Environment> environment,
-            DescriptorSetLayout& globalSetLayout,
-            VkRenderPass renderPass
-        );
+        SkyboxRenderSystem(Context& context, Shared<Environment> environment, DescriptorSetLayout& globalSetLayout,
+                           VkRenderPass renderPass);
         ~SkyboxRenderSystem();
 
         // Delete copy constructors and assignment operators
@@ -35,14 +31,11 @@ namespace pxt {
         Context& m_context;
         Shared<VulkanSkybox> m_skybox;
 
-		VkRenderPass m_renderPass;
+        VkRenderPass m_renderPass;
         Unique<Pipeline> m_pipeline;
         VkPipelineLayout m_pipelineLayout;
 
-        std::array<const std::string, 2> m_shaderFilePaths = {
-            "skybox.vert",
-            "skybox.frag"
-        };
+        std::array<const std::string, 2> m_shaderFilePaths = {"skybox.vert", "skybox.frag"};
     };
 
-}
+} // namespace pxt

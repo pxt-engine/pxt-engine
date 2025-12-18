@@ -15,19 +15,16 @@ namespace pxt {
         int normalMapIndex = 1;
         int ambientOcclusionMapIndex = 0;
         int metallicMapIndex = 0;
-		int roughnessMapIndex = 0;
-		float tilingFactor = 1.0f;
+        int roughnessMapIndex = 0;
+        float tilingFactor = 1.0f;
     };
 
     MaterialRenderSystem::MaterialRenderSystem(Context& context, DescriptorAllocatorGrowable& descriptorAllocator,
-    	TextureRegistry& textureRegistry, DescriptorSetLayout& globalSetLayout,
-    	VkRenderPass renderPass, VkDescriptorImageInfo shadowMapImageInfo)
-        : m_context(context),
-        m_descriptorAllocator(descriptorAllocator),
-        m_textureRegistry(textureRegistry),
-        m_renderPassHandle(renderPass)
-    {
-		createDescriptorSets(shadowMapImageInfo);
+                                               TextureRegistry& textureRegistry, DescriptorSetLayout& globalSetLayout,
+                                               VkRenderPass renderPass, VkDescriptorImageInfo shadowMapImageInfo)
+        : m_context(context), m_descriptorAllocator(descriptorAllocator), m_textureRegistry(textureRegistry),
+          m_renderPassHandle(renderPass) {
+        createDescriptorSets(shadowMapImageInfo);
         createPipelineLayout(globalSetLayout);
         createPipeline();
     }
@@ -38,15 +35,17 @@ namespace pxt {
 
     void MaterialRenderSystem::createDescriptorSets(VkDescriptorImageInfo shadowMapImageInfo) {
         // SHADOW MAP DESCRIPTOR SET
-		m_shadowMapDescriptorSetLayout = DescriptorSetLayout::Builder(m_context)
-			.addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
-			.build();
+        m_shadowMapDescriptorSetLayout =
+            DescriptorSetLayout::Builder(m_context)
+                .addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
+                .build();
 
-		m_descriptorAllocator.allocate(m_shadowMapDescriptorSetLayout->getDescriptorSetLayout(), m_shadowMapDescriptorSet);
+        m_descriptorAllocator.allocate(m_shadowMapDescriptorSetLayout->getDescriptorSetLayout(),
+                                       m_shadowMapDescriptorSet);
 
-		DescriptorWriter(m_context, *m_shadowMapDescriptorSetLayout)
-			.writeImage(0, &shadowMapImageInfo)
-			.updateSet(m_shadowMapDescriptorSet);
+        DescriptorWriter(m_context, *m_shadowMapDescriptorSetLayout)
+            .writeImage(0, &shadowMapImageInfo)
+            .updateSet(m_shadowMapDescriptorSet);
     }
 
     void MaterialRenderSystem::createPipelineLayout(DescriptorSetLayout& globalSetLayout) {
@@ -56,10 +55,8 @@ namespace pxt {
         pushConstantRange.size = sizeof(MaterialPushConstantData);
 
         std::vector<VkDescriptorSetLayout> descriptorSetLayouts{
-            globalSetLayout.getDescriptorSetLayout(),
-            m_textureRegistry.getDescriptorSetLayout(),
-            m_shadowMapDescriptorSetLayout->getDescriptorSetLayout()
-        };
+            globalSetLayout.getDescriptorSetLayout(), m_textureRegistry.getDescriptorSetLayout(),
+            m_shadowMapDescriptorSetLayout->getDescriptorSetLayout()};
 
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -68,7 +65,8 @@ namespace pxt {
         pipelineLayoutInfo.pushConstantRangeCount = 1;
         pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
 
-        if (vkCreatePipelineLayout(m_context.getDevice(), &pipelineLayoutInfo, nullptr, &m_pipelineLayout) != VK_SUCCESS) {
+        if (vkCreatePipelineLayout(m_context.getDevice(), &pipelineLayoutInfo, nullptr, &m_pipelineLayout) !=
+            VK_SUCCESS) {
             throw std::runtime_error("failed to create pipeline layout!");
         }
     }
@@ -85,39 +83,29 @@ namespace pxt {
         const std::string filenameSuffix = useCompiledSpirvFiles ? ".spv" : "";
 
         std::vector<std::string> shaderFilePaths;
-		for (const auto& filePath : m_shaderFilePaths) {
+        for (const auto& filePath : m_shaderFilePaths) {
             shaderFilePaths.push_back(baseShaderPath + filePath + filenameSuffix);
-		};
+        };
 
-        m_pipeline = createUnique<Pipeline>(
-            m_context,
-            shaderFilePaths,
-            pipelineConfig
-        );
+        m_pipeline = createUnique<Pipeline>(m_context, shaderFilePaths, pipelineConfig);
     }
 
     void MaterialRenderSystem::render(FrameInfo& frameInfo) {
         m_pipeline->bind(frameInfo.commandBuffer);
 
-        std::array<VkDescriptorSet, 3> descriptorSets = { frameInfo.globalDescriptorSet, m_textureRegistry.getDescriptorSet(), m_shadowMapDescriptorSet};
+        std::array<VkDescriptorSet, 3> descriptorSets = {
+            frameInfo.globalDescriptorSet, m_textureRegistry.getDescriptorSet(), m_shadowMapDescriptorSet};
 
-        vkCmdBindDescriptorSets(
-            frameInfo.commandBuffer,
-            VK_PIPELINE_BIND_POINT_GRAPHICS,
-            m_pipelineLayout,
-            0,
-            static_cast<uint32_t>(descriptorSets.size()),
-            descriptorSets.data(),
-            0,
-            nullptr
-        );
+        vkCmdBindDescriptorSets(frameInfo.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0,
+                                static_cast<uint32_t>(descriptorSets.size()), descriptorSets.data(), 0, nullptr);
 
         auto view = frameInfo.scene.getEntitiesWith<TransformComponent, MeshComponent, MaterialComponent>();
         for (auto entity : view) {
 
-            const auto&[transform, meshComponent, materialComponent] = view.get<TransformComponent, MeshComponent, MaterialComponent>(entity);
+            const auto& [transform, meshComponent, materialComponent] =
+                view.get<TransformComponent, MeshComponent, MaterialComponent>(entity);
 
-			auto material = materialComponent.material;
+            auto material = materialComponent.material;
             auto vulkanMesh = std::static_pointer_cast<VulkanMesh>(meshComponent.mesh);
 
             MaterialPushConstantData push{};
@@ -128,27 +116,22 @@ namespace pxt {
             push.shininess = material->getBlinnPhongSpecularShininess();
             push.textureIndex = m_textureRegistry.getIndex(material->getAlbedoMap()->id);
             push.normalMapIndex = m_textureRegistry.getIndex(material->getNormalMap()->id);
-			//push.metallicMapIndex = m_textureRegistry.getIndex(material->getMetallicMap()->id);
-			//push.roughnessMapIndex = m_textureRegistry.getIndex(material->getRoughnessMap()->id);
+            // push.metallicMapIndex = m_textureRegistry.getIndex(material->getMetallicMap()->id);
+            // push.roughnessMapIndex = m_textureRegistry.getIndex(material->getRoughnessMap()->id);
             push.ambientOcclusionMapIndex = m_textureRegistry.getIndex(material->getAmbientOcclusionMap()->id);
             push.tilingFactor = materialComponent.tilingFactor;
 
-            vkCmdPushConstants(
-                frameInfo.commandBuffer,
-                m_pipelineLayout,
-                VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-                0,
-                sizeof(MaterialPushConstantData),
-                &push);
-            
+            vkCmdPushConstants(frameInfo.commandBuffer, m_pipelineLayout,
+                               VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0,
+                               sizeof(MaterialPushConstantData), &push);
+
             vulkanMesh->bind(frameInfo.commandBuffer);
             vulkanMesh->draw(frameInfo.commandBuffer);
-
         }
     }
 
     void MaterialRenderSystem::reloadShaders() {
         PXT_INFO("Reloading shaders...");
-		createPipeline(false);
+        createPipeline(false);
     }
-}
+} // namespace pxt

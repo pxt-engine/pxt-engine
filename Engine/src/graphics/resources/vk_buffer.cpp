@@ -9,16 +9,10 @@ namespace pxt {
         return instanceSize;
     }
 
-    VulkanBuffer::VulkanBuffer(Context& context,
-        VkDeviceSize instanceSize,
-        uint32_t instanceCount,
-        VkBufferUsageFlags usageFlags,
-        VkMemoryPropertyFlags memoryPropertyFlags,
-        VkDeviceSize minOffsetAlignment)
-        : m_context{context},
-          m_instanceSize{instanceSize},
-          m_instanceCount{instanceCount},
-          m_usageFlags{usageFlags},
+    VulkanBuffer::VulkanBuffer(Context& context, VkDeviceSize instanceSize, uint32_t instanceCount,
+                               VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryPropertyFlags,
+                               VkDeviceSize minOffsetAlignment)
+        : m_context{context}, m_instanceSize{instanceSize}, m_instanceCount{instanceCount}, m_usageFlags{usageFlags},
           m_memoryPropertyFlags{memoryPropertyFlags} {
         m_alignmentSize = getAlignment(instanceSize, minOffsetAlignment);
         m_bufferSize = m_alignmentSize * instanceCount;
@@ -44,25 +38,25 @@ namespace pxt {
         }
     }
 
-	// TODO: add "if NDEBUG ... we avoid checks"
-	void VulkanBuffer::writeToBuffer(void* data, VkDeviceSize size, VkDeviceSize offset) {
+    // TODO: add "if NDEBUG ... we avoid checks"
+    void VulkanBuffer::writeToBuffer(void* data, VkDeviceSize size, VkDeviceSize offset) {
         if (!m_mapped) {
-			throw std::runtime_error("Cannot write to buffer: memory is not mapped.");
-		}
+            throw std::runtime_error("Cannot write to buffer: memory is not mapped.");
+        }
 
-		if (!data) {
-			throw std::runtime_error("Cannot write to buffer: data pointer is null.");
-		}
+        if (!data) {
+            throw std::runtime_error("Cannot write to buffer: data pointer is null.");
+        }
 
-		VkDeviceSize writeSize = (size == VK_WHOLE_SIZE) ? m_bufferSize : size;
+        VkDeviceSize writeSize = (size == VK_WHOLE_SIZE) ? m_bufferSize : size;
 
-		if (offset + writeSize > m_bufferSize) {
-			throw std::out_of_range("GpuBuffer write exceeds buffer bounds (offset + size > buffer size).");
-		}
+        if (offset + writeSize > m_bufferSize) {
+            throw std::out_of_range("GpuBuffer write exceeds buffer bounds (offset + size > buffer size).");
+        }
 
-		char* memOffset = reinterpret_cast<char*>(m_mapped) + offset;
-		memcpy(memOffset, data, writeSize);
-	}
+        char* memOffset = reinterpret_cast<char*>(m_mapped) + offset;
+        memcpy(memOffset, data, writeSize);
+    }
 
     VkResult VulkanBuffer::flush(VkDeviceSize size, VkDeviceSize offset) {
         VkMappedMemoryRange mappedRange = {};
@@ -90,7 +84,7 @@ namespace pxt {
         };
     }
 
-    void VulkanBuffer::writeToIndex(void *data, int index) {
+    void VulkanBuffer::writeToIndex(void* data, int index) {
         writeToBuffer(data, m_instanceSize, index * m_alignmentSize);
     }
 
@@ -100,19 +94,17 @@ namespace pxt {
         return descriptorInfo(m_alignmentSize, index * m_alignmentSize);
     }
 
-    VkResult VulkanBuffer::invalidateIndex(int index) {
-        return invalidate(m_alignmentSize, index * m_alignmentSize);
-    }
+    VkResult VulkanBuffer::invalidateIndex(int index) { return invalidate(m_alignmentSize, index * m_alignmentSize); }
 
     VkDeviceAddress VulkanBuffer::getDeviceAddress() const {
         if (!(m_usageFlags & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT)) {
-			PXT_ASSERT(false, "Buffer not created with VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT usage flag");
+            PXT_ASSERT(false, "Buffer not created with VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT usage flag");
         }
         VkBufferDeviceAddressInfo addressInfo{};
         addressInfo.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
         addressInfo.buffer = m_buffer;
-        
+
         return vkGetBufferDeviceAddress(m_context.getDevice(), &addressInfo);
     }
 
-}
+} // namespace pxt

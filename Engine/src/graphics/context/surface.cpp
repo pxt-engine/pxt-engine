@@ -7,7 +7,5 @@ namespace pxt {
         m_window.createWindowSurface(m_instance.getVkInstance(), &m_surface);
     }
 
-    Surface::~Surface() {
-        vkDestroySurfaceKHR(m_instance.getVkInstance(), m_surface, nullptr);
-    }
-}
+    Surface::~Surface() { vkDestroySurfaceKHR(m_instance.getVkInstance(), m_surface, nullptr); }
+} // namespace pxt

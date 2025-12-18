@@ -1,15 +1,16 @@
 #pragma once
 
-#include "core/pch.hpp"
 #include "core/events/event.hpp"
+#include "core/pch.hpp"
 
 namespace pxt::core {
-     
+
     class WindowCloseEvent : public Event {
     public:
         WindowCloseEvent() = default;
 
         Event::Type getEventType() const override { return Event::Type::WindowClose; }
+
         std::string getName() const override { return "WindowClose"; }
 
         static Event::Type getStaticType() { return Event::Type::WindowClose; }
@@ -17,13 +18,14 @@ namespace pxt::core {
 
     class WindowResizeEvent : public Event {
     public:
-        WindowResizeEvent(uint32_t width, uint32_t height)
-            : m_width(width), m_height(height) {}
+        WindowResizeEvent(uint32_t width, uint32_t height) : m_width(width), m_height(height) {}
 
         [[nodiscard]] uint32_t getWidth() const { return m_width; }
+
         [[nodiscard]] uint32_t getHeight() const { return m_height; }
 
         Event::Type getEventType() const override { return Event::Type::WindowResize; }
+
         std::string getName() const override { return "WindowResize"; }
 
         static Event::Type getStaticType() { return Event::Type::WindowResize; }
@@ -31,4 +33,4 @@ namespace pxt::core {
     private:
         uint32_t m_width, m_height;
     };
-}
+} // namespace pxt::core

@@ -10,20 +10,20 @@
 namespace pxt {
     class FrameBuffer {
     public:
-        FrameBuffer(Context& context,
-            VkFramebufferCreateInfo& createInfo,
-            std::string name,
-            Shared<VulkanImage> colorAttachment,
-            Shared<VulkanImage> depthAttachment = nullptr);
+        FrameBuffer(Context& context, VkFramebufferCreateInfo& createInfo, std::string name,
+                    Shared<VulkanImage> colorAttachment, Shared<VulkanImage> depthAttachment = nullptr);
         ~FrameBuffer();
 
-      
-
         VkFramebuffer getHandle() const { return m_FrameBuffer; }
+
         VkFramebufferCreateInfo& getCreateInfo() { return m_createInfo; }
+
         const Context& getContext() const { return m_context; }
+
         const Shared<VulkanImage>& getColorAttachment() const { return m_colorAttachment; }
+
         const Shared<VulkanImage>& getDepthAttachment() const { return m_depthAttachment; }
+
         bool hasDepthAttachment() const { return (bool)m_depthAttachment; }
 
     private:
@@ -31,7 +31,7 @@ namespace pxt {
         std::string m_name;
         VkFramebufferCreateInfo m_createInfo;
         VkFramebuffer m_FrameBuffer = VK_NULL_HANDLE; // Vulkan handle
-        Shared<VulkanImage> m_colorAttachment; // Shared pointer to the color attachment image
-        Shared<VulkanImage> m_depthAttachment; // Shared pointer to the depth attachment image (optional)
+        Shared<VulkanImage> m_colorAttachment;        // Shared pointer to the color attachment image
+        Shared<VulkanImage> m_depthAttachment;        // Shared pointer to the depth attachment image (optional)
     };
-}
+} // namespace pxt

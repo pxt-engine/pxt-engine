@@ -5,13 +5,13 @@
 
 namespace pxt {
 
-	class ResourceManager; // forward declaration
+    class ResourceManager; // forward declaration
 
-	class TextureImporter {
-	public:
-		static Shared<Image> import(ResourceManager& rm, const std::filesystem::path& filePath, 
-			ResourceInfo* resourceInfo = nullptr);
+    class TextureImporter {
+    public:
+        static Shared<Image> import(ResourceManager& rm, const std::filesystem::path& filePath,
+                                    ResourceInfo* resourceInfo = nullptr);
 
-		static void updateUi(ResourceInfo* resourceInfo);
-	};
-}
+        static void updateUi(ResourceInfo* resourceInfo);
+    };
+} // namespace pxt

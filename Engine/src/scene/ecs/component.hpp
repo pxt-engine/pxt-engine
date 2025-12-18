@@ -1,287 +1,272 @@
 #pragma once
 
+#include "core/obj_picking_id.hpp"
 #include "core/pch.hpp"
 #include "core/uuid.hpp"
-#include "core/obj_picking_id.hpp"
+#include "resources/types/material.hpp"
 #include "resources/types/mesh.hpp"
-#include "resources/types/material.hpp" 
-#include "scene/camera.hpp"       
-           
+#include "scene/camera.hpp"
 
-namespace pxt
-{
-	struct IDComponent {
-		core::UUID uuid;
+namespace pxt {
+    struct IDComponent {
+        core::UUID uuid;
 
-		IDComponent(core::UUID uuid) : uuid(uuid) {}
-		IDComponent(const IDComponent&) = default;
+        IDComponent(core::UUID uuid) : uuid(uuid) {}
 
-		// Conversion operators
-		operator core::UUID& () { return uuid; }
-		operator const core::UUID& () const { return uuid; }
-	};
+        IDComponent(const IDComponent&) = default;
 
-	struct ObjPickingIdComponent {
-		core::ObjPickingId objPickingId;
-		glm::u8vec3 color;
+        // Conversion operators
+        operator core::UUID&() { return uuid; }
 
-		ObjPickingIdComponent() : ObjPickingIdComponent(core::ObjPickingId()) {}
+        operator const core::UUID&() const { return uuid; }
+    };
 
-		ObjPickingIdComponent(core::ObjPickingId id)
-			: objPickingId(id) {
-			color = objPickingId.getColorFromId();
-			/*PXT_INFO("Created ObjPickingIdComponent with ID: {} and Color: ({}, {}, {})",
-				objPickingId.getObjPickingId(), color.r, color.g, color.b);
-			PXT_INFO("ID retrieved from color: {}", core::ObjPickingId::getIdFromColor(color));*/
-		}
+    struct ObjPickingIdComponent {
+        core::ObjPickingId objPickingId;
+        glm::u8vec3 color;
 
-		glm::vec4 getColorAsVec4() const {
-			return glm::vec4(
-				static_cast<float>(color.r) / 255.0f,
-				static_cast<float>(color.g) / 255.0f,
-				static_cast<float>(color.b) / 255.0f,
-				1.0f
-			);
-		}
+        ObjPickingIdComponent() : ObjPickingIdComponent(core::ObjPickingId()) {}
 
-		operator glm::u8vec3& () { return color; }
-		operator const glm::u8vec3& () const { return color; }
-	};
+        ObjPickingIdComponent(core::ObjPickingId id) : objPickingId(id) {
+            color = objPickingId.getColorFromId();
+            /*PXT_INFO("Created ObjPickingIdComponent with ID: {} and Color: ({}, {}, {})",
+                    objPickingId.getObjPickingId(), color.r, color.g, color.b);
+            PXT_INFO("ID retrieved from color: {}", core::ObjPickingId::getIdFromColor(color));*/
+        }
 
-	struct NameComponent {
-		std::string name;
+        glm::vec4 getColorAsVec4() const {
+            return glm::vec4(static_cast<float>(color.r) / 255.0f, static_cast<float>(color.g) / 255.0f,
+                             static_cast<float>(color.b) / 255.0f, 1.0f);
+        }
 
-		NameComponent() = default;
-		NameComponent(const NameComponent&) = default;
-		
-		NameComponent(const std::string& name) : name(name) {}
+        operator glm::u8vec3&() { return color; }
 
-		// Conversion operators
-		operator std::string& () { return name; }
-		operator const std::string& () const { return name; }
-	};
+        operator const glm::u8vec3&() const { return color; }
+    };
 
-	struct ColorComponent {
-		glm::vec3 color;
+    struct NameComponent {
+        std::string name;
 
-		ColorComponent() = default;
-		ColorComponent(const ColorComponent&) = default;
-		
-		ColorComponent(const glm::vec3& color) : color(color) {}
+        NameComponent() = default;
+        NameComponent(const NameComponent&) = default;
 
-		// Conversion operators
-		operator glm::vec3& () { return color; }
-		operator const glm::vec3& () const { return color; }
-	};
+        NameComponent(const std::string& name) : name(name) {}
 
-	struct VolumeComponent {
-		struct Volume {
-			glm::vec4 absorption{0.0f};
-			glm::vec4 scattering{0.0f};
-			// Henyey-Greenstein phase function parameter [-1.0, 1.0].
-			// phaseFunctionG = 0.0 for isotropic scattering
-			// phaseFunctionG > 0.0 for forward scattering
-			// phaseFunctionG < 0.0 for backward scattering
-			float phaseFunctionG = 0;
-			Shared<Image> densityTexture{};
-			Shared<Image> detailTexture{}; // for edge details of the volume
-		};
+        // Conversion operators
+        operator std::string&() { return name; }
 
-		Volume volume;
+        operator const std::string&() const { return name; }
+    };
 
-		VolumeComponent() = default;
-		VolumeComponent(const VolumeComponent&) = default;
-		VolumeComponent(const Volume volume) : volume(volume) {}
+    struct ColorComponent {
+        glm::vec3 color;
 
-		struct Builder {
-			Volume volume;
+        ColorComponent() = default;
+        ColorComponent(const ColorComponent&) = default;
 
-			Builder& setAbsorption(const glm::vec4& absorption) {
-				volume.absorption = absorption;
-				return *this;
-			}
+        ColorComponent(const glm::vec3& color) : color(color) {}
 
-			Builder& setScattering(const glm::vec4& scattering) {
-				volume.scattering = scattering;
-				return *this;
-			}
+        // Conversion operators
+        operator glm::vec3&() { return color; }
 
-			Builder& setPhaseFunctionG(float phaseFunctionG) {
-				volume.phaseFunctionG = phaseFunctionG;
-				return *this;
-			}
+        operator const glm::vec3&() const { return color; }
+    };
 
-			Builder& setDensityTexture(Shared<Image> texture) {
-				volume.densityTexture = texture;
-				return *this;
-			}
+    struct VolumeComponent {
+        struct Volume {
+            glm::vec4 absorption{0.0f};
+            glm::vec4 scattering{0.0f};
+            // Henyey-Greenstein phase function parameter [-1.0, 1.0].
+            // phaseFunctionG = 0.0 for isotropic scattering
+            // phaseFunctionG > 0.0 for forward scattering
+            // phaseFunctionG < 0.0 for backward scattering
+            float phaseFunctionG = 0;
+            Shared<Image> densityTexture{};
+            Shared<Image> detailTexture{}; // for edge details of the volume
+        };
 
-			Builder& setDetailTexture(Shared<Image> texture) {
-				volume.detailTexture = texture;
-				return *this;
-			}
+        Volume volume;
 
-			VolumeComponent build() {
-				return VolumeComponent(volume);
-			}
-		};
-	
-	};
+        VolumeComponent() = default;
+        VolumeComponent(const VolumeComponent&) = default;
 
-	struct MaterialComponent {
-		Shared<Material> material;
-		float tilingFactor = 1.0f;
-		glm::vec3 tint{ 1.0f };
+        VolumeComponent(const Volume volume) : volume(volume) {}
 
-		MaterialComponent();
+        struct Builder {
+            Volume volume;
 
-		MaterialComponent(const MaterialComponent&) = default;
-		
-		MaterialComponent(const Shared<Material>& material, float tilingFactor, const glm::vec3& tint)
-			: material(material), tilingFactor(tilingFactor), tint(tint) {
-		}
+            Builder& setAbsorption(const glm::vec4& absorption) {
+                volume.absorption = absorption;
+                return *this;
+            }
 
-		struct Builder {
-			Shared<Material> material;
-			float tilingFactor = 1.0f;
-			glm::vec3 tint{ 1.0f };
+            Builder& setScattering(const glm::vec4& scattering) {
+                volume.scattering = scattering;
+                return *this;
+            }
 
-			Builder& setMaterial(const Shared<Material>& material) {
-				this->material = material;
-				return *this;
-			}
+            Builder& setPhaseFunctionG(float phaseFunctionG) {
+                volume.phaseFunctionG = phaseFunctionG;
+                return *this;
+            }
 
-			Builder& setTilingFactor(float tilingFactor) {
-				this->tilingFactor = tilingFactor;
-				return *this;
-			}
+            Builder& setDensityTexture(Shared<Image> texture) {
+                volume.densityTexture = texture;
+                return *this;
+            }
 
-			Builder& setTint(const glm::vec3& tint) {
-				this->tint = tint;
-				return *this;
-			}
+            Builder& setDetailTexture(Shared<Image> texture) {
+                volume.detailTexture = texture;
+                return *this;
+            }
 
-			MaterialComponent build() {
-				return MaterialComponent(material, tilingFactor, tint);
-			}
-		};
-	};
+            VolumeComponent build() { return VolumeComponent(volume); }
+        };
+    };
 
-	struct Transform2dComponent {
-		glm::vec2 translation{};
-		glm::vec2 scale{ 1.f, 1.f };
-		float rotation = 0.0f;
+    struct MaterialComponent {
+        Shared<Material> material;
+        float tilingFactor = 1.0f;
+        glm::vec3 tint{1.0f};
 
-		glm::mat2 mat2();
+        MaterialComponent();
 
-		Transform2dComponent() = default;
-		Transform2dComponent(const Transform2dComponent&) = default;
-		
-		Transform2dComponent(const glm::vec2& translation)
-			: translation(translation) {
-		}
+        MaterialComponent(const MaterialComponent&) = default;
 
-		Transform2dComponent(const glm::vec2& translation, const glm::vec2& scale)
-			: translation(translation), scale(scale) {
-		}
+        MaterialComponent(const Shared<Material>& material, float tilingFactor, const glm::vec3& tint)
+            : material(material), tilingFactor(tilingFactor), tint(tint) {}
 
-		Transform2dComponent(const glm::vec2& translation, const glm::vec2& scale, const float rotation)
-			: translation(translation), scale(scale), rotation(rotation) {
-		}
+        struct Builder {
+            Shared<Material> material;
+            float tilingFactor = 1.0f;
+            glm::vec3 tint{1.0f};
 
-		operator glm::mat2() { return mat2(); }
-	};
+            Builder& setMaterial(const Shared<Material>& material) {
+                this->material = material;
+                return *this;
+            }
 
-	struct TransformComponent {
-		glm::vec3 translation{};
-		glm::vec3 scale{ 1.f, 1.f, 1.f };
-		glm::vec3 rotation{};
+            Builder& setTilingFactor(float tilingFactor) {
+                this->tilingFactor = tilingFactor;
+                return *this;
+            }
 
-		/**
-		 * @brief Transforms the entity's position, scale, and rotation into a 4x4 matrix
-		 *
-		 * Matrix corrsponds to Translate * Ry * Rx * Rz * Scale
-		 * Rotations correspond to Tait-Bryan angles of Y(1), X(2), Z(3)
-		 *
-		 * To view the rotation as extrinsic, just read the operations from right to left
-		 * Otherwise, to view the rotation as intrinsic, read the operations from left to right
-		 *
-		 * - Extrinsic: Z(world) -> X(world) -> Y(world)
-		 *
-		 * - Intrinsic: Y(local) -> X(local) -> Z(local)
-		 *
-		 * @note https://en.wikipedia.org/wiki/Euler_angles#Rotation_matrix
-		 *
-		 * @return glm::mat4
-		 */
-		glm::mat4 mat4();
-		glm::mat3 normalMatrix();
+            Builder& setTint(const glm::vec3& tint) {
+                this->tint = tint;
+                return *this;
+            }
 
-		TransformComponent() = default;
-		TransformComponent(const TransformComponent&) = default;
-		
-		TransformComponent(const glm::vec3& translation)
-			: translation(translation) {
-		}
+            MaterialComponent build() { return MaterialComponent(material, tilingFactor, tint); }
+        };
+    };
 
-		TransformComponent(const glm::vec3& translation, const glm::vec3& scale)
-			: translation(translation), scale(scale) {
-		}
+    struct Transform2dComponent {
+        glm::vec2 translation{};
+        glm::vec2 scale{1.f, 1.f};
+        float rotation = 0.0f;
 
-		TransformComponent(const glm::vec3& translation, const glm::vec3& scale, const glm::vec3& rotation)
-			: translation(translation), scale(scale), rotation(rotation) {
-		}
+        glm::mat2 mat2();
 
-		// Conversion operator calling the mat4 function
-		operator glm::mat4() { return mat4(); }
-	};
+        Transform2dComponent() = default;
+        Transform2dComponent(const Transform2dComponent&) = default;
 
-	struct MeshComponent {
-		Shared<Mesh> mesh;
+        Transform2dComponent(const glm::vec2& translation) : translation(translation) {}
 
-		MeshComponent() = default;
-		MeshComponent(const MeshComponent&) = default;
+        Transform2dComponent(const glm::vec2& translation, const glm::vec2& scale)
+            : translation(translation), scale(scale) {}
 
-		MeshComponent(const Shared<Mesh>& mesh) : mesh(mesh) {}
-	};
+        Transform2dComponent(const glm::vec2& translation, const glm::vec2& scale, const float rotation)
+            : translation(translation), scale(scale), rotation(rotation) {}
 
-	class Script; // Forward declaration of Script class			
-	struct ScriptComponent {
-		Script* script = nullptr;
+        operator glm::mat2() { return mat2(); }
+    };
 
-		// Function pointers for creating and destroying scripts
-		Script* (*create)() = nullptr;
-		void (*destroy)(ScriptComponent*) = nullptr;
+    struct TransformComponent {
+        glm::vec3 translation{};
+        glm::vec3 scale{1.f, 1.f, 1.f};
+        glm::vec3 rotation{};
 
-		template<typename T>
-		void bind()
-		{
-			create = []() {
-				return static_cast<Script*>(new T());
-				};
+        /**
+         * @brief Transforms the entity's position, scale, and rotation into a 4x4 matrix
+         *
+         * Matrix corrsponds to Translate * Ry * Rx * Rz * Scale
+         * Rotations correspond to Tait-Bryan angles of Y(1), X(2), Z(3)
+         *
+         * To view the rotation as extrinsic, just read the operations from right to left
+         * Otherwise, to view the rotation as intrinsic, read the operations from left to right
+         *
+         * - Extrinsic: Z(world) -> X(world) -> Y(world)
+         *
+         * - Intrinsic: Y(local) -> X(local) -> Z(local)
+         *
+         * @note https://en.wikipedia.org/wiki/Euler_angles#Rotation_matrix
+         *
+         * @return glm::mat4
+         */
+        glm::mat4 mat4();
+        glm::mat3 normalMatrix();
 
-			destroy = [](ScriptComponent* s) {
-				delete s->script;
-				s->script = nullptr;
-				};
-		}
-	};
+        TransformComponent() = default;
+        TransformComponent(const TransformComponent&) = default;
 
-	struct CameraComponent {
-		Camera camera;
-		bool isMainCamera = true;
+        TransformComponent(const glm::vec3& translation) : translation(translation) {}
 
-		CameraComponent();
-		CameraComponent(const Camera& camera) : camera(camera) {}
-		CameraComponent(const CameraComponent&) = default;
-	};
+        TransformComponent(const glm::vec3& translation, const glm::vec3& scale)
+            : translation(translation), scale(scale) {}
 
-	struct PointLightComponent {
-		float lightIntensity = 1.0f;
+        TransformComponent(const glm::vec3& translation, const glm::vec3& scale, const glm::vec3& rotation)
+            : translation(translation), scale(scale), rotation(rotation) {}
 
-		PointLightComponent() = default;
-		PointLightComponent(const PointLightComponent&) = default;
-		
-		PointLightComponent(const float intensity) : lightIntensity(intensity) {}
-	};
-}
+        // Conversion operator calling the mat4 function
+        operator glm::mat4() { return mat4(); }
+    };
+
+    struct MeshComponent {
+        Shared<Mesh> mesh;
+
+        MeshComponent() = default;
+        MeshComponent(const MeshComponent&) = default;
+
+        MeshComponent(const Shared<Mesh>& mesh) : mesh(mesh) {}
+    };
+
+    class Script; // Forward declaration of Script class
+
+    struct ScriptComponent {
+        Script* script = nullptr;
+
+        // Function pointers for creating and destroying scripts
+        Script* (*create)() = nullptr;
+        void (*destroy)(ScriptComponent*) = nullptr;
+
+        template <typename T>
+        void bind() {
+            create = []() { return static_cast<Script*>(new T()); };
+
+            destroy = [](ScriptComponent* s) {
+                delete s->script;
+                s->script = nullptr;
+            };
+        }
+    };
+
+    struct CameraComponent {
+        Camera camera;
+        bool isMainCamera = true;
+
+        CameraComponent();
+
+        CameraComponent(const Camera& camera) : camera(camera) {}
+
+        CameraComponent(const CameraComponent&) = default;
+    };
+
+    struct PointLightComponent {
+        float lightIntensity = 1.0f;
+
+        PointLightComponent() = default;
+        PointLightComponent(const PointLightComponent&) = default;
+
+        PointLightComponent(const float intensity) : lightIntensity(intensity) {}
+    };
+} // namespace pxt

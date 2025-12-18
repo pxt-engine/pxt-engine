@@ -4,8 +4,8 @@
 
 namespace pxt {
 
-	class Skybox {
-	public:
-		virtual ~Skybox() = default;
-	};
-}
+    class Skybox {
+    public:
+        virtual ~Skybox() = default;
+    };
+} // namespace pxt

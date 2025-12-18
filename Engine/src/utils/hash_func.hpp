@@ -1,12 +1,12 @@
 #pragma once
- 
+
 #include "core/pch.hpp"
- 
+
 namespace pxt::utils {
- 
+
     /**
      * @brief Combine multiple hash values into a single hash value
-     * 
+     *
      * @tparam T Type of the first value
      * @tparam Rest Types of the other values
      * @param seed Hash value where the final hash will be stored
@@ -22,5 +22,5 @@ namespace pxt::utils {
         // Recursively combine the hash of the other values
         (hashCombine(seed, rest), ...);
     };
- 
-}
+
+} // namespace pxt::utils

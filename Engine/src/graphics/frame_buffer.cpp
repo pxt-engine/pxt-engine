@@ -1,16 +1,10 @@
 #include "graphics/frame_buffer.hpp"
 
 namespace pxt {
-    FrameBuffer::FrameBuffer(Context& context,
-        VkFramebufferCreateInfo& createInfo,
-        std::string name,
-        Shared<VulkanImage> colorAttachment,
-        Shared<VulkanImage> depthAttachment)
-        : m_context(context),
-        m_createInfo(createInfo),
-        m_name(name),
-        m_colorAttachment(colorAttachment),
-        m_depthAttachment(depthAttachment) {
+    FrameBuffer::FrameBuffer(Context& context, VkFramebufferCreateInfo& createInfo, std::string name,
+                             Shared<VulkanImage> colorAttachment, Shared<VulkanImage> depthAttachment)
+        : m_context(context), m_createInfo(createInfo), m_name(name), m_colorAttachment(colorAttachment),
+          m_depthAttachment(depthAttachment) {
 
         PXT_DEBUG("Creating VkFrameBuffer: {}", m_name);
 
@@ -36,4 +30,4 @@ namespace pxt {
             PXT_DEBUG("VkFrameBuffer {} destroyed.", m_name);
         }
     }
-}
+} // namespace pxt

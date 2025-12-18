@@ -1,28 +1,26 @@
 #pragma once
 
-#include "core/pch.hpp"
 #include "core/events/event.hpp"
+#include "core/pch.hpp"
 
 namespace pxt::core {
-	class EventQueue {
-	public:
-		using AppCallbackFunction = std::function<void(Event&)>;
+    class EventQueue {
+    public:
+        using AppCallbackFunction = std::function<void(Event&)>;
 
-		void setMainCallbackFunction(AppCallbackFunction callbackFunction);
-		void pollEvents();
-		
-		template<typename E>
-		requires (std::is_base_of_v<core::Event, std::decay_t<E>>)
-		void queueEvent(E&& event) {
-			m_queuedEvents.emplace(
-				createUnique<std::decay_t<E>>(std::forward<E>(event))
-			);
-		}
+        void setMainCallbackFunction(AppCallbackFunction callbackFunction);
+        void pollEvents();
 
-	private:
-		void processOldestEvent();
+        template <typename E>
+        requires(std::is_base_of_v<core::Event, std::decay_t<E>>)
+        void queueEvent(E&& event) {
+            m_queuedEvents.emplace(createUnique<std::decay_t<E>>(std::forward<E>(event)));
+        }
 
-		std::queue<Unique<Event>> m_queuedEvents{};
-		AppCallbackFunction m_mainCallbackFunction = nullptr;
-	};
-}
+    private:
+        void processOldestEvent();
+
+        std::queue<Unique<Event>> m_queuedEvents{};
+        AppCallbackFunction m_mainCallbackFunction = nullptr;
+    };
+} // namespace pxt::core

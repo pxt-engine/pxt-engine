@@ -2,10 +2,10 @@
 
 #include "core/pch.hpp"
 
-#include "graphics/window.hpp"
 #include "graphics/context/instance.hpp"
-#include "graphics/context/surface.hpp"
 #include "graphics/context/physical_device.hpp"
+#include "graphics/context/surface.hpp"
+#include "graphics/window.hpp"
 
 #include "graphics/context/ray_tracing_vk_ext_func.hpp"
 
@@ -13,15 +13,14 @@ namespace pxt {
 
     /**
      * @class LogicalDevice
-     * 
+     *
      * @brief Manages the Vulkan logical device and its associated resources.
-     * 
-     * This class is responsible for creating and managing the Vulkan logical device, which is used to interact with 
+     *
+     * This class is responsible for creating and managing the Vulkan logical device, which is used to interact with
      * the physical device. It also provides methods to retrieve the graphics and present queues.
      */
     class LogicalDevice {
-       public:
-
+    public:
         LogicalDevice(Window& window, Instance& instance, Surface& surface, PhysicalDevice& physicalDevice);
         ~LogicalDevice();
 
@@ -29,11 +28,12 @@ namespace pxt {
         LogicalDevice(const LogicalDevice&) = delete;
         void operator=(const LogicalDevice&) = delete;
         LogicalDevice(LogicalDevice&&) = delete;
-        LogicalDevice &operator=(LogicalDevice&&) = delete;
+        LogicalDevice& operator=(LogicalDevice&&) = delete;
 
         VkDevice getDevice() { return m_device; }
 
         VkQueue getGraphicsQueue() { return m_graphicsQueue; }
+
         VkQueue getPresentQueue() { return m_presentQueue; }
 
     private:
@@ -51,9 +51,9 @@ namespace pxt {
         PhysicalDevice& m_physicalDevice;
 
         VkDevice m_device;
-        
+
         VkQueue m_graphicsQueue;
         VkQueue m_presentQueue;
     };
 
-}
+} // namespace pxt

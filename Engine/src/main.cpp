@@ -14,8 +14,7 @@ int main() {
     } catch (const std::exception& e) {
         PXT_ERROR("Unhandled exception: {}", e.what());
         return EXIT_FAILURE;
-	}
-    
+    }
 
     return EXIT_SUCCESS;
 }

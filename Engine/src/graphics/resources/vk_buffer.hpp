@@ -14,7 +14,7 @@ namespace pxt {
      * instances within the buffer.
      */
     class VulkanBuffer {
-        public:
+    public:
         /**
          * @brief Constructor for the Buffer class.
          *
@@ -26,7 +26,7 @@ namespace pxt {
          * @param minOffsetAlignment Minimum offset alignment for the buffer.
          */
         VulkanBuffer(Context& context, VkDeviceSize instanceSize, uint32_t instanceCount, VkBufferUsageFlags usageFlags,
-               VkMemoryPropertyFlags memoryPropertyFlags, VkDeviceSize minOffsetAlignment = 1);
+                     VkMemoryPropertyFlags memoryPropertyFlags, VkDeviceSize minOffsetAlignment = 1);
 
         /**
          * @brief Destructor for the Buffer class.
@@ -57,7 +57,7 @@ namespace pxt {
 
         /**
          * @brief Unmap a mapped memory range
-         * 
+         *
          * @note Does not return a result as vkUnmapMemory can't fail
          */
         void unmap();
@@ -74,7 +74,8 @@ namespace pxt {
         /**
          * @brief Flushes the mapped memory range of the buffer to make it visible to the device.
          *
-         * @param size (Optional) Size of the memory range to flush. Pass VK_WHOLE_SIZE to flush the complete buffer range.
+         * @param size (Optional) Size of the memory range to flush. Pass VK_WHOLE_SIZE to flush the complete buffer
+         * range.
          * @param offset (Optional) The offset from the beginning of the buffer to flush.
          * @return VkResult of the flush call.
          */
@@ -110,7 +111,7 @@ namespace pxt {
          * @param data The data to write.
          * @param index The index of the instance to write to.
          */
-        
+
         void writeToIndex(void* data, int index);
 
         /**
@@ -198,19 +199,19 @@ namespace pxt {
 
         VkDeviceAddress getDeviceAddress() const;
 
-		void* getMappedMemory() { return m_mapped; }
+        void* getMappedMemory() { return m_mapped; }
 
-        private:
+    private:
         /**
          * @brief Calculates the aligned instance size.
-         * 
+         *
          * Returns the minimum instance size required to be compatible with devices minOffsetAlignment
          * (rounds up instanceSize to the next multiple of minOffsetAlignment, if 1 -> returns instanceSize
          *
          * @param instanceSize The original instance size.
-         * @param minOffsetAlignment The minimum required alignment, in bytes, for the offset member 
+         * @param minOffsetAlignment The minimum required alignment, in bytes, for the offset member
          *                           (eg. minUniformBufferOffsetAlignment)
-         * 
+         *
          * @return VkResult of the buffer mapping call
          */
         static VkDeviceSize getAlignment(VkDeviceSize instanceSize, VkDeviceSize minOffsetAlignment);
@@ -228,4 +229,4 @@ namespace pxt {
         VkMemoryPropertyFlags m_memoryPropertyFlags;
     };
 
-}
+} // namespace pxt

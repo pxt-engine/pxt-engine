@@ -1,19 +1,19 @@
 #pragma once
 
-#include "core/pch.hpp"
 #include "core/events/event.hpp"
+#include "core/pch.hpp"
 
 namespace pxt::core {
     class PickObjectAtEvent : public Event {
     public:
-        PickObjectAtEvent(uint32_t px, uint32_t py)
-            : m_pixelX(px), m_pixelY(py) {
-        }
+        PickObjectAtEvent(uint32_t px, uint32_t py) : m_pixelX(px), m_pixelY(py) {}
 
         [[nodiscard]] uint32_t getPixelX() const { return m_pixelX; }
+
         [[nodiscard]] uint32_t getPixelY() const { return m_pixelY; }
 
         Event::Type getEventType() const override { return Event::Type::PickObjectAt; }
+
         std::string getName() const override { return "PickObjectAt"; }
 
         static Event::Type getStaticType() { return Event::Type::PickObjectAt; }
@@ -24,18 +24,17 @@ namespace pxt::core {
 
     class SelectedEntityChangedEvent : public Event {
     public:
-        SelectedEntityChangedEvent(UUID selectedEntityUUID)
-            : m_selectedEntityUUID(selectedEntityUUID) {
-        }
+        SelectedEntityChangedEvent(UUID selectedEntityUUID) : m_selectedEntityUUID(selectedEntityUUID) {}
 
-		[[nodiscard]] UUID getSelectedEntityUUID() const { return m_selectedEntityUUID; }
+        [[nodiscard]] UUID getSelectedEntityUUID() const { return m_selectedEntityUUID; }
 
         Event::Type getEventType() const override { return Event::Type::SelectedEntityChanged; }
+
         std::string getName() const override { return "SelectedEntityChanged"; }
 
         static Event::Type getStaticType() { return Event::Type::SelectedEntityChanged; }
 
     private:
-		UUID m_selectedEntityUUID;
+        UUID m_selectedEntityUUID;
     };
-}
+} // namespace pxt::core

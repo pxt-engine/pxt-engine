@@ -1,17 +1,17 @@
 #pragma once
 
 #include "core/pch.hpp"
-#include "graphics/window.hpp"
-#include "graphics/swap_chain.hpp"
 #include "graphics/context/context.hpp"
-#include "graphics/render_pass.hpp"
 #include "graphics/frame_buffer.hpp"
+#include "graphics/render_pass.hpp"
+#include "graphics/swap_chain.hpp"
+#include "graphics/window.hpp"
 
 namespace pxt {
 
     /**
      * @class Renderer
-     * 
+     *
      * @brief Manages rendering operations, including swap chain management and command buffer handling.
      * This class encapsulates the logic for rendering to a window using a Vulkan swap chain. It handles the creation
      * and management of command buffers, frame synchronization, and swap chain recreation when necessary.
@@ -21,7 +21,7 @@ namespace pxt {
         /**
          * @brief Constructs a Renderer object.
          * Initializes the renderer by recreating the swap chain and creating command buffers.
-         * 
+         *
          * @param window The window to render to.
          * @param context The Vulkan context to use for rendering.
          */
@@ -37,51 +37,56 @@ namespace pxt {
 
         /**
          * @brief Gets the Vulkan render pass associated with the swap chain.
-         * 
+         *
          * @return The Vulkan render pass.
          */
         VkRenderPass getSwapChainRenderPass() const { return m_swapChain->getRenderPass(); }
 
-        VkFence getSwapChainInFlightFence(uint32_t frameIndex) const { return m_swapChain->getInFlightFence(frameIndex); }
-		VkFence getSwapChainCurrentFrameFence() const { return m_swapChain->getCurrentFrameFence(); }
-		VkSemaphore getSwapChainImageAvailableSemaphore() const { return m_swapChain->getImageAvailableSemaphore(); }
-		VkSemaphore getSwapChainRenderFinishedSemaphore(uint32_t imageIndex) const {
-			return m_swapChain->getRenderFinishedSemaphore(imageIndex);
-		}
+        VkFence getSwapChainInFlightFence(uint32_t frameIndex) const {
+            return m_swapChain->getInFlightFence(frameIndex);
+        }
 
-		uint32_t getSwapChainCurrentImageIndex() const { return m_currentImageIndex; }
+        VkFence getSwapChainCurrentFrameFence() const { return m_swapChain->getCurrentFrameFence(); }
+
+        VkSemaphore getSwapChainImageAvailableSemaphore() const { return m_swapChain->getImageAvailableSemaphore(); }
+
+        VkSemaphore getSwapChainRenderFinishedSemaphore(uint32_t imageIndex) const {
+            return m_swapChain->getRenderFinishedSemaphore(imageIndex);
+        }
+
+        uint32_t getSwapChainCurrentImageIndex() const { return m_currentImageIndex; }
 
         /**
          * @brief Gets the aspect ratio (width/height) of the swap chain extent.
-         * 
+         *
          * @return The aspect ratio of the swap chain extent.
          */
         float getAspectRatio() const { return m_swapChain->extentAspectRatio(); }
 
-		/**
-		 * @brief Gets the swap chain extent.
-		 *
-		 * @return The swap chain extent.
-		 */
-		VkExtent2D getSwapChainExtent() const { return m_swapChain->getSwapChainExtent(); }
+        /**
+         * @brief Gets the swap chain extent.
+         *
+         * @return The swap chain extent.
+         */
+        VkExtent2D getSwapChainExtent() const { return m_swapChain->getSwapChainExtent(); }
 
-		/**
-		 * @brief Gets the swap chain image format.
-		 *
-		 * @return The swap chain image format.
-		 */
-		VkFormat getSwapChainImageFormat() const { return m_swapChain->getSwapChainImageFormat(); }
+        /**
+         * @brief Gets the swap chain image format.
+         *
+         * @return The swap chain image format.
+         */
+        VkFormat getSwapChainImageFormat() const { return m_swapChain->getSwapChainImageFormat(); }
 
         /**
          * @brief Checks if a frame is currently in progress.
-         * 
+         *
          * @return True if a frame is in progress, false otherwise.
          */
         bool isFrameInProgress() const { return m_isFrameStarted; }
 
         /**
          * @brief Gets the current command buffer.
-         * 
+         *
          * @return The current command buffer.
          * @throws std::runtime_error if called when no frame is in progress.
          */
@@ -93,21 +98,21 @@ namespace pxt {
 
         /**
          * @brief Gets the current frame index.
-         * 
+         *
          * @return The current frame index.
          * @throws std::runtime_error if called when no frame is in progress.
          */
-        int getFrameIndex() const { 
+        int getFrameIndex() const {
             PXT_ASSERT(m_isFrameStarted, "Cannot get frame index when frame not in progress.");
-            
-            return m_currentFrameIndex; 
+
+            return m_currentFrameIndex;
         }
 
         /**
          * @brief Begins a new frame for rendering.
          * Acquires the next swap chain image, begins recording the command buffer, and returns it.
          * Handles swap chain recreation if it becomes out of date.
-         * 
+         *
          * @return The command buffer for the new frame.
          * @throws std::runtime_error If acquiring the swap chain image or beginning the command buffer fails.
          */
@@ -117,56 +122,61 @@ namespace pxt {
          * @brief Ends the current frame and presents the rendered image.
          * Ends recording the command buffer, submits it for execution, and presents the rendered image.
          * Handles swap chain recreation if it becomes out of date or if the window is resized.
-         * 
+         *
          * @throws std::runtime_error If ending the command buffer or presenting the swap chain image fails.
          */
         void endFrame();
 
         /**
          * @brief Begins the swap chain render pass.
-         * 
+         *
          * @param commandBuffer The command buffer to record the render pass into.
-         * 
-         * @throws std::runtime_error if called when frame is not in progress or command buffer is from a different frame.
+         *
+         * @throws std::runtime_error if called when frame is not in progress or command buffer is from a different
+         * frame.
          */
         void beginSwapChainRenderPass(VkCommandBuffer commandBuffer);
 
         /**
-        * @brief Begins a render pass.
-        *
-        * @param commandBuffer The command buffer to record the render pass into.
-        *
-        * @throws std::runtime_error if called when frame is not in progress or command buffer is from a different frame.
-        */
-        void beginRenderPass(VkCommandBuffer commandBuffer, RenderPass& renderPass, FrameBuffer& frameBuffer, VkExtent2D extent, VkClearColorValue clearColor = {1.0f, 1.0f, 1.0f, 1.0f});
+         * @brief Begins a render pass.
+         *
+         * @param commandBuffer The command buffer to record the render pass into.
+         *
+         * @throws std::runtime_error if called when frame is not in progress or command buffer is from a different
+         * frame.
+         */
+        void beginRenderPass(VkCommandBuffer commandBuffer, RenderPass& renderPass, FrameBuffer& frameBuffer,
+                             VkExtent2D extent, VkClearColorValue clearColor = {1.0f, 1.0f, 1.0f, 1.0f});
 
         /**
          * @brief Ends the current render pass.
-         * 
+         *
          * @param commandBuffer The command buffer to record the end of the render pass into.
-         * 
-         * @throws std::runtime_error if called when frame is not in progress or command buffer is from a different frame.
+         *
+         * @throws std::runtime_error if called when frame is not in progress or command buffer is from a different
+         * frame.
          */
         void endRenderPass(VkCommandBuffer commandBuffer, RenderPass& renderPass, FrameBuffer& frameBuffer);
 
-		/**
-		 * @brief Ends the swap chain render pass.
-		 * This function is just an overload of endRenderPass specifically for the swap chain render pass.
+        /**
+         * @brief Ends the swap chain render pass.
+         * This function is just an overload of endRenderPass specifically for the swap chain render pass.
          * Because we dont need for now to monitor the status of swapchain resources.
-		 *
-		 * @param commandBuffer The command buffer to record the end of the swap chain render pass into.
-		 *
-		 * @throws std::runtime_error if called when frame is not in progress or command buffer is from a different frame.
-         * 
-		 */
+         *
+         * @param commandBuffer The command buffer to record the end of the swap chain render pass into.
+         *
+         * @throws std::runtime_error if called when frame is not in progress or command buffer is from a different
+         * frame.
+         *
+         */
         void endSwapChainRenderPass(VkCommandBuffer commandBuffer);
 
-		void onWindowResize();
+        void onWindowResize();
 
     private:
         /**
          * @brief Creates the command buffers used for rendering.
-         * 
+         *
          * @throws std::runtime_error If command buffer allocation fails.
          */
         void createCommandBuffers();
@@ -178,7 +188,7 @@ namespace pxt {
 
         /**
          * @brief Recreates the swap chain, handles window resizing and initial swap chain creation.
-         * 
+         *
          * @throws std::runtime_error If the swap chain image format, color space, or size has changed unexpectedly.
          */
         void recreateSwapChain();
@@ -192,4 +202,4 @@ namespace pxt {
         int m_currentFrameIndex = 0;
         bool m_isFrameStarted = false;
     };
-}
+} // namespace pxt

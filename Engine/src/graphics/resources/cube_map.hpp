@@ -5,27 +5,24 @@
 
 namespace pxt {
 
-	class CubeMap : public VulkanImage {
-	public:
-		CubeMap(Context& context, 
-				uint32_t size, 
-				VkFormat format,
-				VkImageUsageFlags usageFlags);
+    class CubeMap : public VulkanImage {
+    public:
+        CubeMap(Context& context, uint32_t size, VkFormat format, VkImageUsageFlags usageFlags);
 
-		~CubeMap() override;
+        ~CubeMap() override;
 
-		VkImageView getFaceImageView(uint32_t faceIndex) const { return m_cubeFaceViews[faceIndex]; }
+        VkImageView getFaceImageView(uint32_t faceIndex) const { return m_cubeFaceViews[faceIndex]; }
 
-	private:
-		uint32_t m_size; // Size of the cube map faces
+    private:
+        uint32_t m_size; // Size of the cube map faces
 
-		void createImage();
-		void createImageViews();
-		void createSampler();
+        void createImage();
+        void createImageViews();
+        void createSampler();
 
-		VkFormat m_imageFormat;
-		VkImageUsageFlags m_usageFlags;
+        VkFormat m_imageFormat;
+        VkImageUsageFlags m_usageFlags;
 
-		std::array<VkImageView, 6> m_cubeFaceViews;
-	};
-}
+        std::array<VkImageView, 6> m_cubeFaceViews;
+    };
+} // namespace pxt

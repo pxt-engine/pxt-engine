@@ -5,13 +5,13 @@
 
 namespace pxt {
 
-	class ResourceManager; // forward declaration
+    class ResourceManager; // forward declaration
 
-	class MeshImporter {
-	public:
-		static Shared<Mesh> importObj(ResourceManager& rm, const std::filesystem::path& filePath,
-			ResourceInfo* resourceInfo = nullptr);
+    class MeshImporter {
+    public:
+        static Shared<Mesh> importObj(ResourceManager& rm, const std::filesystem::path& filePath,
+                                      ResourceInfo* resourceInfo = nullptr);
 
-		static void updateUi(ResourceInfo* resourceInfo);
-	};
-}
+        static void updateUi(ResourceInfo* resourceInfo);
+    };
+} // namespace pxt

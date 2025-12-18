@@ -5,24 +5,24 @@
 
 namespace pxt {
 
-	struct ShaderGroupInfo {
-		VkRayTracingShaderGroupTypeKHR type;
-		std::vector<std::pair<VkShaderStageFlagBits, std::string>> stages;
-	};
+    struct ShaderGroupInfo {
+        VkRayTracingShaderGroupTypeKHR type;
+        std::vector<std::pair<VkShaderStageFlagBits, std::string>> stages;
+    };
 
     /**
      * @struct RayTracingPipelineConfigInfo
      * @brief Configuration information for the RAYTRACING pipeline.
      *
      * This structure contains various settings and configurations for creating a Vulkan raytracing pipeline.
-	 * Such as the shader groups, pipeline layout and max recursion depth.
+     * Such as the shader groups, pipeline layout and max recursion depth.
      */
     struct RayTracingPipelineConfigInfo {
         RayTracingPipelineConfigInfo() = default;
         RayTracingPipelineConfigInfo(const RayTracingPipelineConfigInfo&) = delete;
         RayTracingPipelineConfigInfo& operator=(const RayTracingPipelineConfigInfo&) = delete;
 
-		std::vector<ShaderGroupInfo> shaderGroups{};
+        std::vector<ShaderGroupInfo> shaderGroups{};
         VkPipelineLayout pipelineLayout = nullptr;
         uint32_t maxPipelineRayRecursionDepth = 1;
     };
@@ -80,9 +80,9 @@ namespace pxt {
     public:
         Pipeline(Context& context, const std::vector<std::string>& shaderFilePaths,
                  const RasterizationPipelineConfigInfo& configInfo);
-		Pipeline(Context& context, const RayTracingPipelineConfigInfo& configInfo);
+        Pipeline(Context& context, const RayTracingPipelineConfigInfo& configInfo);
         Pipeline(Context& context, const std::string& shaderFilePath, const ComputePipelineConfigInfo& configInfo);
-                 
+
         ~Pipeline();
 
         Pipeline(const Pipeline&) = delete;
@@ -93,14 +93,13 @@ namespace pxt {
         static void defaultPipelineConfigInfo(RasterizationPipelineConfigInfo& configInfo);
         static void enableAlphaBlending(RasterizationPipelineConfigInfo& configInfo);
 
-		VkPipeline getHandle() const { return m_pipeline; }
+        VkPipeline getHandle() const { return m_pipeline; }
 
     private:
-        void createGraphicsPipeline(
-            const std::vector<std::string>& shaderFilePaths,
-            const RasterizationPipelineConfigInfo& configInfo);
+        void createGraphicsPipeline(const std::vector<std::string>& shaderFilePaths,
+                                    const RasterizationPipelineConfigInfo& configInfo);
 
-		void createRayTracingPipeline(const RayTracingPipelineConfigInfo& configInfo);
+        void createRayTracingPipeline(const RayTracingPipelineConfigInfo& configInfo);
 
         void createComputePipeline(const std::string& shaderFilePath, const ComputePipelineConfigInfo& configInfo);
 
@@ -109,6 +108,6 @@ namespace pxt {
         Context& m_context;
         VkPipeline m_pipeline;
 
-		VkPipelineBindPoint m_pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+        VkPipelineBindPoint m_pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
     };
-}
+} // namespace pxt

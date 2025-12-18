@@ -3,7 +3,6 @@
 #include "core/pch.hpp"
 #include "graphics/context/context.hpp"
 
-
 namespace pxt {
     /**
      * @brief Manages a Vulkan descriptor set layout.
@@ -13,7 +12,6 @@ namespace pxt {
      */
     class DescriptorSetLayout {
     public:
-
         /**
          * @brief Builder class for creating a DescriptorSetLayout.
          *
@@ -35,11 +33,8 @@ namespace pxt {
              *
              * @note Throws an assertion failure if the binding is already in use.
              */
-            Builder& addBinding(
-                uint32_t binding,
-                VkDescriptorType descriptorType,
-                VkShaderStageFlags stageFlags,
-                uint32_t count = 1);
+            Builder& addBinding(uint32_t binding, VkDescriptorType descriptorType, VkShaderStageFlags stageFlags,
+                                uint32_t count = 1);
 
             /**
              * @brief Finalizes and builds the DescriptorSetLayout.
@@ -57,16 +52,18 @@ namespace pxt {
 
         DescriptorSetLayout(Context& context, std::unordered_map<uint32_t, VkDescriptorSetLayoutBinding> bindings);
         ~DescriptorSetLayout();
-        
-        DescriptorSetLayout(const DescriptorSetLayout &) = delete;
-        DescriptorSetLayout &operator=(const DescriptorSetLayout &) = delete;
+
+        DescriptorSetLayout(const DescriptorSetLayout&) = delete;
+        DescriptorSetLayout& operator=(const DescriptorSetLayout&) = delete;
 
         /**
          * @brief Returns the Vulkan descriptor set layout handle.
          * @return VkDescriptorSetLayout object.
          */
         [[nodiscard]]
-        VkDescriptorSetLayout getDescriptorSetLayout() const { return m_descriptorSetLayout; }
+        VkDescriptorSetLayout getDescriptorSetLayout() const {
+            return m_descriptorSetLayout;
+        }
 
     private:
         Context& m_context;
@@ -75,4 +72,4 @@ namespace pxt {
 
         friend class DescriptorWriter;
     };
-}
+} // namespace pxt

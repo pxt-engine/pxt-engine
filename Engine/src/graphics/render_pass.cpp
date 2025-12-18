@@ -2,13 +2,10 @@
 
 namespace pxt {
     RenderPass::RenderPass(Context& context, const VkRenderPassCreateInfo& createInfo,
-        const VkAttachmentDescription colorAttachmentDescription,
-        const VkAttachmentDescription depthAttachmentDescription,
-        std::string name)
-        : m_context(context), m_createInfo(createInfo),
-		m_colorAttachmentDescription(colorAttachmentDescription),
-		m_depthAttachmentDescription(depthAttachmentDescription),
-        m_name(name){
+                           const VkAttachmentDescription colorAttachmentDescription,
+                           const VkAttachmentDescription depthAttachmentDescription, std::string name)
+        : m_context(context), m_createInfo(createInfo), m_colorAttachmentDescription(colorAttachmentDescription),
+          m_depthAttachmentDescription(depthAttachmentDescription), m_name(name) {
         PXT_DEBUG("Creating VkRenderPass: {}", m_name);
         if (vkCreateRenderPass(m_context.getDevice(), &m_createInfo, nullptr, &m_renderPass) != VK_SUCCESS) {
             throw std::runtime_error("[RenderPass] Failed to create VkRenderPass: " + m_name);
@@ -24,4 +21,4 @@ namespace pxt {
             PXT_DEBUG("VkRenderPass: {} destroyed.", m_name);
         }
     }
-}
+} // namespace pxt

@@ -1,10 +1,10 @@
 #pragma once
 
 #include "core/pch.hpp"
-#include "graphics/pipeline.hpp"
 #include "graphics/context/context.hpp"
-#include "graphics/frame_info.hpp"
 #include "graphics/descriptors/descriptors.hpp"
+#include "graphics/frame_info.hpp"
+#include "graphics/pipeline.hpp"
 #include "graphics/resources/texture_registry.hpp"
 #include "graphics/resources/vk_image.hpp"
 #include "graphics/resources/vk_sampler.hpp"
@@ -13,7 +13,8 @@ namespace pxt {
 
     class DenoiserRenderSystem {
     public:
-        DenoiserRenderSystem(Context& context, DescriptorAllocatorGrowable& descriptorAllocator, VkExtent2D swapChainExtent);
+        DenoiserRenderSystem(Context& context, DescriptorAllocatorGrowable& descriptorAllocator,
+                             VkExtent2D swapChainExtent);
         ~DenoiserRenderSystem();
 
         DenoiserRenderSystem(const DenoiserRenderSystem&) = delete;
@@ -22,7 +23,7 @@ namespace pxt {
         // The main function to run the denoising pipeline
         void denoise(FrameInfo& frameInfo, Shared<VulkanImage> sceneImage);
 
-		void update(GlobalUbo& ubo);
+        void update(GlobalUbo& ubo);
         void updateUi();
 
         void updateImages(VkExtent2D swapChainExtent);
@@ -50,7 +51,7 @@ namespace pxt {
         Context& m_context;
         DescriptorAllocatorGrowable& m_descriptorAllocator;
 
-        VkExtent2D m_extent{ 0, 0 };
+        VkExtent2D m_extent{0, 0};
 
         // Compute pipelines for each stage
         Unique<Pipeline> m_accumulationPipeline = nullptr;
@@ -77,8 +78,8 @@ namespace pxt {
         Unique<VulkanImage> m_temporalHistoryImage = nullptr; // For temporal filtering
         Unique<VulkanImage> m_tempTemporalOutputImage = nullptr;
 
-		// Sampler for images (with nearest filtering)
-		Shared<VulkanSampler> m_imageSamplerNearest = nullptr;
+        // Sampler for images (with nearest filtering)
+        Shared<VulkanSampler> m_imageSamplerNearest = nullptr;
 
         std::string m_accumulationShaderPath = "accumulation.comp";
         std::string m_temporalShaderPath = "temporal.comp";
@@ -86,16 +87,16 @@ namespace pxt {
 
         uint32_t m_maxAccumulationFrames = UINT_MAX;
         uint32_t m_accumulationCount = 0;
-		uint32_t m_frameCount = 0;
+        uint32_t m_frameCount = 0;
 
-		// for UI tuning
+        // for UI tuning
         float m_temporalAlpha = 0.65f;
-		uint32_t m_spatialKernelRadius = 2;
+        uint32_t m_spatialKernelRadius = 2;
         float m_spatialSigmaColor = 0.1f;
         float m_spatialSigmaSpace = 0.35f;
 
-		bool m_isAccumulationEnabled = true;
-		bool m_isTemporalEnabled = true;
-		bool m_isSpatialEnabled = true;
+        bool m_isAccumulationEnabled = true;
+        bool m_isTemporalEnabled = true;
+        bool m_isSpatialEnabled = true;
     };
-}
+} // namespace pxt

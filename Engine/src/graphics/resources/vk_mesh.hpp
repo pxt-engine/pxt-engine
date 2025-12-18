@@ -2,8 +2,8 @@
 
 #include "core/pch.hpp"
 #include "graphics/context/context.hpp"
-#include "resources/types/mesh.hpp"
 #include "graphics/resources/vk_buffer.hpp"
+#include "resources/types/mesh.hpp"
 
 namespace pxt {
 
@@ -41,37 +41,27 @@ namespace pxt {
 
         /**
          * @brief Binds the model's vertex and index buffers to a command buffer.
-         * 
+         *
          * @param commandBuffer The Vulkan command buffer.
          */
         void bind(VkCommandBuffer commandBuffer);
-        
+
         /**
          * @brief Draws the model using the bound buffers.
-         * 
+         *
          * @param commandBuffer The Vulkan command buffer.
          */
         void draw(VkCommandBuffer commandBuffer);
 
-        const uint32_t getVertexCount() const override {
-			return m_vertexCount;
-        }
+        const uint32_t getVertexCount() const override { return m_vertexCount; }
 
-        const uint32_t getIndexCount() const override {
-			return m_indexCount;
-        }
+        const uint32_t getIndexCount() const override { return m_indexCount; }
 
-		VkDeviceAddress getVertexBufferDeviceAddress() const {
-            return m_vertexBuffer->getDeviceAddress();
-		}
+        VkDeviceAddress getVertexBufferDeviceAddress() const { return m_vertexBuffer->getDeviceAddress(); }
 
-        VkDeviceAddress getIndexBufferDeviceAddress() const {
-            return m_indexBuffer->getDeviceAddress();
-        }
+        VkDeviceAddress getIndexBufferDeviceAddress() const { return m_indexBuffer->getDeviceAddress(); }
 
-        Type getType() const override {
-            return Type::Mesh;
-        }
+        Type getType() const override { return Type::Mesh; }
 
     private:
         /**
@@ -86,7 +76,7 @@ namespace pxt {
 
         Context& m_context;
 
-		float m_tilingFactor = 1.0f;
+        float m_tilingFactor = 1.0f;
 
         Unique<VulkanBuffer> m_vertexBuffer;
         uint32_t m_vertexCount;
@@ -95,4 +85,4 @@ namespace pxt {
         Unique<VulkanBuffer> m_indexBuffer;
         uint32_t m_indexCount;
     };
-}
+} // namespace pxt

@@ -7,8 +7,10 @@ namespace pxt {
         m_projectionMatrix[0][0] = 2.f / (m_orthoParams[ORTHO_RIGHT] - m_orthoParams[ORTHO_LEFT]);
         m_projectionMatrix[1][1] = 2.f / (m_orthoParams[ORTHO_BOTTOM] - m_orthoParams[ORTHO_TOP]);
         m_projectionMatrix[2][2] = 1.f / (m_zFar - m_zNear);
-        m_projectionMatrix[3][0] = -(m_orthoParams[ORTHO_RIGHT] + m_orthoParams[ORTHO_LEFT]) / (m_orthoParams[ORTHO_RIGHT] - m_orthoParams[ORTHO_LEFT]);
-        m_projectionMatrix[3][1] = -(m_orthoParams[ORTHO_BOTTOM] + m_orthoParams[ORTHO_TOP]) / (m_orthoParams[ORTHO_BOTTOM] - m_orthoParams[ORTHO_TOP]);
+        m_projectionMatrix[3][0] = -(m_orthoParams[ORTHO_RIGHT] + m_orthoParams[ORTHO_LEFT]) /
+                                   (m_orthoParams[ORTHO_RIGHT] - m_orthoParams[ORTHO_LEFT]);
+        m_projectionMatrix[3][1] = -(m_orthoParams[ORTHO_BOTTOM] + m_orthoParams[ORTHO_TOP]) /
+                                   (m_orthoParams[ORTHO_BOTTOM] - m_orthoParams[ORTHO_TOP]);
         m_projectionMatrix[3][2] = -m_zNear / (m_zFar - m_zNear);
     }
 
@@ -28,7 +30,7 @@ namespace pxt {
         m_fovYDegrees = fovYDegrees;
         m_zNear = zNear;
         m_zFar = zFar;
-	}
+    }
 
     void Camera::setOrthographicParams(float left, float right, float top, float bottom, float zNear, float zFar) {
         m_orthoParams[ORTHO_LEFT] = left;
@@ -37,10 +39,11 @@ namespace pxt {
         m_orthoParams[ORTHO_BOTTOM] = bottom;
         m_zNear = zNear;
         m_zFar = zFar;
-	}
+    }
 
     void Camera::setViewDirection(glm::vec3 position, glm::vec3 direction, glm::vec3 up) {
-        PXT_ASSERT((glm::dot(direction, direction) > std::numeric_limits<float>::epsilon()), "Direction cannot be zero");
+        PXT_ASSERT((glm::dot(direction, direction) > std::numeric_limits<float>::epsilon()),
+                   "Direction cannot be zero");
 
         const glm::vec3 w{glm::normalize(direction)};
         const glm::vec3 u{glm::normalize(glm::cross(w, up))};
@@ -63,7 +66,7 @@ namespace pxt {
         const glm::vec3 u{(c1 * c3 + s1 * s2 * s3), (c2 * s3), (c1 * s2 * s3 - c3 * s1)};
         const glm::vec3 v{(c3 * s1 * s2 - c1 * s3), (c2 * c3), (c1 * c3 * s2 + s1 * s3)};
         const glm::vec3 w{(c2 * s1), (-s2), (c1 * c2)};
-        
+
         updateViewMatrix(u, v, w, position);
     }
 
@@ -97,18 +100,16 @@ namespace pxt {
         m_inverseViewMatrix[3][2] = position.z;
     }
 
-
     void Camera::drawCameraUi() {
         ImGui::Checkbox("Perspective View", &m_isPerspective);
         if (m_isPerspective) {
             ImGui::SliderFloat("Vertical FOV (degrees)", &m_fovYDegrees, 1.0f, 120.0f);
-		}
-		else {
-			ImGui::DragFloat4("Ortho Params (left, right, top, bottom)", glm::value_ptr(m_orthoParams), 0.1f);
-		}
+        } else {
+            ImGui::DragFloat4("Ortho Params (left, right, top, bottom)", glm::value_ptr(m_orthoParams), 0.1f);
+        }
 
-		ImGui::SliderFloat("Near Plane", &m_zNear, 0.01f, m_zFar - 0.01f);
-		ImGui::SliderFloat("Far Plane", &m_zFar, m_zNear + 0.01f, 1000.0f);
+        ImGui::SliderFloat("Near Plane", &m_zNear, 0.01f, m_zFar - 0.01f);
+        ImGui::SliderFloat("Far Plane", &m_zFar, m_zNear + 0.01f, 1000.0f);
     }
 
-}
+} // namespace pxt

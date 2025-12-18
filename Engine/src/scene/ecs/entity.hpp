@@ -1,22 +1,24 @@
 #pragma once
 
 #include "core/pch.hpp"
-#include "scene/scene.hpp"
 #include "scene/ecs/component.hpp"
+#include "scene/scene.hpp"
 
 namespace pxt {
 
     class Entity {
     public:
         Entity() = default;
+
         Entity(entt::entity entity, Scene* scene) : m_enttEntity(entity), m_scene(scene) {}
 
         operator entt::entity() const { return m_enttEntity; }
+
         operator bool() const { return m_scene->m_registry.valid(m_enttEntity); }
 
         /**
          * @brief Check if entity has a component
-         * 
+         *
          * @tparam Components type
          * @return true if entity has component, false otherwise
          */
@@ -27,18 +29,18 @@ namespace pxt {
 
         /**
          * @brief Check if entity has any of the provided components
-         * 
+         *
          * @tparam Component type
          * @return true if entity has any of the provided components, false otherwise
-		 */
-		template<typename... Components>
+         */
+        template <typename... Components>
         bool hasAny() {
             return m_scene->m_registry.any_of<Components...>(m_enttEntity);
-		}
+        }
 
         /**
          * @brief Get a component from entity
-         * 
+         *
          * @tparam Component type
          * @return Reference to component
          */
@@ -51,9 +53,9 @@ namespace pxt {
 
         /**
          * @brief Add a component to entity
-         * 
+         *
          * Self referential method to allow chaining of add calls
-         * 
+         *
          * @tparam Component type
          * @return Reference to entity
          */
@@ -65,7 +67,7 @@ namespace pxt {
 
         /**
          * @brief Add a component to entity and return a reference to it
-         * 
+         *
          * @tparam Component type
          * @return Reference to component
          */
@@ -76,7 +78,7 @@ namespace pxt {
 
         /**
          * @brief Remove a component from entity
-         * 
+         *
          * @tparam Component type
          */
         template <typename Component>
@@ -89,25 +91,21 @@ namespace pxt {
 
         /**
          * @brief Get the UUID of the entity
-         * 
+         *
          * @return UUID of the entity
          */
-        core::UUID getUUID() {
-            return get<IDComponent>().uuid;
-        }
+        core::UUID getUUID() { return get<IDComponent>().uuid; }
 
-		/**
-		* @brief Get the Object Picking ID of the entity
-        * 
-		* @return Object Picking ID of the entity
-        */
-		uint32_t getObjPickingId() {
-			return get<ObjPickingIdComponent>().objPickingId.getObjPickingId();
-		}
+        /**
+         * @brief Get the Object Picking ID of the entity
+         *
+         * @return Object Picking ID of the entity
+         */
+        uint32_t getObjPickingId() { return get<ObjPickingIdComponent>().objPickingId.getObjPickingId(); }
 
     private:
         entt::entity m_enttEntity{entt::null};
         Scene* m_scene = nullptr;
     };
 
-}
+} // namespace pxt

@@ -27,10 +27,10 @@ namespace pxt {
         VkCommandBuffer commandBuffer;
         Camera& camera;
         VkDescriptorSet globalDescriptorSet;
-		VkDescriptorSet sceneDescriptorSet;
+        VkDescriptorSet sceneDescriptorSet;
         Scene& scene;
-        VkFence frameFence;        // The fence signaled when the command buffer is complete
+        VkFence frameFence;         // The fence signaled when the command buffer is complete
         VkSemaphore imageAvailable; // The semaphore signaled when the image is available
         VkSemaphore renderFinished; // The semaphore signaled when rendering is done
     };
-}
+} // namespace pxt

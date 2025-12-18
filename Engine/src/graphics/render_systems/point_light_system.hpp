@@ -1,11 +1,11 @@
 #pragma once
 
 #include "core/pch.hpp"
-#include "scene/camera.hpp"
-#include "graphics/pipeline.hpp"
-#include "graphics/swap_chain.hpp"
 #include "graphics/context/context.hpp"
 #include "graphics/frame_info.hpp"
+#include "graphics/pipeline.hpp"
+#include "graphics/swap_chain.hpp"
+#include "scene/camera.hpp"
 #include "scene/scene.hpp"
 
 namespace pxt {
@@ -20,21 +20,19 @@ namespace pxt {
 
         void update(FrameInfo& frameInfo, GlobalUbo& ubo);
         void render(FrameInfo& frameInfo);
-		void reloadShaders();
+        void reloadShaders();
 
     private:
         void createPipelineLayout(VkDescriptorSetLayout globalSetLayout);
-        void createPipeline(bool useCompiledSpirvFiles = true);  
-        
+        void createPipeline(bool useCompiledSpirvFiles = true);
+
         Context& m_context;
 
-		VkRenderPass m_renderPass;
+        VkRenderPass m_renderPass;
         Unique<Pipeline> m_pipeline;
         VkPipelineLayout m_pipelineLayout;
 
-        std::array<const std::string, 2> m_shaderFilePaths = {
-            "point_light_billboard.vert",
-            "point_light_billboard.frag"
-        };
+        std::array<const std::string, 2> m_shaderFilePaths = {"point_light_billboard.vert",
+                                                              "point_light_billboard.frag"};
     };
-}
+} // namespace pxt

@@ -68,21 +68,23 @@ namespace pxt {
         };
 
         DescriptorPool(Context& context, uint32_t maxSets, VkDescriptorPoolCreateFlags poolFlags,
-                       const std::vector<VkDescriptorPoolSize> &poolSizes);
+                       const std::vector<VkDescriptorPoolSize>& poolSizes);
 
         ~DescriptorPool();
-        
-        DescriptorPool(const DescriptorPool &) = delete;
-        DescriptorPool &operator=(const DescriptorPool &) = delete;
 
-		DescriptorPool(DescriptorPool&&) = default;
+        DescriptorPool(const DescriptorPool&) = delete;
+        DescriptorPool& operator=(const DescriptorPool&) = delete;
+
+        DescriptorPool(DescriptorPool&&) = default;
 
         /**
-        * @brief Retrieves the underlying Vulkan descriptor pool handle.
-        * @return The VkDescriptorPool handle.
-        */
+         * @brief Retrieves the underlying Vulkan descriptor pool handle.
+         * @return The VkDescriptorPool handle.
+         */
         [[nodiscard]]
-        VkDescriptorPool getDescriptorPool() const {return m_descriptorPool;}
+        VkDescriptorPool getDescriptorPool() const {
+            return m_descriptorPool;
+        }
 
         /**
          * @brief Allocates a descriptor set from the pool.
@@ -94,7 +96,7 @@ namespace pxt {
          * @throws std::runtime_error on critical Vulkan allocation errors.
          */
         bool allocateDescriptorSet(VkDescriptorSetLayout descriptorSetLayout, VkDescriptorSet& descriptor,
-								   const void* pNext = nullptr) const;
+                                   const void* pNext = nullptr) const;
 
         /**
          * @brief Frees a batch of descriptor sets previously allocated from this pool.
@@ -115,4 +117,4 @@ namespace pxt {
 
         friend class DescriptorWriter;
     };
-}
+} // namespace pxt

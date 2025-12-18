@@ -1,8 +1,8 @@
 #pragma once
 
 #include "core/pch.hpp"
-#include "graphics/window.hpp"
 #include "graphics/context/instance.hpp"
+#include "graphics/window.hpp"
 
 namespace pxt {
 
@@ -28,4 +28,4 @@ namespace pxt {
         VkSurfaceKHR m_surface;
     };
 
-}
+} // namespace pxt
