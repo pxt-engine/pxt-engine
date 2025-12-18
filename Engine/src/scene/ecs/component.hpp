@@ -235,18 +235,16 @@ namespace pxt {
     struct ScriptComponent {
         Script* script = nullptr;
 
-        // Function pointers for creating and destroying scripts
+        // Type-erased factory and destructor
         Script* (*create)() = nullptr;
-        void (*destroy)(ScriptComponent*) = nullptr;
+        void (*destroy)(Script*) = nullptr;
 
         template <typename T>
+        requires(std::is_base_of_v<Script, T>)
         void bind() {
-            create = []() { return static_cast<Script*>(new T()); };
+            create = []() -> Script* { return new T(); };
 
-            destroy = [](ScriptComponent* s) {
-                delete s->script;
-                s->script = nullptr;
-            };
+            destroy = [](Script* s) { delete static_cast<T*>(s); };
         }
     };
 

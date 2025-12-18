@@ -16,9 +16,10 @@ namespace pxt {
 
         : Layer("RenderLayer"),
 
-          m_context(context), m_renderer(renderer), m_descriptorAllocator(descriptorAllocator),
-          m_textureRegistry(textureRegistry), m_materialRegistry(materialRegistry), m_blasRegistry(blasRegistry),
-          m_globalSetLayout(globalSetLayout), m_environment(std::move(environment)) {
+          m_context(context), m_renderer(renderer), m_textureRegistry(textureRegistry),
+          m_materialRegistry(materialRegistry), m_blasRegistry(blasRegistry),
+          m_descriptorAllocator(descriptorAllocator), m_globalSetLayout(globalSetLayout),
+          m_environment(std::move(environment)) {
         m_offscreenColorFormat = m_context.findSupportedFormat(
             {VK_FORMAT_R16G16B16A16_SFLOAT, VK_FORMAT_R8G8B8A8_UNORM}, VK_IMAGE_TILING_OPTIMAL,
             VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT | VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT |

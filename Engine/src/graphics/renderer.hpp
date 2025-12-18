@@ -146,7 +146,7 @@ namespace pxt {
          * frame.
          */
         void beginRenderPass(VkCommandBuffer commandBuffer, RenderPass& renderPass, FrameBuffer& frameBuffer,
-                             VkExtent2D extent, VkClearColorValue clearColor = {1.0f, 1.0f, 1.0f, 1.0f});
+                             VkExtent2D extent, VkClearColorValue clearColor = {{1.0f, 1.0f, 1.0f, 1.0f}});
 
         /**
          * @brief Ends the current render pass.
