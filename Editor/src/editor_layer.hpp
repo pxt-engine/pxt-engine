@@ -2,35 +2,35 @@
 
 #include "pxtengine.h"
 #include "ui/entity_inspector.hpp"
-#include "ui/scene_hierarchy.hpp"
 #include "ui/main_menu_bar.hpp"
+#include "ui/scene_hierarchy.hpp"
 
 namespace pxt::editor {
-	class EditorLayer : public core::Layer {
-	public:
-		EditorLayer();
-		
-		void onEvent(core::Event& event) override;
-		void onUpdateUi(FrameInfo& frameInfo) override;
+    class EditorLayer : public core::Layer {
+    public:
+        EditorLayer();
 
-	private:
-		void updateSceneUi(VkDescriptorSet sceneDescriptorSet, float sceneAspectRatio);
-		ImVec2 getImageSizeWithAspectRatioForImGuiWindow(ImVec2 windowSize, float aspectRatio);
-		bool onMouseButtonPress(core::MouseButtonPressEvent& event);
+        void onEvent(core::Event& event) override;
+        void onUpdateUi(FrameInfo& frameInfo) override;
 
-		bool m_isViewportFocused = false;
-		bool m_isViewportHovered = false;
+    private:
+        void updateSceneUi(VkDescriptorSet sceneDescriptorSet, float sceneAspectRatio);
+        ImVec2 getImageSizeWithAspectRatioForImGuiWindow(ImVec2 windowSize, float aspectRatio);
+        bool onMouseButtonPress(core::MouseButtonPressEvent& event);
 
-		glm::vec2 m_lastClickMousePosImGui = { 0.0f, 0.0f };
+        bool m_isViewportFocused = false;
+        bool m_isViewportHovered = false;
 
-		SceneHierarchy m_sceneHierarchy{};
-		EntityInspector m_entityInspector{};
-		MainMenuBar m_mainMenuBar{};
+        glm::vec2 m_lastClickMousePosImGui = {0.0f, 0.0f};
 
-		core::UUID m_selectedEntityUUID = core::UUID::s_invalidId;
-		core::UUID m_prevSelectedEntityUUID = core::UUID::s_invalidId;
+        SceneHierarchy m_sceneHierarchy{};
+        EntityInspector m_entityInspector{};
+        MainMenuBar m_mainMenuBar{};
 
-		ImVec2 m_sceneImageExtent{ 0.f, 0.f };
-		ImVec2 m_viewportUpperLeftScreenCoord{ 0.f, 0.f };
-	};
-}
+        core::UUID m_selectedEntityUUID = core::UUID::s_invalidId;
+        core::UUID m_prevSelectedEntityUUID = core::UUID::s_invalidId;
+
+        ImVec2 m_sceneImageExtent{0.f, 0.f};
+        ImVec2 m_viewportUpperLeftScreenCoord{0.f, 0.f};
+    };
+} // namespace pxt::editor

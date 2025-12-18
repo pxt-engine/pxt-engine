@@ -2,39 +2,39 @@
 #include "core/events/editor_events.hpp"
 
 namespace pxt::editor {
-	void SceneHierarchy::onUpdateUi(FrameInfo& frameInfo, core::UUID& selectedEntityId) {
-		drawSceneEntityList(frameInfo.scene, selectedEntityId);
-	}
+    void SceneHierarchy::onUpdateUi(FrameInfo& frameInfo, core::UUID& selectedEntityId) {
+        drawSceneEntityList(frameInfo.scene, selectedEntityId);
+    }
 
-	void SceneHierarchy::drawSceneEntityList(Scene& scene, core::UUID& selectedEntityId) {
-		core::UUID prevSelectedEntityId = selectedEntityId;
-		
-		ImGui::Begin("Scene Entities");
+    void SceneHierarchy::drawSceneEntityList(Scene& scene, core::UUID& selectedEntityId) {
+        core::UUID prevSelectedEntityId = selectedEntityId;
 
-		if (ImGui::Button("Add Entity")) {
-			scene.createEntity("New Entity");
-		}
+        ImGui::Begin("Scene Entities");
 
-		ImGui::Separator();
+        if (ImGui::Button("Add Entity")) {
+            scene.createEntity("New Entity");
+        }
 
-		// draw all entities in the scene
-		auto view = scene.getEntitiesWith<IDComponent, NameComponent>();
-		for (auto entityHandle : view) {
-			const auto& [idComponent, nameComponent] = view.get<IDComponent, NameComponent>(entityHandle);
+        ImGui::Separator();
 
-			bool selected = (selectedEntityId == idComponent.uuid);
-			if (ImGui::Selectable(nameComponent.name.c_str(), selected)) {
-				selectedEntityId = idComponent.uuid;
-			}
-		}
+        // draw all entities in the scene
+        auto view = scene.getEntitiesWith<IDComponent, NameComponent>();
+        for (auto entityHandle : view) {
+            const auto& [idComponent, nameComponent] = view.get<IDComponent, NameComponent>(entityHandle);
 
-		// deselect if background clicked
-		if (ImGui::IsWindowHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
-			if (!ImGui::IsAnyItemHovered()) {
-				selectedEntityId = core::UUID::s_invalidId;
-			}
-		}
+            bool selected = (selectedEntityId == idComponent.uuid);
+            if (ImGui::Selectable(nameComponent.name.c_str(), selected)) {
+                selectedEntityId = idComponent.uuid;
+            }
+        }
 
-		ImGui::End();
-	}
-}
+        // deselect if background clicked
+        if (ImGui::IsWindowHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+            if (!ImGui::IsAnyItemHovered()) {
+                selectedEntityId = core::UUID::s_invalidId;
+            }
+        }
+
+        ImGui::End();
+    }
+} // namespace pxt::editor
