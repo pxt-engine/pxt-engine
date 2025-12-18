@@ -7,12 +7,13 @@ void RotatingLightController::onCreate() {
         m_baseAngle = 0.0f;
     }
     if (transform.translation.z == 0.5f) {
-        m_baseAngle = 2.0f * glm::pi<float>()/ 3.0f;
+        m_baseAngle = 2.0f * glm::pi<float>() / 3.0f;
     }
     if (transform.translation.z == -0.5f) {
-        m_baseAngle = -2.0f * glm::pi<float>()/ 3.0f;
+        m_baseAngle = -2.0f * glm::pi<float>() / 3.0f;
     }
 }
+
 void RotatingLightController::onUpdate(float deltaTime) {
     auto& transform = get<TransformComponent>();
 
@@ -21,4 +22,3 @@ void RotatingLightController::onUpdate(float deltaTime) {
 
     m_angle = glm::mod(m_angle + deltaTime, glm::two_pi<float>());
 }
-
