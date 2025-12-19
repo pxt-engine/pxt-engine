@@ -407,13 +407,11 @@ namespace pxt {
         }
 
         // object picking
-        if (m_isObjectPickingRequested) {
+        if (m_isObjectPickingRequested || m_selectedEntityUUID != core::UUID::s_invalidId) {
             // here we render the scene to an offscreen buffer with object IDs as colors
             // and save the pixel color at the mouse coords inside a buffer.
             // we will read the buffer in the post frame update and reset the bool.
-            m_objectPickingSystem->render(frameInfo, m_renderer, m_objectPickPixelCoords);
-            m_objectPickingSystem->transitionImageToShaderReadOnlyOptimal(frameInfo, VK_PIPELINE_STAGE_TRANSFER_BIT,
-                                                                          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+            m_objectPickingSystem->render(frameInfo, m_renderer, m_objectPickPixelCoords, m_isObjectPickingRequested);
         }
 
         // render to offscreen main render pass
@@ -469,7 +467,8 @@ namespace pxt {
 
         // composition pass (compute shader)
         m_compositionRenderSystem->render(frameInfo, *m_sceneImage, m_selectionMaskRenderSystem->getMaskColorImage(),
-                                          *m_finalImage);
+                                          m_objectPickingSystem->getObjectIdImage(), *m_finalImage,
+                                          frameInfo.scene.getObjPickingIdFromEntityUUID(m_selectedEntityUUID));
     }
 
     void RenderLayer::onPostFrameUpdate(FrameInfo& frameInfo) {

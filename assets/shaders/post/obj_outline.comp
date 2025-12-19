@@ -1,16 +1,18 @@
 #version 460
 
 layout(push_constant) uniform CompositionPushConstants {
+    vec4 selectedObjectColor;  // Color of the selected object
     vec4 outlineColor;         // RGBA highlight color
     uint outlineThickness;     // Thickness of the outline in pixels
 } push;
 
 // input images
 layout(set = 0, binding = 0) uniform sampler2D sceneColor;     // Scene color buffer
-layout(set = 0, binding = 1) uniform sampler2D selectionMask;  // Object ID buffer
+layout(set = 0, binding = 1) uniform sampler2D selectionMask;  // Mask of selected object
+layout(set = 0, binding = 2) uniform sampler2D objectIds;      // Object Ids as Colors
 
 // output image
-layout(set = 0, binding = 2) uniform writeonly image2D outputImage;
+layout(set = 0, binding = 3) uniform writeonly image2D outputImage;
 
 // workgroup size
 layout(local_size_x = 16, local_size_y = 16) in;
@@ -26,6 +28,15 @@ vec4 fetchSceneColor(ivec2 coord, ivec2 imageExtent) {
     return texelFetch(sceneColor, clamped, 0);
 }
 
+vec4 fetchIdColor(ivec2 coord, ivec2 imageExtent) {
+    ivec2 clamped = clamp(coord, ivec2(0), imageExtent - 1);
+    return texelFetch(objectIds, clamped, 0);
+}
+
+vec4 shade_darker(vec4 color, float factor) {
+    return vec4(color.rgb * factor, color.a);
+}
+
 void main() {
     ivec2 imageExtent = imageSize(outputImage);
     ivec2 pixelCoord = ivec2(gl_GlobalInvocationID.xy);
@@ -35,10 +46,10 @@ void main() {
         return; // outside bounds
     }
 
-    float maskValue = fetchMask(pixelCoord, imageExtent);
     vec4 sceneColor = fetchSceneColor(pixelCoord, imageExtent);
+    float maskValue = fetchMask(pixelCoord, imageExtent);
 
-    // if we are inside the selected object, we return its scene color
+    // if we are inside the selected object, we return the scene color
     if (maskValue > 0.5) {
         imageStore(outputImage, pixelCoord, sceneColor);
         return;
@@ -56,6 +67,18 @@ void main() {
             if (neighborMaskValue > 0.5) {
                 // We found a neighboring pixel that belongs to the selected object
                 // so we draw the outline color here
+
+                // if the outline neighbor is behind another object, we draw it darker
+                // TODO: this is still not pixel perfect. By definition we cannot know
+                // if an outline pixel is behind another object because the outline itself
+                // lives outside the object. A proper solution would require depth information.
+                vec4 pixelIdColor = fetchIdColor(neighborCoord, imageExtent);
+                if (pixelIdColor != push.selectedObjectColor) {
+                    imageStore(outputImage, pixelCoord, shade_darker(push.outlineColor, 0.5));
+                    return;
+                }
+
+                // otherwise, draw the normal outline color
                 imageStore(outputImage, pixelCoord, push.outlineColor);
                 return;
             }

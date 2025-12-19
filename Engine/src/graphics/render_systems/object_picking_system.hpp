@@ -22,14 +22,11 @@ namespace pxt {
         ObjectPickingSystem(const ObjectPickingSystem&) = delete;
         ObjectPickingSystem& operator=(const ObjectPickingSystem&) = delete;
 
-        void render(FrameInfo& frameInfo, Renderer& renderer, u32vec2 mousePixelCoords);
+        void render(FrameInfo& frameInfo, Renderer& renderer, u32vec2 mousePixelCoords, bool isObjectPickingRequested);
 
         void updateImage(VkExtent2D newExtent);
         void reloadShaders();
         [[nodiscard]] uint32_t postFrameUpdate(VkFence frameFence);
-
-        void transitionImageToShaderReadOnlyOptimal(FrameInfo& frameInfo, VkPipelineStageFlagBits prevStage,
-                                                    VkPipelineStageFlagBits nextStage);
 
         [[nodiscard]] VulkanImage& getObjectIdImage() const { return *m_sceneWithColorIds; }
 

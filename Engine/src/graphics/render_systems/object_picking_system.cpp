@@ -233,7 +233,8 @@ namespace pxt {
         m_pipeline = createUnique<Pipeline>(m_context, shaderFilePaths, pipelineConfig);
     }
 
-    void ObjectPickingSystem::render(FrameInfo& frameInfo, Renderer& renderer, u32vec2 mousePixelCoords) {
+    void ObjectPickingSystem::render(FrameInfo& frameInfo, Renderer& renderer, u32vec2 mousePixelCoords,
+                                     bool isObjectPickingRequested) {
         // black is the "no object" color
         VkClearColorValue blackClearColor = {0.f, 0.f, 0.f, 1.f};
         renderer.beginRenderPass(frameInfo.commandBuffer, *m_offscreenRenderPass, *m_offscreenFb, m_sceneExtent,
@@ -268,28 +269,40 @@ namespace pxt {
 
         renderer.endRenderPass(frameInfo.commandBuffer, *m_offscreenRenderPass, *m_offscreenFb);
 
-        // after rendering, copy the pixel under the mouse cursor to the buffer
-        // transition image to transfer source layout
-        m_sceneWithColorIds->transitionImageLayout(frameInfo.commandBuffer, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                                                   VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-                                                   VK_PIPELINE_STAGE_TRANSFER_BIT);
+        if (isObjectPickingRequested) {
+            // if a click was registered, copy the pixel under the mouse cursor to the buffer
+            // transition image to transfer source layout
+            m_sceneWithColorIds->transitionImageLayout(frameInfo.commandBuffer, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                                                       VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                                                       VK_PIPELINE_STAGE_TRANSFER_BIT);
 
-        // define the region to copy (1x1 pixel at mouse coords)
-        VkBufferImageCopy region = {};
-        region.bufferOffset = 0;
-        region.bufferRowLength = 0;   // tightly packed
-        region.bufferImageHeight = 0; // tightly packed
-        region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        region.imageSubresource.mipLevel = 0;
-        region.imageSubresource.baseArrayLayer = 0;
-        region.imageSubresource.layerCount = 1;
-        region.imageOffset = {static_cast<int32_t>(mousePixelCoords.x), static_cast<int32_t>(mousePixelCoords.y),
-                              0}; // pixel coordinates
-        region.imageExtent = {1, 1, 1};
+            // define the region to copy (1x1 pixel at mouse coords)
+            VkBufferImageCopy region = {};
+            region.bufferOffset = 0;
+            region.bufferRowLength = 0;   // tightly packed
+            region.bufferImageHeight = 0; // tightly packed
+            region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            region.imageSubresource.mipLevel = 0;
+            region.imageSubresource.baseArrayLayer = 0;
+            region.imageSubresource.layerCount = 1;
+            region.imageOffset = {static_cast<int32_t>(mousePixelCoords.x), static_cast<int32_t>(mousePixelCoords.y),
+                                  0}; // pixel coordinates
+            region.imageExtent = {1, 1, 1};
 
-        vkCmdCopyImageToBuffer(frameInfo.commandBuffer, m_sceneWithColorIds->getVkImage(),
-                               VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, m_selectedPixelColorBuffer->getBuffer(), 1,
-                               &region);
+            vkCmdCopyImageToBuffer(frameInfo.commandBuffer, m_sceneWithColorIds->getVkImage(),
+                                   VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, m_selectedPixelColorBuffer->getBuffer(), 1,
+                                   &region);
+
+            // then transition to shader read only optimal for composition pass use
+            m_sceneWithColorIds->transitionImageLayout(
+                frameInfo.commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+        } else {
+            // just transition back to shader read only optimal otherwise
+            m_sceneWithColorIds->transitionImageLayout(
+                frameInfo.commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+        }
     }
 
     void ObjectPickingSystem::updateImage(VkExtent2D newExtent) {
@@ -318,12 +331,5 @@ namespace pxt {
         uint32_t pickedObjectId = core::ObjPickingId::getIdFromColor(glm::u8vec3(color.r, color.g, color.b));
 
         return pickedObjectId;
-    }
-
-    void ObjectPickingSystem::transitionImageToShaderReadOnlyOptimal(FrameInfo& frameInfo,
-                                                                     VkPipelineStageFlagBits prevStage,
-                                                                     VkPipelineStageFlagBits nextStage) {
-        m_sceneWithColorIds->transitionImageLayout(frameInfo.commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                                                   prevStage, nextStage);
     }
 } // namespace pxt
