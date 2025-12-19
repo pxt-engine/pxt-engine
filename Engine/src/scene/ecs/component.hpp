@@ -165,7 +165,7 @@ namespace pxt {
         glm::vec2 scale{1.f, 1.f};
         float rotation = 0.0f;
 
-        glm::mat2 mat2();
+        glm::mat2 mat2() const;
 
         Transform2dComponent() = default;
         Transform2dComponent(const Transform2dComponent&) = default;
@@ -203,8 +203,8 @@ namespace pxt {
          *
          * @return glm::mat4
          */
-        glm::mat4 mat4();
-        glm::mat3 normalMatrix();
+        glm::mat4 mat4() const;
+        glm::mat3 normalMatrix() const;
 
         TransformComponent() = default;
         TransformComponent(const TransformComponent&) = default;
