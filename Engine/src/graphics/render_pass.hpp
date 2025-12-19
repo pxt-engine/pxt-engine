@@ -12,6 +12,9 @@ namespace pxt {
         RenderPass(Context& context, const VkRenderPassCreateInfo& createInfo,
                    const VkAttachmentDescription colorAttachmentDescription,
                    const VkAttachmentDescription depthAttachmentDescription, std::string name);
+        RenderPass(Context& context, const VkRenderPassCreateInfo& createInfo,
+                   const VkAttachmentDescription colorAttachmentDescription, std::string name);
+
         ~RenderPass();
 
         // Disable copy constructor and assignment operator for proper resource management
@@ -26,7 +29,12 @@ namespace pxt {
 
         const VkAttachmentDescription getColorAttachmentDescription() const { return m_colorAttachmentDescription; }
 
-        const VkAttachmentDescription getDepthAttachmentDescription() const { return m_depthAttachmentDescription; }
+        std::optional<VkAttachmentDescription> getDepthAttachmentDescription() const {
+            if (!m_hasDepth) {
+                return std::nullopt;
+            }
+            return m_depthAttachmentDescription;
+        }
 
         const VkImageLayout getColorAttachmentInitialLayout() const {
             return m_colorAttachmentDescription.initialLayout;
@@ -34,11 +42,15 @@ namespace pxt {
 
         const VkImageLayout getColorAttachmentFinalLayout() const { return m_colorAttachmentDescription.finalLayout; }
 
+        const bool hasDepth() const { return m_hasDepth; }
+
         const VkImageLayout getDepthAttachmentInitialLayout() const {
-            return m_depthAttachmentDescription.initialLayout;
+            return m_hasDepth ? m_depthAttachmentDescription.initialLayout : VK_IMAGE_LAYOUT_UNDEFINED;
         }
 
-        const VkImageLayout getDepthAttachmentFinalLayout() const { return m_depthAttachmentDescription.finalLayout; }
+        const VkImageLayout getDepthAttachmentFinalLayout() const {
+            return m_hasDepth ? m_depthAttachmentDescription.finalLayout : VK_IMAGE_LAYOUT_UNDEFINED;
+        }
 
     private:
         Context& m_context;
@@ -47,5 +59,7 @@ namespace pxt {
         VkAttachmentDescription m_colorAttachmentDescription;
         VkAttachmentDescription m_depthAttachmentDescription;
         VkRenderPass m_renderPass = VK_NULL_HANDLE; // renderPass Vulkan handle
+
+        bool m_hasDepth = true;
     };
 } // namespace pxt
