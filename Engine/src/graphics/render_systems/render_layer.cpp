@@ -407,7 +407,7 @@ namespace pxt {
         }
 
         // object picking
-        if (m_isObjectPickingRequested || m_selectedEntityUUID != core::UUID::s_invalidId) {
+        if (m_isObjectPickingRequested) {
             // here we render the scene to an offscreen buffer with object IDs as colors
             // and save the pixel color at the mouse coords inside a buffer.
             // we will read the buffer in the post frame update and reset the bool.
