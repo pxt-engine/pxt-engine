@@ -87,10 +87,10 @@ namespace pxt::editor {
             uint32_t width = static_cast<uint32_t>(std::max(1.0f, viewportSize.x));
             uint32_t height = static_cast<uint32_t>(std::max(1.0f, viewportSize.y));
 
-            Application::get().queueEvent(core::ImGuiViewportResizeEvent(static_cast<uint32_t>(viewportSize.x),
-                                                                         static_cast<uint32_t>(viewportSize.y)));
+            m_sceneImageExtent = ImVec2(static_cast<float>(width), static_cast<float>(height));
 
-            m_sceneImageExtent = viewportSize;
+            Application::get().queueEvent(
+                core::ImGuiViewportResizeEvent(static_cast<uint32_t>(width), static_cast<uint32_t>(height)));
         }
 
         ImGui::Image(scene, m_sceneImageExtent);
