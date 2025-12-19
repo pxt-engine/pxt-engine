@@ -93,8 +93,8 @@ namespace pxt {
         vkCmdPushConstants(frameInfo.commandBuffer, m_pipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0,
                            sizeof(compPushConstants), &compPushConstants);
 
-        const uint32_t gx = (sceneColor.getExtent().width + 7) / 8;
-        const uint32_t gy = (sceneColor.getExtent().height + 7) / 8;
+        const uint32_t gx = (sceneColor.getExtent().width + 15) / 16;
+        const uint32_t gy = (sceneColor.getExtent().height + 15) / 16;
 
         vkCmdDispatch(frameInfo.commandBuffer, gx, gy, 1);
 

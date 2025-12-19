@@ -3,7 +3,6 @@
 layout(push_constant) uniform CompositionPushConstants {
     vec4 outlineColor;         // RGBA highlight color
     uint outlineThickness;     // Thickness of the outline in pixels
-    
 } push;
 
 // input images
@@ -14,7 +13,7 @@ layout(set = 0, binding = 1) uniform sampler2D selectionMask;  // Object ID buff
 layout(set = 0, binding = 2) uniform writeonly image2D outputImage;
 
 // workgroup size
-layout(local_size_x = 8, local_size_y = 8) in;
+layout(local_size_x = 16, local_size_y = 16) in;
 
 float fetchMask(ivec2 coord, ivec2 imageExtent) {
     // clamp to image boundaries
