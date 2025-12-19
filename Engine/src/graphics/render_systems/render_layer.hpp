@@ -21,6 +21,7 @@
 #include "graphics/render_systems/object_picking_system.hpp"
 #include "graphics/render_systems/point_light_system.hpp"
 #include "graphics/render_systems/raytracing_render_system.hpp"
+#include "graphics/render_systems/selection_mask_render_system.hpp"
 #include "graphics/render_systems/shadow_map_render_system.hpp"
 #include "graphics/render_systems/skybox_render_system.hpp"
 
@@ -91,6 +92,7 @@ namespace pxt {
         Unique<DensityTextureRenderSystem> m_densityTextureSystem = nullptr;
         Unique<ObjectPickingSystem> m_objectPickingSystem = nullptr;
         Unique<CompositionRenderSystem> m_compositionRenderSystem = nullptr;
+        Unique<SelectionMaskRenderSystem> m_selectionMaskRenderSystem = nullptr;
 
         Unique<RenderPass> m_offscreenRenderPass;
         Unique<FrameBuffer> m_offscreenFb;

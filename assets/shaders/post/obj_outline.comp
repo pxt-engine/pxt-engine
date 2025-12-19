@@ -1,7 +1,6 @@
 #version 460
 
 layout(push_constant) uniform CompositionPushConstants {
-    vec4 selectedObjectColor;  // The object to highlight
     vec4 outlineColor;         // RGBA highlight color
     uint outlineThickness;     // Thickness of the outline in pixels
     
@@ -9,7 +8,7 @@ layout(push_constant) uniform CompositionPushConstants {
 
 // input images
 layout(set = 0, binding = 0) uniform sampler2D sceneColor;     // Scene color buffer
-layout(set = 0, binding = 1) uniform sampler2D objectIdColor;  // Object ID buffer
+layout(set = 0, binding = 1) uniform sampler2D selectionMask;  // Object ID buffer
 
 // output image
 layout(set = 0, binding = 2) uniform writeonly image2D outputImage;
@@ -17,10 +16,10 @@ layout(set = 0, binding = 2) uniform writeonly image2D outputImage;
 // workgroup size
 layout(local_size_x = 8, local_size_y = 8) in;
 
-vec3 fetchIdColor(ivec2 coord, ivec2 imageExtent) {
+float fetchMask(ivec2 coord, ivec2 imageExtent) {
     // clamp to image boundaries
     ivec2 clamped = clamp(coord, ivec2(0), imageExtent - 1);
-    return texelFetch(objectIdColor, clamped, 0).rgb;
+    return texelFetch(selectionMask, clamped, 0).r;
 }
 
 vec4 fetchSceneColor(ivec2 coord, ivec2 imageExtent) {
@@ -37,16 +36,11 @@ void main() {
         return; // outside bounds
     }
 
-    // Example placeholder
+    float maskValue = fetchMask(pixelCoord, imageExtent);
     vec4 sceneColor = fetchSceneColor(pixelCoord, imageExtent);
 
-    // Determine if the current pixel belongs to the selected object
-    vec3 currentIdColor = fetchIdColor(pixelCoord, imageExtent);
-
     // if we are inside the selected object, we return its scene color
-    if (push.selectedObjectColor.rgb == invalidColorId ||
-        currentIdColor == push.selectedObjectColor.rgb) {
-
+    if (maskValue > 0.5) {
         imageStore(outputImage, pixelCoord, sceneColor);
         return;
     }
@@ -58,9 +52,9 @@ void main() {
         for (int x = -thickness; x <= thickness; x++) {
 
             ivec2 neighborCoord = pixelCoord + ivec2(x, y);
-            vec3 neighborIdColor = fetchIdColor(neighborCoord, imageExtent);
+            float neighborMaskValue = fetchMask(neighborCoord, imageExtent);
 
-            if (neighborIdColor == push.selectedObjectColor.rgb) {
+            if (neighborMaskValue > 0.5) {
                 // We found a neighboring pixel that belongs to the selected object
                 // so we draw the outline color here
                 imageStore(outputImage, pixelCoord, push.outlineColor);

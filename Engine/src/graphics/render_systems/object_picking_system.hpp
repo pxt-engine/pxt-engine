@@ -57,9 +57,6 @@ namespace pxt {
         VkFormat m_offscreenColorFormat = VK_FORMAT_R8G8B8A8_UNORM;
         Shared<VulkanImage> m_offscreenDepthImage = nullptr;
 
-        Unique<DescriptorSetLayout> m_descriptorSetLayout = nullptr;
-        VkDescriptorSet m_descriptorSet = VK_NULL_HANDLE;
-
         VkPipelineLayout m_pipelineLayout;
         Unique<Pipeline> m_pipeline = nullptr;
 

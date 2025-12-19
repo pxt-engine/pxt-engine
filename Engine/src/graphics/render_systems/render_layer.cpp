@@ -341,6 +341,9 @@ namespace pxt {
             createUnique<ObjectPickingSystem>(m_context, m_descriptorAllocator, m_globalSetLayout, m_viewportExtent);
 
         m_compositionRenderSystem = createUnique<CompositionRenderSystem>(m_context, m_descriptorAllocator);
+
+        m_selectionMaskRenderSystem = createUnique<SelectionMaskRenderSystem>(m_context, m_descriptorAllocator,
+                                                                              m_globalSetLayout, m_viewportExtent);
     }
 
     void RenderLayer::reloadShaders() {
@@ -360,9 +363,11 @@ namespace pxt {
             m_pointLightSystem->reloadShaders();
             m_shadowMapRenderSystem->reloadShaders();
         }
+
         m_densityTextureSystem->reloadShaders();
         m_objectPickingSystem->reloadShaders();
         m_compositionRenderSystem->reloadShaders();
+        m_selectionMaskRenderSystem->reloadShaders();
 
         PXT_INFO("Shaders reloaded successfully.");
     }
@@ -459,10 +464,12 @@ namespace pxt {
             m_renderer.endRenderPass(frameInfo.commandBuffer, *m_offscreenRenderPass, *m_offscreenFb);
         }
 
+        // render selection mask
+        m_selectionMaskRenderSystem->render(frameInfo, m_renderer, m_selectedEntityUUID);
+
         // composition pass (compute shader)
-        m_compositionRenderSystem->render(frameInfo, *m_sceneImage, m_objectPickingSystem->getObjectIdImage(),
-                                          *m_finalImage,
-                                          frameInfo.scene.getObjPickingIdFromEntityUUID(m_selectedEntityUUID));
+        m_compositionRenderSystem->render(frameInfo, *m_sceneImage, m_selectionMaskRenderSystem->getMaskColorImage(),
+                                          *m_finalImage);
     }
 
     void RenderLayer::onPostFrameUpdate(FrameInfo& frameInfo) {
@@ -498,6 +505,8 @@ namespace pxt {
 
             // update object picking system with new extent
             m_objectPickingSystem->updateImage(m_viewportExtent);
+
+            m_selectionMaskRenderSystem->updateImage(m_viewportExtent);
 
             return true;
         });

@@ -19,8 +19,8 @@ namespace pxt {
         CompositionRenderSystem(const CompositionRenderSystem&) = delete;
         CompositionRenderSystem& operator=(const CompositionRenderSystem&) = delete;
 
-        void render(FrameInfo& frameInfo, VulkanImage& sceneColor, VulkanImage& objectIdImage, VulkanImage& outputImage,
-                    uint32_t selectedObjectId);
+        void render(FrameInfo& frameInfo, VulkanImage& sceneColor, VulkanImage& objectIdImage,
+                    VulkanImage& outputImage);
 
         void reloadShaders();
 

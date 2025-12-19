@@ -3,7 +3,6 @@
 namespace pxt {
 
     struct CompositionPushConstants {
-        glm::vec4 selectedObjectColor;
         glm::vec4 outlineColor;
         uint32_t outlineThickness;
     };
@@ -64,27 +63,26 @@ namespace pxt {
         m_pipeline = createUnique<Pipeline>(m_context, base + m_shaderPath + suffix, config);
     }
 
-    void CompositionRenderSystem::render(FrameInfo& frameInfo, VulkanImage& sceneColor, VulkanImage& objectIdImage,
-                                         VulkanImage& outputImage, uint32_t selectedObjectId) {
+    void CompositionRenderSystem::render(FrameInfo& frameInfo, VulkanImage& sceneColor, VulkanImage& selectionMask,
+                                         VulkanImage& outputImage) {
 
         outputImage.transitionImageLayout(frameInfo.commandBuffer, VK_IMAGE_LAYOUT_GENERAL,
                                           VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 
         VkDescriptorImageInfo sceneInfo = sceneColor.getImageInfo(false);
-        VkDescriptorImageInfo idInfo = objectIdImage.getImageInfo(false);
+        VkDescriptorImageInfo selectionMaskInfo = selectionMask.getImageInfo(false);
         VkDescriptorImageInfo outputInfo = outputImage.getImageInfo(false);
 
         sceneInfo.sampler = m_nearestSampler->getHandle();
-        idInfo.sampler = m_nearestSampler->getHandle();
+        selectionMaskInfo.sampler = m_nearestSampler->getHandle();
 
         DescriptorWriter(m_context, *m_descriptorSetLayout)
             .writeImage(0, &sceneInfo)
-            .writeImage(1, &idInfo)
+            .writeImage(1, &selectionMaskInfo)
             .writeImage(2, &outputInfo)
             .updateSet(m_descriptorSet);
 
         CompositionPushConstants compPushConstants{};
-        compPushConstants.selectedObjectColor = core::ObjPickingId::getColorVec4FromId(selectedObjectId);
         compPushConstants.outlineThickness = 2;
         compPushConstants.outlineColor = {1.0f, 0.5f, 0.0f, 1.0f};
 
@@ -104,5 +102,8 @@ namespace pxt {
                                           VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
     }
 
-    void CompositionRenderSystem::reloadShaders() { createPipeline(false); }
+    void CompositionRenderSystem::reloadShaders() {
+        PXT_INFO("Reloading shaders...");
+        createPipeline(false);
+    }
 } // namespace pxt
