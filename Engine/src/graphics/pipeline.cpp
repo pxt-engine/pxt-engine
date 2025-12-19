@@ -333,4 +333,10 @@ namespace pxt {
         configInfo.colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
     }
 
+    void Pipeline::disableDepthTest(RasterizationPipelineConfigInfo& configInfo) {
+        configInfo.depthStencilInfo.depthTestEnable = VK_FALSE;
+        configInfo.depthStencilInfo.depthWriteEnable = VK_FALSE;
+        configInfo.depthStencilInfo.stencilTestEnable = VK_FALSE;
+    }
+
 } // namespace pxt

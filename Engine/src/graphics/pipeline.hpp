@@ -92,6 +92,7 @@ namespace pxt {
 
         static void defaultPipelineConfigInfo(RasterizationPipelineConfigInfo& configInfo);
         static void enableAlphaBlending(RasterizationPipelineConfigInfo& configInfo);
+        static void disableDepthTest(RasterizationPipelineConfigInfo& configInfo);
 
         VkPipeline getHandle() const { return m_pipeline; }
 
