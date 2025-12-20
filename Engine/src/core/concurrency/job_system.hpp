@@ -9,21 +9,48 @@
 
 namespace pxt::core {
 
-    using JobFunction = void (*)(void*);
+    using JobFunction = std::function<void()>;
+
+    template <typename F>
+    concept VoidCallable = std::invocable<F> && std::same_as<std::invoke_result_t<F>, void>;
+
+    template <typename F, typename T>
+    concept CallableWith = std::invocable<F, T> && std::same_as<std::invoke_result_t<F, T>, void>;
+
+    template <typename F>
+    concept IndexCallable = std::invocable<F, size_t> && std::same_as<std::invoke_result_t<F, size_t>, void>;
+
+    template <typename C>
+    concept IterableContainer = std::ranges::range<C> && requires(C c) {
+        { c.begin() } -> std::input_or_output_iterator;
+        { c.end() } -> std::sentinel_for<decltype(c.begin())>;
+    };
+
+    template <typename C>
+    concept SizedContainer = IterableContainer<C> && requires(C c) {
+        { c.size() } -> std::convertible_to<size_t>;
+    };
+
+    template <typename C>
+    concept EmptyCheckable = requires(C c) {
+        { c.empty() } -> std::convertible_to<bool>;
+    };
+
+    template <typename C>
+    concept CallableContainer = IterableContainer<C> && VoidCallable<std::ranges::range_value_t<C>>;
 
     /**
      * @brief A Job represents a single unit of work to be executed by the JobSystem.
      */
     struct Job {
         JobFunction fn = nullptr;  //< Function to execute
-        void* data = nullptr;      //< Data to pass to the function
         uint32_t counterIndex = 0; //< Index into the counter pool for tracking completion
 
         /**
          * @brief Checks if this job is valid and ready to execute.
-         * @return true if both function and data pointers are non-null
+         * @return true if the function is non-null
          */
-        bool isValid() { return fn && data; }
+        bool isValid() { return fn != nullptr; }
     };
 
     /**
@@ -160,58 +187,182 @@ namespace pxt::core {
          * The job is pushed to a worker's deque in round-robin fashion and
          * one worker is notified to wake up and process it.
          *
-         * @tparam T The type of data to pass to the job function
-         * @param fn The function to execute (must have signature: void (*)(void*))
-         * @param data Pointer to the data to pass to the function
+         * @tparam Func Any void-returning callable type (lambda, function, functor)
+         * @param fn The function to execute
          *
          * @return A JobHandle that can be used to wait for completion
          *
          * @note The data pointer must remain valid until the job completes.
+         *
+         * Usage examples:
+         * \code{.cpp}
+         * // Lambda with captures
+         * int x = 42;
+         * auto h = js.submit([x]() { std::cout << x << std::endl; });
+         *
+         * // Lambda with mutable references
+         * auto h = js.submit([&x]() { x *= 2; });
+         *
+         * // Function pointer
+         * auto h = js.submit(myFunction);
+         *
+         * // Functor
+         * auto h = js.submit(MyFunctor{args});
+         * \endcode
          */
-        template <typename T>
-        [[nodiscard]] JobHandle submit(JobFunction fn, T* data) {
+        template <VoidCallable Func>
+        JobHandle submit(Func&& func) {
             JobHandle handle = acquireCounter(1);
 
-            pushJob({fn, static_cast<void*>(data), handle});
+            pushJob({std::forward<Func>(func), handle});
 
             return handle;
         }
 
         /**
-         * @brief Submits a batch of jobs for parallel execution.
+         * @brief Submits a batch of jobs, one per item in the container.
          *
-         * This allows fine-grained parallelism: each item becomes an independent job
-         * that can be executed on any worker thread.
+         * @tparam Container Any sized, iterable container (vector, array, span, deque, etc.)
+         * @tparam Func Callable that accepts a reference to the container's element type
+         * @param items Container of items to process
+         * @param func Function to call for each item
+         * @return A JobHandle representing the entire batch
          *
-         * @tparam T The type of items in the span
-         * @param fn The function to execute for each item (must have signature: void(*)(void*))
-         * @param items A span of items to process in parallel
-         * @return A JobHandle representing the entire batch (wait on this to wait for all jobs)
+         * The concepts ensure:
+         * - Container is iterable and has a size() method
+         * - Container is empty-checkable
+         * - Func can be called with the container's value type
          *
-         * @note All items in the span must remain valid until all jobs complete.
-         * @note Returns InvalidJobHandle if the span is empty.
+         * Usage examples:
+         * \code{.cpp}
+         * std::vector<int> data = {1, 2, 3, 4, 5};
+         * std::array<float, 10> floats = {...};
+         * std::deque<MyStruct> structs = {...};
+         *
+         * // Process each element
+         * auto h1 = js.submitBatch(data, [](int& x) { x *= 2; });
+         *
+         * // With captures
+         * int multiplier = 3;
+         * auto h2 = js.submitBatch(floats, [multiplier](float& x) { x *= multiplier; });
+         *
+         * // Complex processing
+         * auto h3 = js.submitBatch(structs, [](MyStruct& s) { s.process(); });
+         * \endcode
          */
-        template <typename T>
-        [[nodiscard]] JobHandle submitBatch(JobFunction fn, std::span<T> items) {
-            if (items.empty()) {
+        template <SizedContainer Container, typename Func>
+        requires EmptyCheckable<Container> && CallableWith<Func, std::ranges::range_reference_t<Container>>
+        JobHandle submitBatch(Container& items, Func&& func) {
+            if (items.empty())
                 return InvalidJobHandle;
-            }
 
-            // Allocate a single counter for the entire batch
             JobHandle handle = acquireCounter(static_cast<uint32_t>(items.size()));
 
-            // Distribute jobs round-robin across all worker deques
-            // This ensures even distribution and avoids overloading a single worker
             size_t workerIdx = m_nextWorker.fetch_add(1, std::memory_order_relaxed) % m_workers.size();
 
             for (auto& item : items) {
-                m_workers[workerIdx]->deque.push({fn, static_cast<void*>(&item), handle});
+                // Create a job that calls func with the item
+                // We capture by reference since the item must outlive the job
+                m_workers[workerIdx]->deque.push({[&item, func]() { func(item); }, handle});
                 workerIdx = (workerIdx + 1) % m_workers.size();
             }
 
-            // Notify all workers after all jobs are pushed to avoid excessive wakeup overhead
             m_condition.notify_all();
+            return handle;
+        }
 
+        /**
+         * @brief Submits a batch where each element is a callable.
+         *
+         * @tparam Container Container of void-returning callables
+         * @param callables Container of functions to execute
+         * @return A JobHandle representing the entire batch
+         *
+         * The CallableContainer concept ensures each element can be invoked with no arguments.
+         *
+         * Usage examples:
+         * \code{.cpp}
+         * std::vector<std::function<void()>> tasks;
+         * tasks.push_back([]() { doWork1(); });
+         * tasks.push_back([]() { doWork2(); });
+         * tasks.push_back([]() { doWork3(); });
+         *
+         * auto h = js.submitBatchCallables(tasks);
+         * js.wait(h);
+         *
+         * // Also works with arrays
+         * std::array<std::function<void()>, 3> moreTasks = {
+         *     []() { taskA(); },
+         *     []() { taskB(); },
+         *     []() { taskC(); }
+         * };
+         * auto h2 = js.submitBatchCallables(moreTasks);
+         * \endcode
+         */
+        template <CallableContainer Container>
+        requires SizedContainer<Container> && EmptyCheckable<Container>
+        JobHandle submitBatchCallables(Container& callables) {
+            if (callables.empty())
+                return InvalidJobHandle;
+
+            JobHandle handle = acquireCounter(static_cast<uint32_t>(callables.size()));
+
+            size_t workerIdx = m_nextWorker.fetch_add(1, std::memory_order_relaxed) % m_workers.size();
+
+            for (auto& callable : callables) {
+                m_workers[workerIdx]->deque.push({callable, handle});
+                workerIdx = (workerIdx + 1) % m_workers.size();
+            }
+
+            m_condition.notify_all();
+            return handle;
+        }
+
+        /**
+         * @brief Submits a parallel for loop.
+         *
+         * @tparam Func Callable that takes a size_t index
+         * @param start Starting index (inclusive)
+         * @param end Ending index (exclusive)
+         * @param func Function to call with each index
+         * @return A JobHandle for the entire loop
+         *
+         * The IndexCallable concept ensures func accepts a size_t and returns void.
+         *
+         * Usage examples:
+         * @code
+         * std::vector<int> data(1000);
+         *
+         * // Process indices 0-999 in parallel
+         * auto h = js.parallelFor(0, 1000, [&data](size_t i) {
+         *     data[i] = i * i;
+         * });
+         *
+         * // With range
+         * auto h2 = js.parallelFor(10, 50, [](size_t i) {
+         *     std::cout << "Processing " << i << std::endl;
+         * });
+         *
+         * js.wait(h);
+         * @endcode
+         */
+        template <IndexCallable Func>
+        JobHandle parallelFor(size_t start, size_t end, Func&& func) {
+            if (start >= end)
+                return InvalidJobHandle;
+
+            size_t count = end - start;
+            JobHandle handle = acquireCounter(static_cast<uint32_t>(count));
+
+            size_t workerIdx = m_nextWorker.fetch_add(1, std::memory_order_relaxed) % m_workers.size();
+
+            for (size_t i = start; i < end; ++i) {
+                // Capture i by value to ensure each job has correct index
+                m_workers[workerIdx]->deque.push({[i, func]() { func(i); }, handle});
+                workerIdx = (workerIdx + 1) % m_workers.size();
+            }
+
+            m_condition.notify_all();
             return handle;
         }
 
@@ -315,7 +466,7 @@ namespace pxt::core {
             }
 
             // Execute the job
-            job.fn(job.data);
+            job.fn();
 
             // Signal completion: Release ordering ensures all data writes in fn()
             // are visible to any thread that acquires this counter (e.g., in wait())
