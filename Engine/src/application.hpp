@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/concurrency/job_system.hpp"
 #include "core/events/event.hpp"
 #include "core/events/event_queue.hpp"
 #include "core/layer/layer_stack.hpp"
@@ -105,6 +106,8 @@ namespace pxt {
         void updateCamera(Camera& camera);
 
         bool m_running = true;
+
+        core::JobSystem m_jobSystem{};
 
         Window m_window{WindowData()};
         Context m_context{m_window};
