@@ -8,6 +8,7 @@
 #include <iostream>   // For input/output operations (e.g., std::cout, std::cin)
 #include <limits>     // For numeric_limits, providing properties of fundamental types
 #include <memory>     // For smart pointers (e.g., std::unique_ptr, std::shared_ptr) for memory management
+#include <new>        // For low-level memory management utilities
 #include <random>     // For random number generation
 #include <string>     // For std::string class, representing character sequences
 #include <utility>    // For std::pair, std::move, std::forward, and other utility functions
@@ -15,11 +16,18 @@
 // Standard Library Headers - Data Structures and Containers
 #include <array> // For std::array, a fixed-size array
 #include <map>   // For std::map, a sorted associative container of key-value pairs (balanced binary search tree)
-#include <queue>
-#include <set>           // For std::set, a sorted associative container (balanced binary search tree)
+#include <queue> // For std::queue and std::priority_queue, FIFO and priority-based queues
+#include <set>   // For std::set, a sorted associative container (balanced binary search tree)
 #include <unordered_map> // For std::unordered_map, a hash table-based associative container
 #include <unordered_set> // For std::unordered_set, a hash table-based set
 #include <vector>        // For std::vector, a dynamic array
+
+// Standard Library Headers - Multithreading and Concurrency
+#include <atomic>             // For atomic operations and types (e.g., std::atomic)
+#include <barrier>            // For std::barrier, to synchronize multiple threads at a certain point (C++20)
+#include <condition_variable> // For std::condition_variable, to synchronize threads
+#include <mutex> // For mutexes (e.g., std::mutex, std::lock_guard) to protect shared data in multithreaded environments
+#include <thread> // For std::thread, to create and manage threads
 
 // Standard Library Headers - Low-level Utilities and C-style Compatibility
 // These headers offer lower-level functionalities, often inherited from C.
