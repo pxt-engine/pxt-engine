@@ -226,7 +226,7 @@ namespace pxt::core {
         std::vector<JobHandle> dependencies{}; //< Jobs that must complete before this job can run
 
         //? unresolvedDependenciesCount is non-atomic
-        //? But it must be accessed under under dependentsMutex (from CounterPool)
+        //? But it must be accessed under dependentsMutex (from CounterPool)
         uint32_t unresolvedDependenciesCount{0}; //< Count of unfinished dependencies
 
         // Default constructor for invalid jobs
