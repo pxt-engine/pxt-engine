@@ -6,8 +6,6 @@
 #include "core/concurrency/job.hpp"
 #include "core/concurrency/work_stealing_deque.hpp"
 
-#include <new>
-
 namespace pxt::core {
 
     template <typename F>
