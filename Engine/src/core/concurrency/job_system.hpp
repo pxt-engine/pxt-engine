@@ -181,20 +181,6 @@ namespace pxt::core {
     concept CallableContainer = IterableContainer<C> && VoidCallable<std::ranges::range_value_t<C>>;
 
     /**
-     * @brief A Job represents a single unit of work to be executed by the JobSystem.
-     */
-    struct Job {
-        JobFunction execute;       //< Function to execute
-        uint32_t counterIndex = 0; //< Index into the counter pool for tracking completion
-
-        /**
-         * @brief Checks if this job is valid and ready to execute.
-         * @return true if the function is non-null
-         */
-        bool isValid() { return static_cast<bool>(execute); }
-    };
-
-    /**
      * @brief A JobHandle is an identifier for a submitted job or batch of jobs.
      *
      * JobHandles use a generation counter to prevent the ABA problem where a counter
@@ -223,6 +209,48 @@ namespace pxt::core {
 
     static constexpr JobHandle InvalidJobHandle = {0xFFFFFFFF, 0xFFFFFFFF};
 
+    enum class JobState : uint8_t {
+        Ready,   //< Job is ready to execute
+        Pending, //< Job is pending execution (waiting for dependencies)
+    };
+
+    /**
+     * @brief A Job represents a single unit of work to be executed by the JobSystem.
+     */
+    struct Job {
+        JobFunction execute;              //< Function to execute
+        JobState state = JobState::Ready; //< Current state of the job
+        uint32_t counterIndex = 0;        //< Index into the counter pool for tracking completion
+
+        // For Pending jobs with dependencies:
+        std::vector<JobHandle> dependencies{}; //< Jobs that must complete before this job can run
+
+        //? unresolvedDependenciesCount is non-atomic
+        //? But it must be accessed under under dependentsMutex (from CounterPool)
+        uint32_t unresolvedDependenciesCount{0}; //< Count of unfinished dependencies
+
+        // Default constructor for invalid jobs
+        Job() = default;
+
+        // Contructor for Ready jobs
+        Job(JobFunction&& fn, uint32_t cIdx) : execute(std::move(fn)), counterIndex(cIdx), state(JobState::Ready) {}
+
+        // Contructor for Pending jobs with dependencies
+        Job(JobFunction&& fn, uint32_t cIdx, std::vector<JobHandle>&& deps)
+            : execute(std::move(fn)), counterIndex(cIdx), state(JobState::Pending), dependencies(std::move(deps)),
+              unresolvedDependenciesCount(static_cast<uint32_t>(dependencies.size())) {}
+
+        /**
+         * @brief Checks if this job is valid and ready to execute.
+         * @return true if the function is non-null
+         */
+        bool isValid() const { return static_cast<bool>(execute); }
+
+        bool isReady() const { return state == JobState::Ready; }
+
+        bool isPending() const { return state == JobState::Pending; }
+    };
+
     /**
      * @brief Padded atomic counter with generation tracking to avoid false sharing between threads.
      *
@@ -246,6 +274,9 @@ namespace pxt::core {
     struct alignas(std::hardware_destructive_interference_size) PaddedAtomicCounter {
         std::atomic<uint32_t> value{0};      //< Current job count
         std::atomic<uint32_t> generation{0}; //< Generation number (incremented on recycle)
+
+        std::vector<Shared<Job>> dependents; //< Jobs that depend on this counter
+        std::mutex dependentsMutex;          //< Mutex for protecting dependents list
     };
 
     /**
@@ -387,6 +418,63 @@ namespace pxt::core {
             pushJob({std::forward<Func>(func), handle.index});
 
             return handle;
+        }
+
+        template <VoidCallable Func>
+        JobHandle submitWithDependencies(Func&& func, std::vector<JobHandle> dependencies) {
+            // Remove invalid dependencies
+            dependencies.erase(std::remove_if(dependencies.begin(), dependencies.end(),
+                                              [](const JobHandle& h) { return !h.isValid(); }),
+                               dependencies.end());
+
+            // If there are no dependencies, submit as a normal job
+            if (dependencies.empty()) {
+                return submit(std::forward<Func>(func));
+            }
+
+            JobHandle handle = acquireCounter(1);
+
+            // Create a pending job with dependencies
+            auto job = createShared<Job>(std::forward<Func>(func), handle.index, std::move(dependencies));
+
+            // Register this job as a dependent on each dependency's counter
+            for (const auto& dep : job->dependencies) {
+                if (!dep.isValid() || dep.index >= m_counterPool.maxCounters()) {
+                    continue;
+                }
+
+                auto& depCounter = m_counterPool[dep.index];
+
+                std::lock_guard lock(depCounter.dependentsMutex);
+
+                // Check if dependency already completed
+                if (depCounter.generation.load(std::memory_order_relaxed) != dep.generation ||
+                    depCounter.value.load(std::memory_order_acquire) == 0) {
+
+                    // Already done, decrement unresolved count
+                    uint32_t remaining = --job->unresolvedDependenciesCount;
+
+                    if (remaining == 0) {
+                        // All dependencies resolved immediately
+                        job->state = JobState::Ready;
+                        pushJob(std::move(*job));
+
+                        return handle;
+                    }
+
+                    continue;
+                }
+
+                // Dependency still pending, register
+                depCounter.dependents.push_back(job);
+            }
+
+            return handle;
+        }
+
+        template <VoidCallable Func>
+        JobHandle submitContinuation(JobHandle parent, Func&& func) {
+            return submitWithDependencies(std::forward<Func>(func), {parent});
         }
 
         /**
@@ -615,7 +703,7 @@ namespace pxt::core {
             // This provides good cache locality as we work on recently added tasks
             m_workers[index]->deque.pop(job);
 
-            if (job.isValid()) {
+            if (job.isValid() && job.isReady()) {
                 process(job);
                 return true;
             }
@@ -633,7 +721,7 @@ namespace pxt::core {
 
                 m_workers[target]->deque.steal(job);
 
-                if (job.isValid()) {
+                if (job.isValid() && job.isReady()) {
                     process(job);
                     return true;
                 }
@@ -651,7 +739,7 @@ namespace pxt::core {
          * @param job The job to process
          */
         void process(Job& job) {
-            if (!job.isValid()) {
+            if (!job.isValid() || !job.isReady()) {
                 return;
             }
 
@@ -663,9 +751,33 @@ namespace pxt::core {
             // Decrement counter and check if this was the last job
             uint32_t remaining = counter.value.fetch_sub(1, std::memory_order_release) - 1;
 
-            // If counter reached zero, increment generation for next use
             if (remaining == 0) {
-                // Use release ordering to ensure all job data writes are visible
+                // Job batch complete - check for dependent jobs
+                std::vector<std::shared_ptr<Job>> readyJobs;
+
+                {
+                    std::lock_guard lock(counter.dependentsMutex);
+
+                    // Process all jobs that were waiting (Pending state)
+                    for (auto& dependent : counter.dependents) {
+                        uint32_t unresolvedRemaining = --dependent->unresolvedDependenciesCount;
+
+                        if (unresolvedRemaining == 0) {
+                            // All dependencies resolved, transition to Ready
+                            dependent->state = JobState::Ready;
+                            readyJobs.push_back(std::move(dependent));
+                        }
+                    }
+
+                    counter.dependents.clear();
+                }
+
+                // Schedule all newly ready jobs
+                for (auto& ready : readyJobs) {
+                    pushJob(std::move(*ready));
+                }
+
+                // Increment generation
                 counter.generation.fetch_add(1, std::memory_order_release);
             }
         }
