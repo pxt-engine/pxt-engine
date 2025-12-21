@@ -46,10 +46,19 @@ public:
      * @note This function must only be called by the owner thread.
      * @note No bounds checking is performed - ensure capacity is not exceeded.
      */
-    void push(T item) {
+    void push(T& item) { // Copy overload
         size_t t = m_top.load(std::memory_order_relaxed);
 
         m_buffer[t & m_mask] = item;
+
+        std::atomic_thread_fence(std::memory_order_release);
+        m_top.store(t + 1, std::memory_order_relaxed);
+    }
+
+    void push(T&& item) { // Move overload
+        size_t t = m_top.load(std::memory_order_relaxed);
+
+        m_buffer[t & m_mask] = std::move(item);
 
         std::atomic_thread_fence(std::memory_order_release);
         m_top.store(t + 1, std::memory_order_relaxed);
@@ -99,9 +108,6 @@ public:
             return false;
         }
 
-        // Item is valid, retrieve it
-        item = m_buffer[t & m_mask];
-
         // Special case: this is the last item in the deque
         if (b == t) {
 
@@ -117,6 +123,9 @@ public:
             // CAS succeeded: we won the race, restore top to maintain consistency
             m_top.store(t + 1, std::memory_order_relaxed);
         }
+
+        // We won the race, so it's safe to move
+        item = std::move(m_buffer[t & m_mask]);
 
         return true;
     }
@@ -152,14 +161,16 @@ public:
 
         // Check if there are items to steal
         if (b < t) {
-            // Retrieve the item at bottom (oldest item)
-            item = m_buffer[b & m_mask];
 
             // Try to claim this item by incrementing bottom atomically
             // If CAS fails, another thief or the owner (in pop's last-item case) got it first
             if (!m_bottom.compare_exchange_strong(b, b + 1, std::memory_order_seq_cst, std::memory_order_relaxed)) {
                 return false; // Lost the race
             }
+
+            // Retrieve the item at bottom (oldest item)
+            // We won the race, so it's safe to move
+            item = std::move(m_buffer[b & m_mask]);
 
             return true; // Successfully stolen
         }
