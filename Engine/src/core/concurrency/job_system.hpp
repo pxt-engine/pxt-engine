@@ -2,7 +2,6 @@
 
 #include "core/pch.hpp"
 
-#include "core/concurrency/cpu_relax.hpp"
 #include "core/concurrency/job.hpp"
 #include "core/concurrency/work_stealing_deque.hpp"
 
@@ -143,29 +142,9 @@ namespace pxt::core {
          * @param threadCount Number of worker threads to create.
          *                    Defaults to std::thread::hardware_concurrency() (number of logical cores).
          */
-        explicit JobSystem(size_t threadCount = std::thread::hardware_concurrency()) {
-            m_workers.reserve(threadCount);
+        explicit JobSystem(size_t threadCount = std::thread::hardware_concurrency());
 
-            // Creates worker objects with their deques
-            for (size_t i = 0; i < threadCount; ++i) {
-                m_workers.push_back(createUnique<Worker>());
-            }
-
-            // Spawns worker threads that immediately begin waiting for work
-            for (size_t i = 0; i < threadCount; ++i) {
-                m_workers[i]->thread = std::jthread([this, i](std::stop_token st) {
-                    // Initializes thread-local variables for each worker
-                    t_workerIndex = i;
-
-                    workerLoop(i, st);
-                });
-            }
-        }
-
-        ~JobSystem() {
-            m_stop.store(true, std::memory_order_release);
-            m_condition.notify_all();
-        }
+        ~JobSystem();
 
         /**
          * @brief Submits a single job for execution.
@@ -430,33 +409,7 @@ namespace pxt::core {
          *       including worker threads and the main thread.
          * @note If the handle is invalid or out of range, the function returns immediately.
          */
-        void wait(JobHandle handle) {
-            if (handle == InvalidJobHandle || handle.index >= m_counterPool.maxCounters()) {
-                return;
-            }
-
-            auto& counter = m_counterPool[handle.index];
-
-            // Check generation: if mismatch, this handle is stale and job is already done
-            uint32_t currentGen = counter.generation.load(std::memory_order_relaxed);
-            if (currentGen != handle.generation) {
-                // Generation mismatch: the job has already completed in a previous cycle
-                return;
-            }
-
-            // Busy-wait with helping: actively execute jobs while waiting
-            while (counter.value.load(std::memory_order_acquire) > 0) {
-                // Double-check generation hasn't changed (counter recycled mid-wait)
-                if (counter.generation.load(std::memory_order_relaxed) != handle.generation) {
-                    return;
-                }
-
-                if (!executeOneJob(t_workerIndex)) {
-                    // No work available, yield to avoid burning CPU cycles
-                    std::this_thread::yield();
-                }
-            }
-        }
+        void wait(JobHandle handle);
 
     private:
         /**
@@ -467,13 +420,7 @@ namespace pxt::core {
          * Selects a worker in round-robin fashion and pushes the job to its deque.
          * Then wakes one sleeping worker to process it.
          */
-        void pushJob(Job&& job) {
-            size_t idx = m_nextWorker.fetch_add(1, std::memory_order_relaxed) % m_workers.size();
-
-            m_workers[idx]->deque.push(std::move(job));
-
-            m_condition.notify_one();
-        }
+        void pushJob(Job&& job);
 
         /**
          * @brief Attempts to execute one job from the given worker's perspective.
@@ -481,39 +428,7 @@ namespace pxt::core {
          * @param index The index of the worker attempting to execute a job
          * @return true if a job was executed, false if no work was available
          */
-        bool executeOneJob(size_t index) {
-            Job job;
-
-            // Try to take work from our own deque (LIFO)
-            // This provides good cache locality as we work on recently added tasks
-            m_workers[index]->deque.pop(job);
-
-            if (job.isValid() && job.isReady()) {
-                process(job);
-                return true;
-            }
-
-            // Work stealing from other workers (FIFO)
-            // Randomize the steal attempt order to reduce contention when multiple
-            // workers try to steal from the same victim simultaneously
-            size_t startIdx = t_rng() % m_workers.size();
-
-            for (size_t i = 0; i < m_workers.size(); ++i) {
-                size_t target = (startIdx + i) % m_workers.size();
-
-                if (target == index)
-                    continue;
-
-                m_workers[target]->deque.steal(job);
-
-                if (job.isValid() && job.isReady()) {
-                    process(job);
-                    return true;
-                }
-            }
-
-            return false;
-        }
+        bool executeOneJob(size_t index);
 
         /**
          * @brief Executes a job and updates its completion counter.
@@ -523,49 +438,7 @@ namespace pxt::core {
          *
          * @param job The job to process
          */
-        void process(Job& job) {
-            if (!job.isValid() || !job.isReady()) {
-                return;
-            }
-
-            // Execute the job
-            job.execute();
-
-            auto& counter = m_counterPool[job.counterIndex];
-
-            // Decrement counter and check if this was the last job
-            uint32_t remaining = counter.value.fetch_sub(1, std::memory_order_release) - 1;
-
-            if (remaining == 0) {
-                // Job batch complete - check for dependent jobs
-                std::vector<std::shared_ptr<Job>> readyJobs;
-
-                {
-                    std::lock_guard lock(counter.dependentsMutex);
-
-                    // Process all jobs that were waiting (Pending state)
-                    for (auto& dependent : counter.dependents) {
-                        uint32_t unresolvedRemaining = --dependent->unresolvedDependenciesCount;
-
-                        if (unresolvedRemaining == 0) {
-                            // All dependencies resolved, transition to Ready
-                            dependent->state = JobState::Ready;
-                            readyJobs.push_back(std::move(dependent));
-                        }
-                    }
-
-                    counter.dependents.clear();
-                }
-
-                // Schedule all newly ready jobs
-                for (auto& ready : readyJobs) {
-                    pushJob(std::move(*ready));
-                }
-
-                // Increment generation
-                counter.generation.fetch_add(1, std::memory_order_release);
-            }
-        }
+        void process(Job& job);
 
         /**
          * @brief Main loop executed by each worker thread.
@@ -589,54 +462,9 @@ namespace pxt::core {
          * @param index The worker's index
          * @param st Stop token for graceful shutdown
          */
-        void workerLoop(size_t index, std::stop_token st) {
-            while (!st.stop_requested() && !m_stop.load(std::memory_order_relaxed)) {
+        void workerLoop(size_t index, std::stop_token st);
 
-                // Active Execution Phase: Try to execute one job
-                if (executeOneJob(index)) {
-                    continue; // Work found, keep going immediately
-                }
-
-                // Spinning Phase:
-                // Stay active for a short burst to catch new jobs without the overhead
-                // of a context switch. This is beneficial when work arrives frequently.
-                bool foundWork = false;
-                constexpr int MAX_SPIN_ITERATIONS = 300;
-                for (int spin = 0; spin < MAX_SPIN_ITERATIONS; ++spin) {
-                    if (hasWork(index)) {
-                        foundWork = true;
-                        break;
-                    }
-
-                    // Provide a hint to the processor that the code sequence is a spin-wait loop.
-                    // This can help improve the performance and power consumption of spin-wait loops.
-                    cpuRelax();
-                }
-
-                // If work was found during spinning, continue the loop to process it.
-                if (foundWork) {
-                    continue;
-                }
-
-                // Sleeping Phase:
-                // No work found after spinning, sleep until notified
-                // This prevents burning CPU cycles when the system is idle
-                std::unique_lock lock(m_mutex);
-                m_condition.wait(lock, [this, index, &st] {
-                    return m_stop.load(std::memory_order_relaxed) || st.stop_requested() || hasWork(index);
-                });
-            }
-        }
-
-        bool hasWork(size_t index) const {
-            for (size_t i = 0; i < m_workers.size(); ++i) {
-
-                if (!m_workers[i]->deque.isEmpty()) {
-                    return true;
-                }
-            }
-            return false;
-        }
+        bool hasWork(size_t index) const;
 
         /**
          * @brief Acquires a counter from the pool and initializes it with generation tracking.
@@ -648,21 +476,7 @@ namespace pxt::core {
          * @param initialValue The initial value for the counter (number of jobs in the batch)
          * @return A JobHandle containing both the counter index and generation number
          */
-        JobHandle acquireCounter(uint32_t initialValue) {
-            // Circular allocation of counter indices
-            uint32_t index = m_counterAllocIdx.fetch_add(1, std::memory_order_relaxed) % m_counterPool.maxCounters();
-
-            auto& counter = m_counterPool[index];
-
-            // Read current generation before initializing counter
-            // This generation will be incremented when the counter reaches zero
-            uint32_t generation = counter.generation.load(std::memory_order_relaxed);
-
-            // Initialize the counter with the number of jobs
-            counter.value.store(initialValue, std::memory_order_release);
-
-            return JobHandle{index, generation};
-        }
+        JobHandle acquireCounter(uint32_t initialValue);
 
     private:
         // Pool of atomic counters for tracking job completion
