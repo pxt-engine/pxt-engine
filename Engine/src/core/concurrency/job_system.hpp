@@ -9,7 +9,148 @@
 
 namespace pxt::core {
 
-    using JobFunction = std::function<void()>;
+    /**
+     * @brief A type-erased callable with small function optimization.
+     *
+     * This class avoids heap allocations for small callables (lambdas, functors)
+     * that fit within the inline buffer. Larger callables fall back to heap allocation.
+     *
+     * Small Function Optimization (SFO) Benefits:
+     * - Zero heap allocations for most lambdas
+     * - Better cache locality (data stored inline)
+     * - Reduced memory fragmentation
+     * - Faster job submission (no malloc/free overhead)
+     *
+     * Memory Layout:
+     * - Inline buffer
+     * - Stores small callables directly in this buffer
+     * - Large callables stored on heap with pointer in buffer
+     */
+    class JobFunction {
+    public:
+        JobFunction() = default;
+
+        /**
+         * @brief Constructs from any callable object.
+         *
+         * Uses small function optimization: if the callable fits in the inline buffer,
+         * it's stored directly. Otherwise, it's heap-allocated.
+         */
+        template <typename Func>
+        requires(!std::is_same_v<std::decay_t<Func>, JobFunction>)
+        JobFunction(Func&& func) {
+            using DecayedFunc = std::decay_t<Func>;
+
+            static_assert(std::is_invocable_r_v<void, DecayedFunc>, "Func must be callable with signature void()");
+
+            constexpr bool fits_inline = sizeof(DecayedFunc) <= BUFFER_SIZE &&
+                                         alignof(DecayedFunc) <= alignof(Storage) &&
+                                         std::is_nothrow_move_constructible_v<DecayedFunc>;
+
+            if constexpr (fits_inline) {
+                // Small function optimization: construct in-place
+                new (&m_storage) DecayedFunc(std::forward<Func>(func));
+
+                m_invoke = [](const Storage& storage) { (*reinterpret_cast<const DecayedFunc*>(&storage))(); };
+
+                m_destroy = [](Storage& storage) { reinterpret_cast<DecayedFunc*>(&storage)->~DecayedFunc(); };
+
+                m_move = [](Storage& dst, Storage& src) {
+                    new (&dst) DecayedFunc(std::move(*reinterpret_cast<DecayedFunc*>(&src)));
+                };
+            } else {
+                // Large callable: heap allocate
+                auto* ptr = new DecayedFunc(std::forward<Func>(func));
+                *reinterpret_cast<DecayedFunc**>(&m_storage) = ptr;
+
+                m_invoke = [](const Storage& storage) { (*(*reinterpret_cast<DecayedFunc* const*>(&storage)))(); };
+
+                m_destroy = [](Storage& storage) { delete *reinterpret_cast<DecayedFunc**>(&storage); };
+
+                m_move = [](Storage& dst, Storage& src) {
+                    *reinterpret_cast<DecayedFunc**>(&dst) = *reinterpret_cast<DecayedFunc**>(&src);
+                    *reinterpret_cast<DecayedFunc**>(&src) = nullptr;
+                };
+            }
+        }
+
+        // Move constructor
+        JobFunction(JobFunction&& other) noexcept
+            : m_invoke(other.m_invoke), m_destroy(other.m_destroy), m_move(other.m_move) {
+            if (m_move) {
+                m_move(m_storage, other.m_storage);
+                other.m_invoke = nullptr;
+                other.m_destroy = nullptr;
+                other.m_move = nullptr;
+            }
+        }
+
+        // Move assignment
+        JobFunction& operator=(JobFunction&& other) noexcept {
+            if (this != &other) {
+                reset();
+
+                m_invoke = other.m_invoke;
+                m_destroy = other.m_destroy;
+                m_move = other.m_move;
+
+                if (m_move) {
+                    m_move(m_storage, other.m_storage);
+                    other.m_invoke = nullptr;
+                    other.m_destroy = nullptr;
+                    other.m_move = nullptr;
+                }
+            }
+            return *this;
+        }
+
+        ~JobFunction() { reset(); }
+
+        // Delete copy operations (jobs should be moved, not copied)
+        JobFunction(const JobFunction&) = delete;
+        JobFunction& operator=(const JobFunction&) = delete;
+
+        /**
+         * @brief Invokes the stored callable.
+         */
+        void operator()() const {
+            if (m_invoke) {
+                m_invoke(m_storage);
+            }
+        }
+
+        /**
+         * @brief Checks if this JobFunction contains a valid callable.
+         */
+        explicit operator bool() const noexcept { return m_invoke != nullptr; }
+
+        /**
+         * @brief Resets to empty state, destroying any stored callable.
+         */
+        void reset() noexcept {
+            if (m_destroy) {
+                m_destroy(m_storage);
+            }
+            m_invoke = nullptr;
+            m_destroy = nullptr;
+            m_move = nullptr;
+        }
+
+    private:
+        // Size tuned for typical lambda captures
+        // TODO: The workload can be profiled to find optimal size
+        static constexpr size_t BUFFER_SIZE = 32;
+
+        using Storage = std::aligned_storage_t<BUFFER_SIZE, alignof(std::max_align_t)>;
+
+        // Inline storage for small callables
+        mutable Storage m_storage{};
+
+        // Type-erased function pointers
+        void (*m_invoke)(const Storage&) = nullptr;
+        void (*m_destroy)(Storage&) = nullptr;
+        void (*m_move)(Storage&, Storage&) = nullptr;
+    };
 
     template <typename F>
     concept VoidCallable = std::invocable<F> && std::same_as<std::invoke_result_t<F>, void>;
@@ -43,14 +184,14 @@ namespace pxt::core {
      * @brief A Job represents a single unit of work to be executed by the JobSystem.
      */
     struct Job {
-        JobFunction fn = nullptr;  //< Function to execute
+        JobFunction fn;            //< Function to execute
         uint32_t counterIndex = 0; //< Index into the counter pool for tracking completion
 
         /**
          * @brief Checks if this job is valid and ready to execute.
          * @return true if the function is non-null
          */
-        bool isValid() { return fn != nullptr; }
+        bool isValid() { return static_cast<bool>(fn); }
     };
 
     /**
@@ -407,10 +548,10 @@ namespace pxt::core {
          * Selects a worker in round-robin fashion and pushes the job to its deque.
          * Then wakes one sleeping worker to process it.
          */
-        void pushJob(Job job) {
+        void pushJob(Job&& job) {
             size_t idx = m_nextWorker.fetch_add(1, std::memory_order_relaxed) % m_workers.size();
 
-            m_workers[idx]->deque.push(job);
+            m_workers[idx]->deque.push(std::move(job));
 
             m_condition.notify_one();
         }
