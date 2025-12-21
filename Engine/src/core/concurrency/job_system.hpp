@@ -184,28 +184,54 @@ namespace pxt::core {
      * @brief A Job represents a single unit of work to be executed by the JobSystem.
      */
     struct Job {
-        JobFunction fn;            //< Function to execute
+        JobFunction execute;       //< Function to execute
         uint32_t counterIndex = 0; //< Index into the counter pool for tracking completion
 
         /**
          * @brief Checks if this job is valid and ready to execute.
          * @return true if the function is non-null
          */
-        bool isValid() { return static_cast<bool>(fn); }
+        bool isValid() { return static_cast<bool>(execute); }
     };
 
     /**
-     * @brief A JobHandle is an opaque identifier for a submitted job or batch of jobs.
+     * @brief A JobHandle is an identifier for a submitted job or batch of jobs.
      *
-     * JobHandles are used to wait for job completion via the wait() function.
-     * They internally reference a counter in the CounterPool that tracks how many
-     * jobs in the batch are still pending.
+     * JobHandles use a generation counter to prevent the ABA problem where a counter
+     * index is reused while an old handle still references it. Each time a counter
+     * completes and is recycled, its generation is incremented.
+     *
+     * Structure:
+     * - index: The counter pool index (0 to MAX_COUNTERS-1)
+     * - generation: The generation number of this allocation
+     *
+     * A handle is valid only if both the index AND generation match the counter pool.
      */
-    using JobHandle = uint32_t;
-    static constexpr JobHandle InvalidJobHandle = 0xFFFFFFFF;
+    struct JobHandle {
+        uint32_t index = 0xFFFFFFFF;
+        uint32_t generation = 0;
+
+        bool operator==(const JobHandle& other) const { return index == other.index && generation == other.generation; }
+
+        bool operator!=(const JobHandle& other) const { return !(*this == other); }
+
+        /**
+         * @brief Checks if this handle is valid (not the invalid sentinel value).
+         */
+        bool isValid() const { return index != 0xFFFFFFFF; }
+    };
+
+    static constexpr JobHandle InvalidJobHandle = {0xFFFFFFFF, 0xFFFFFFFF};
 
     /**
-     * @brief Padded atomic uint32 to avoid false sharing between threads.
+     * @brief Padded atomic counter with generation tracking to avoid false sharing between threads.
+     *
+     * Each counter includes a generation number that increments each time
+     * the counter is recycled. This prevents stale handles from accidentally
+     * waiting on new work that happens to use the same counter index.
+     *
+     * False sharing prevention: aligned to cache line size to ensure each counter
+     * resides in its own cache line.
      *
      * False sharing occurs when multiple threads access different variables that reside
      * in the same cache line, causing unnecessary cache invalidations and performance degradation.
@@ -217,30 +243,32 @@ namespace pxt::core {
      * The C++17 constant std::hardware_destructive_interference_size provides a portable way
      * to query the cache line size at compile time.
      */
-    struct alignas(std::hardware_destructive_interference_size) PaddedAtomicUint32 {
-        std::atomic<uint32_t> value{0};
+    struct alignas(std::hardware_destructive_interference_size) PaddedAtomicCounter {
+        std::atomic<uint32_t> value{0};      //< Current job count
+        std::atomic<uint32_t> generation{0}; //< Generation number (incremented on recycle)
     };
 
     /**
-     * @brief CounterPool manages a pool of atomic counters for tracking job completion.
+     * @brief CounterPool manages a pool of atomic counters with generation tracking.
      *
-     * The JobSystem uses reference counting to track when batches of jobs complete.
-     * Each JobHandle corresponds to an index in this pool:
+     * Generation Tracking:
+     * - Each counter has a generation number that starts at 0
+     * - When a counter reaches zero and is about to be recycled, generation increments
+     * - Handles store both index and generation
+     * - wait() validates that the handle's generation matches before waiting
      *
-     * Workflow:
-     * 1. When jobs are submitted, a counter is allocated and initialized to the number of jobs
-     * 2. As each job completes, it decrements its associated counter
-     * 3. When the counter reaches zero, all jobs in the batch have completed
-     * 4. The wait() function spins on a counter until it reaches zero
+     * This prevents the ABA problem:
+     * 1. Thread A gets handle {index: 5, generation: 0} for a job
+     * 2. Job completes, counter at index 5 is recycled with generation 1
+     * 3. New job allocated to index 5 with generation 1
+     * 4. Thread A calls wait() with old handle {index: 5, generation: 0}
+     * 5. Generation mismatch detected -> wait returns immediately (job already done)
      *
      * Memory Layout:
      * - Fixed-size array of MAX_COUNTERS=4096 padded counters
-     * - Each counter is cache-line aligned (64 bytes on most architectures)
+     * - Each counter is cache-line aligned (64 bytes)
+     * - Each counter includes both value and generation
      * - Total size: 4096 * 64 = 256 KB
-     *
-     * @note Counters are reused in a circular way. If more than MAX_COUNTERS jobs
-     *       are in flight simultaneously, counters may be reused prematurely, causing
-     *       incorrect behavior (see acquireCounter() for details).
      */
     struct CounterPool {
         /**
@@ -248,14 +276,15 @@ namespace pxt::core {
          * @param index The counter index (must be < MAX_COUNTERS)
          * @return Reference to the padded atomic counter
          */
-        PaddedAtomicUint32& operator[](size_t index) { return m_counters[index]; }
+        PaddedAtomicCounter& operator[](size_t index) { return m_counters[index]; }
+
+        const PaddedAtomicCounter& operator[](size_t index) const { return m_counters[index]; }
 
         size_t maxCounters() const { return MAX_COUNTERS; }
 
     private:
         static constexpr size_t MAX_COUNTERS = 4096;
-
-        std::array<PaddedAtomicUint32, MAX_COUNTERS> m_counters{};
+        std::array<PaddedAtomicCounter, MAX_COUNTERS> m_counters{};
     };
 
     /**
@@ -355,7 +384,7 @@ namespace pxt::core {
         JobHandle submit(Func&& func) {
             JobHandle handle = acquireCounter(1);
 
-            pushJob({std::forward<Func>(func), handle});
+            pushJob({std::forward<Func>(func), handle.index});
 
             return handle;
         }
@@ -404,7 +433,7 @@ namespace pxt::core {
             for (auto& item : items) {
                 // Create a job that calls func with the item
                 // We capture by reference since the item must outlive the job
-                m_workers[workerIdx]->deque.push({[&item, func]() { func(item); }, handle});
+                m_workers[workerIdx]->deque.push({[&item, func]() { func(item); }, handle.index});
                 workerIdx = (workerIdx + 1) % m_workers.size();
             }
 
@@ -451,7 +480,7 @@ namespace pxt::core {
             size_t workerIdx = m_nextWorker.fetch_add(1, std::memory_order_relaxed) % m_workers.size();
 
             for (auto& callable : callables) {
-                m_workers[workerIdx]->deque.push({callable, handle});
+                m_workers[workerIdx]->deque.push({callable, handle.index});
                 workerIdx = (workerIdx + 1) % m_workers.size();
             }
 
@@ -499,7 +528,7 @@ namespace pxt::core {
 
             for (size_t i = start; i < end; ++i) {
                 // Capture i by value to ensure each job has correct index
-                m_workers[workerIdx]->deque.push({[i, func]() { func(i); }, handle});
+                m_workers[workerIdx]->deque.push({[i, func]() { func(i); }, handle.index});
                 workerIdx = (workerIdx + 1) % m_workers.size();
             }
 
@@ -509,6 +538,11 @@ namespace pxt::core {
 
         /**
          * @brief Waits for a job or batch of jobs to complete.
+         *
+         * Generation Validation:
+         * Before waiting, this function validates that the handle's generation matches
+         * the counter's current generation. If they don't match, the handle is stale
+         * and the jobs have already completed (or the handle was never valid).
          *
          * This function implements "busy-waiting with helping": instead of sleeping,
          * the waiting thread actively participates in executing jobs. This has several benefits:
@@ -524,14 +558,26 @@ namespace pxt::core {
          * @note If the handle is invalid or out of range, the function returns immediately.
          */
         void wait(JobHandle handle) {
-            if (handle == InvalidJobHandle || handle >= m_counterPool.maxCounters()) {
+            if (handle == InvalidJobHandle || handle.index >= m_counterPool.maxCounters()) {
                 return;
             }
 
-            auto& counter = m_counterPool[handle].value;
+            auto& counter = m_counterPool[handle.index];
+
+            // Check generation: if mismatch, this handle is stale and job is already done
+            uint32_t currentGen = counter.generation.load(std::memory_order_relaxed);
+            if (currentGen != handle.generation) {
+                // Generation mismatch: the job has already completed in a previous cycle
+                return;
+            }
 
             // Busy-wait with helping: actively execute jobs while waiting
-            while (counter.load(std::memory_order_acquire) > 0) {
+            while (counter.value.load(std::memory_order_acquire) > 0) {
+                // Double-check generation hasn't changed (counter recycled mid-wait)
+                if (counter.generation.load(std::memory_order_relaxed) != handle.generation) {
+                    return;
+                }
+
                 if (!executeOneJob(t_workerIndex)) {
                     // No work available, yield to avoid burning CPU cycles
                     std::this_thread::yield();
@@ -599,6 +645,9 @@ namespace pxt::core {
         /**
          * @brief Executes a job and updates its completion counter.
          *
+         * When the counter reaches zero, the generation is incremented to invalidate
+         * any stale handles that might reference this counter index.
+         *
          * @param job The job to process
          */
         void process(Job& job) {
@@ -607,11 +656,18 @@ namespace pxt::core {
             }
 
             // Execute the job
-            job.fn();
+            job.execute();
 
-            // Signal completion: Release ordering ensures all data writes in fn()
-            // are visible to any thread that acquires this counter (e.g., in wait())
-            m_counterPool[job.counterIndex].value.fetch_sub(1, std::memory_order_release);
+            auto& counter = m_counterPool[job.counterIndex];
+
+            // Decrement counter and check if this was the last job
+            uint32_t remaining = counter.value.fetch_sub(1, std::memory_order_release) - 1;
+
+            // If counter reached zero, increment generation for next use
+            if (remaining == 0) {
+                // Use release ordering to ensure all job data writes are visible
+                counter.generation.fetch_add(1, std::memory_order_release);
+            }
         }
 
         /**
@@ -686,21 +742,29 @@ namespace pxt::core {
         }
 
         /**
-         * @brief Acquires a counter from the pool and initializes it.
+         * @brief Acquires a counter from the pool and initializes it with generation tracking.
+         *
+         * The counter is initialized with the job count and the current generation number
+         * is captured. The generation will be incremented when the counter reaches zero,
+         * ensuring that any handles created now will detect completion via generation mismatch.
          *
          * @param initialValue The initial value for the counter (number of jobs in the batch)
-         * @return The JobHandle (counter index) for this batch
+         * @return A JobHandle containing both the counter index and generation number
          */
         JobHandle acquireCounter(uint32_t initialValue) {
-            //! Potential Bug: if more than MAX_COUNTERS are allocated without being freed,
-            //! counters will be reused leading to incorrect behavior.
+            // Circular allocation of counter indices
             uint32_t index = m_counterAllocIdx.fetch_add(1, std::memory_order_relaxed) % m_counterPool.maxCounters();
 
-            // Initialize the counter with the number of jobs
-            // Release ordering ensures this write is visible before jobs start executing
-            m_counterPool[index].value.store(initialValue, std::memory_order_release);
+            auto& counter = m_counterPool[index];
 
-            return index;
+            // Read current generation before initializing counter
+            // This generation will be incremented when the counter reaches zero
+            uint32_t generation = counter.generation.load(std::memory_order_relaxed);
+
+            // Initialize the counter with the number of jobs
+            counter.value.store(initialValue, std::memory_order_release);
+
+            return JobHandle{index, generation};
         }
 
     private:
