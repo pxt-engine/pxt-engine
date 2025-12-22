@@ -190,6 +190,16 @@ public:
     }
 
 private:
+    /**
+     * @brief Bitmask for fast modulo operation (capacity - 1, works when capacity is power of 2)
+     */
+    const size_t m_mask;
+
+    /**
+     * @brief Circular buffer holding the items
+     */
+    std::vector<T> m_buffer;
+
     //? Cache line alignment prevents false sharing between owner and thief threads.
     //? m_top is modified by the owner, m_bottom by thieves - keeping them in separate
     //? cache lines avoids expensive cache coherency traffic.
@@ -203,14 +213,4 @@ private:
      * @brief The bottom index where thieves steal from (grows upward)
      */
     alignas(std::hardware_destructive_interference_size) std::atomic<size_t> m_bottom{0};
-
-    /**
-     * @brief Circular buffer holding the items
-     */
-    std::vector<T> m_buffer;
-
-    /**
-     * @brief Bitmask for fast modulo operation (capacity - 1, works when capacity is power of 2)
-     */
-    size_t m_mask;
 };
