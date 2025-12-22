@@ -14,7 +14,9 @@ namespace pxt::editor {
         void onUpdateUi(FrameInfo& frameInfo) override;
 
     private:
-        void updateSceneUi(VkDescriptorSet sceneDescriptorSet, float sceneAspectRatio);
+        void updateSceneUi(FrameInfo& frameInfo);
+        void updateGizmos(FrameInfo& frameInfo);
+
         ImVec2 getImageSizeWithAspectRatioForImGuiWindow(ImVec2 windowSize, float aspectRatio);
         bool onMouseButtonPress(core::MouseButtonPressEvent& event);
 

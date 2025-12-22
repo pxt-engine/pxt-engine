@@ -2,6 +2,8 @@
 #include "core/events/editor_events.hpp"
 #include "core/events/imgui_events.hpp"
 
+#include <ImGuizmo.h>
+
 namespace pxt::editor {
     EditorLayer::EditorLayer() : core::Layer("EditorLayer") {}
 
@@ -66,11 +68,11 @@ namespace pxt::editor {
         m_mainMenuBar.onUpdateUi(frameInfo);
 
         // maybe viewport class in the future?
-        updateSceneUi(frameInfo.sceneDescriptorSet, frameInfo.sceneAspectRatio);
+        updateSceneUi(frameInfo);
     }
 
-    void EditorLayer::updateSceneUi(VkDescriptorSet sceneDescriptorSet, float sceneAspectRatio) {
-        ImTextureID scene = (ImTextureID)sceneDescriptorSet;
+    void EditorLayer::updateSceneUi(FrameInfo& frameInfo) {
+        ImTextureID scene = (ImTextureID)frameInfo.sceneDescriptorSet;
 
         // we push a style var to remove the viewpoer window padding
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
@@ -94,8 +96,61 @@ namespace pxt::editor {
         }
 
         ImGui::Image(scene, m_sceneImageExtent);
+
+        // this has to be called inside the window where ImGuizmo is used
+        updateGizmos(frameInfo);
+
         ImGui::End();
         ImGui::PopStyleVar();
+    }
+
+    void EditorLayer::updateGizmos(FrameInfo& frameInfo) {
+        // nothing selected
+        if (m_selectedEntityUUID == core::UUID::s_invalidId)
+            return;
+
+        // ImGuizmo::BeginFrame() is called right after ImGui::NewFrame() in UiRenderLayer
+
+        ImGuizmo::SetDrawlist();
+
+        ImGuizmo::SetRect(m_viewportUpperLeftScreenCoord.x, m_viewportUpperLeftScreenCoord.y, m_sceneImageExtent.x,
+                          m_sceneImageExtent.y);
+        
+        Entity selectedEntity = frameInfo.scene.getEntity(m_selectedEntityUUID);
+        TransformComponent& transform = selectedEntity.get<TransformComponent>();
+
+        const glm::mat4& view = frameInfo.camera.getViewMatrix();
+        const glm::mat4& projection = frameInfo.camera.getProjectionMatrix();
+        glm::mat4 modelMatrix = transform.mat4();
+
+        // m_GizmoOperation could be ImGuizmo::TRANSLATE, ROTATE, or SCALE
+        static ImGuizmo::OPERATION mCurrentGizmoOperation(ImGuizmo::TRANSLATE);
+        static ImGuizmo::MODE mCurrentGizmoMode(ImGuizmo::LOCAL);
+
+        // Short-cut keys
+        if (!ImGui::IsAnyItemActive()) {
+            if (ImGui::IsKeyPressed(ImGuiKey_E))
+                mCurrentGizmoOperation = ImGuizmo::TRANSLATE;
+            if (ImGui::IsKeyPressed(ImGuiKey_R))
+                mCurrentGizmoOperation = ImGuizmo::ROTATE;
+            if (ImGui::IsKeyPressed(ImGuiKey_T))
+                mCurrentGizmoOperation = ImGuizmo::SCALE;
+        }
+
+        ImGuizmo::Manipulate(glm::value_ptr(view), glm::value_ptr(projection), mCurrentGizmoOperation,
+                             mCurrentGizmoMode, glm::value_ptr(modelMatrix));
+
+        // apply changes back to entity
+        if (ImGuizmo::IsUsingAny()) {
+            glm::vec3 translation, rotation, scale;
+            ImGuizmo::DecomposeMatrixToComponents(glm::value_ptr(modelMatrix), glm::value_ptr(translation),
+                                                  glm::value_ptr(rotation), glm::value_ptr(scale));
+
+            transform.translation = translation;
+            transform.rotation = rotation; // ImGuizmo returns degrees by default
+            transform.scale = scale;
+        }
+
     }
 
     ImVec2 EditorLayer::getImageSizeWithAspectRatioForImGuiWindow(ImVec2 windowSize, float aspectRatio) {

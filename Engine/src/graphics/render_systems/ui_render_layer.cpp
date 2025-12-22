@@ -5,6 +5,8 @@
 #include "core/events/mouse_event.hpp"
 #include "scene/scene_serializer.hpp"
 
+#include <ImGuizmo.h>
+
 namespace pxt {
 
     UiRenderLayer::UiRenderLayer(Context& context, VkRenderPass renderPass)
@@ -124,6 +126,9 @@ namespace pxt {
 
         // IMPORTANT: This is required for docking to work in the main window (for customizations, view imgui_demo.cpp)
         ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport(), ImGuiDockNodeFlags_PassthruCentralNode);
+
+        // initialize gizmos for this frame
+        ImGuizmo::BeginFrame();
     }
 
     void UiRenderLayer::buildUi(Scene& scene) { ImGui::ShowMetricsWindow(); }
