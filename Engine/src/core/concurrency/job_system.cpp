@@ -187,7 +187,7 @@ namespace pxt::core {
     bool JobSystem::hasWork(size_t index) const {
         for (size_t i = 0; i < m_workers.size(); ++i) {
 
-            if (!m_workers[i]->deque.isEmpty()) {
+            if (!m_workers[i]->deque.isProbablyEmpty()) {
                 return true;
             }
         }

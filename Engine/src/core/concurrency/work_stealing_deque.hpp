@@ -51,16 +51,7 @@ public:
      * @note This function must only be called by the owner thread.
      * @note No bounds checking is performed - ensure capacity is not exceeded.
      */
-    void push(T& item) { // Copy overload
-        size_t t = m_top.load(std::memory_order_relaxed);
-
-        m_buffer[t & m_mask] = item;
-
-        std::atomic_thread_fence(std::memory_order_release);
-        m_top.store(t + 1, std::memory_order_relaxed);
-    }
-
-    void push(T&& item) { // Move overload
+    void push(T item) {
         size_t t = m_top.load(std::memory_order_relaxed);
 
         m_buffer[t & m_mask] = std::move(item);
@@ -86,7 +77,7 @@ public:
      *
      * @note This function must only be called by the owner thread.
      */
-    bool pop(T& item) {
+    [[nodiscard]] bool pop(T& item) {
         size_t t = m_top.load(std::memory_order_relaxed);
         size_t b = m_bottom.load(std::memory_order_relaxed);
 
@@ -154,7 +145,7 @@ public:
      *
      * @note Multiple threads can call this function concurrently.
      */
-    bool steal(T& item) {
+    [[nodiscard]] bool steal(T& item) {
         // Acquire ensures we see all writes to items before this bottom value
         size_t b = m_bottom.load(std::memory_order_acquire);
 
@@ -191,7 +182,7 @@ public:
      * @note This is a relaxed check and may not reflect concurrent modifications.
      *       It's primarily used as a hint for work-stealing decisions.
      */
-    bool isEmpty() const {
+    bool isProbablyEmpty() const {
         size_t b = m_bottom.load(std::memory_order_relaxed);
         size_t t = m_top.load(std::memory_order_relaxed);
 
