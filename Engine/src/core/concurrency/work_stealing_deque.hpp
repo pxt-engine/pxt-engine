@@ -30,9 +30,12 @@ public:
      * @brief Constructs a work-stealing deque with the specified capacity.
      *
      * @param capacity The maximum number of items the deque can hold.
-     *                 Should be a power of 2 for optimal performance (enables bitwise AND masking).
+     *                 Must be a power of 2 for optimal performance (enables bitwise AND masking).
      */
-    explicit WorkStealingDeque(size_t capacity = 1024) : m_buffer(capacity), m_mask(capacity - 1) {}
+    explicit WorkStealingDeque(size_t capacity = 1024) : m_buffer(capacity), m_mask(capacity - 1) {
+        // Ensure capacity is power of 2
+        assert((capacity & (capacity - 1)) == 0 && "Capacity must be a power of 2");
+    }
 
     /**
      * @brief Pushes an item onto the deque (owner thread only).
