@@ -106,7 +106,7 @@ namespace pxt::core {
         // Execute the job
         job.execute();
 
-        auto& slot = m_jobRegistry[job.counterIndex];
+        auto& slot = m_jobRegistry[job.slotIndex];
 
         // Decrement counter and check if this was the last job
         uint32_t remaining = slot.value.fetch_sub(1, std::memory_order_release) - 1;
@@ -195,7 +195,7 @@ namespace pxt::core {
     }
 
     JobHandle JobSystem::acquireSlot(uint32_t initialValue) {
-        // Circular allocation of counter indices
+        // Circular allocation of slot indices
         uint32_t index = m_counterAllocIdx.fetch_add(1, std::memory_order_relaxed) % m_jobRegistry.maxSlots();
 
         auto& slot = m_jobRegistry[index];

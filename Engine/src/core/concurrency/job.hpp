@@ -2,6 +2,13 @@
 
 namespace pxt::core {
 
+    /**
+     * @brief A JobFunction encapsulates a callable job function.
+     *
+     * It uses a fixed-size buffer to store the callable object (e.g., lambda or function object)
+     * and a function pointer to invoke it. The buffer size is set to 48 bytes, which should
+     * accommodate most small callable objects.
+     */
     struct JobFunction {
         void (*invoke)(const void*) = nullptr;
         alignas(std::max_align_t) std::byte buffer[48];
@@ -15,10 +22,10 @@ namespace pxt::core {
      * completes and is recycled, its generation is incremented.
      *
      * Structure:
-     * - index: The counter pool index (0 to MAX_COUNTERS-1)
+     * - index: The slot index (0 to MAX_SLOTS-1)
      * - generation: The generation number of this allocation
      *
-     * A handle is valid only if both the index AND generation match the counter pool.
+     * A handle is valid only if both the index and generation match the slot in the registry.
      */
     struct JobHandle {
         uint32_t index = 0xFFFFFFFF;
@@ -47,12 +54,12 @@ namespace pxt::core {
     struct Job {
         JobFunction function;             //< Function to execute
         JobState state = JobState::Ready; //< Current state of the job
-        uint32_t counterIndex = 0;        //< Index into the counter pool for tracking completion
+        uint32_t slotIndex = 0;           //< Index into the slot registry for tracking completion
 
         template <typename Func>
         static Job create(Func&& f, uint32_t cIdx, JobState state = JobState::Ready) {
             Job job;
-            job.counterIndex = cIdx;
+            job.slotIndex = cIdx;
             job.state = state;
 
             using DecayedFunc = std::decay_t<Func>;

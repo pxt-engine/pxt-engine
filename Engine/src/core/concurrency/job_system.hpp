@@ -71,7 +71,7 @@ namespace pxt::core {
     };
 
     /**
-     * @brief CounterPool manages a pool of atomic counters with generation tracking.
+     * @brief JobRegistry manages a pool of job slots with atomic counters and generation tracking.
      *
      * Generation Tracking:
      * - Each counter has a generation number that starts at 0
@@ -87,7 +87,7 @@ namespace pxt::core {
      * 5. Generation mismatch detected -> wait returns immediately (job already done)
      *
      * Memory Layout:
-     * - Fixed-size array of MAX_COUNTERS=4096 padded counters
+     * - Fixed-size array of MAX_SLOTS=4096 padded counters
      * - Each counter is cache-line aligned (64 bytes)
      * - Each counter includes both value and generation
      * - Total size: 4096 * 64 = 256 KB
@@ -95,7 +95,7 @@ namespace pxt::core {
     struct JobRegistry {
         /**
          * @brief Accesses a counter by index.
-         * @param index The counter index (must be < MAX_COUNTERS)
+         * @param index The counter index (must be < MAX_SLOTS)
          * @return Reference to the padded atomic counter
          */
         JobSlot& operator[](size_t index) { return m_slots[index]; }
@@ -246,7 +246,7 @@ namespace pxt::core {
                 }
 
                 // Dependency still pending, register
-                depSlot.dependents.push_back(slot.job.counterIndex);
+                depSlot.dependents.push_back(slot.job.slotIndex);
             }
 
             return handle;
@@ -483,9 +483,9 @@ namespace pxt::core {
         bool hasWork(size_t index) const;
 
         /**
-         * @brief Acquires a counter from the pool and initializes it with generation tracking.
+         * @brief Acquires a slot from the registry and initializes it with generation tracking.
          *
-         * The counter is initialized with the job count and the current generation number
+         * The slot is initialized with the job count and the current generation number
          * is captured. The generation will be incremented when the counter reaches zero,
          * ensuring that any handles created now will detect completion via generation mismatch.
          *
@@ -495,7 +495,6 @@ namespace pxt::core {
         JobHandle acquireSlot(uint32_t initialValue);
 
     private:
-        // Pool of atomic counters for tracking job completion
         JobRegistry m_jobRegistry{};
 
         // Atomic counter for allocating counter indices (circular allocation)
