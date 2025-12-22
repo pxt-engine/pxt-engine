@@ -29,23 +29,23 @@ namespace pxt::core {
     }
 
     void JobSystem::wait(JobHandle handle) {
-        if (handle == InvalidJobHandle || handle.index >= m_counterPool.maxCounters()) {
+        if (handle == InvalidJobHandle || handle.index >= m_jobRegistry.maxSlots()) {
             return;
         }
 
-        auto& counter = m_counterPool[handle.index];
+        auto& slot = m_jobRegistry[handle.index];
 
         // Check generation: if mismatch, this handle is stale and job is already done
-        uint32_t currentGen = counter.generation.load(std::memory_order_relaxed);
+        uint32_t currentGen = slot.generation.load(std::memory_order_relaxed);
         if (currentGen != handle.generation) {
             // Generation mismatch: the job has already completed in a previous cycle
             return;
         }
 
         // Busy-wait with helping: actively execute jobs while waiting
-        while (counter.value.load(std::memory_order_acquire) > 0) {
+        while (slot.value.load(std::memory_order_acquire) > 0) {
             // Double-check generation hasn't changed (counter recycled mid-wait)
-            if (counter.generation.load(std::memory_order_relaxed) != handle.generation) {
+            if (slot.generation.load(std::memory_order_relaxed) != handle.generation) {
                 return;
             }
 
@@ -106,39 +106,42 @@ namespace pxt::core {
         // Execute the job
         job.execute();
 
-        auto& counter = m_counterPool[job.counterIndex];
+        auto& slot = m_jobRegistry[job.counterIndex];
 
         // Decrement counter and check if this was the last job
-        uint32_t remaining = counter.value.fetch_sub(1, std::memory_order_release) - 1;
+        uint32_t remaining = slot.value.fetch_sub(1, std::memory_order_release) - 1;
 
         if (remaining == 0) {
             // Job batch complete - check for dependent jobs
-            std::vector<Shared<Job>> readyJobs;
+            std::vector<Job> readyJobs;
 
             {
-                std::lock_guard lock(counter.dependentsMutex);
+                std::lock_guard lock(slot.dependentsMutex);
 
                 // Process all jobs that were waiting (Pending state)
-                for (auto& dependent : counter.dependents) {
-                    uint32_t unresolvedRemaining = --dependent->unresolvedDependenciesCount;
+                for (uint32_t dependentIdx : slot.dependents) {
+                    JobSlot& dependentSlot = m_jobRegistry[dependentIdx];
+
+                    uint32_t unresolvedRemaining =
+                        dependentSlot.pendingInfo.unresolvedDepsCount.fetch_sub(1, std::memory_order_relaxed) - 1;
 
                     if (unresolvedRemaining == 0) {
                         // All dependencies resolved, transition to Ready
-                        dependent->state = JobState::Ready;
-                        readyJobs.push_back(std::move(dependent));
+                        dependentSlot.job.state = JobState::Ready;
+                        readyJobs.push_back(std::move(dependentSlot.job));
                     }
                 }
 
-                counter.dependents.clear();
+                slot.dependents.clear();
             }
 
             // Schedule all newly ready jobs
             for (auto& ready : readyJobs) {
-                pushJob(std::move(*ready));
+                pushJob(std::move(ready));
             }
 
             // Increment generation
-            counter.generation.fetch_add(1, std::memory_order_release);
+            slot.generation.fetch_add(1, std::memory_order_release);
         }
     }
 
@@ -191,18 +194,18 @@ namespace pxt::core {
         return false;
     }
 
-    JobHandle JobSystem::acquireCounter(uint32_t initialValue) {
+    JobHandle JobSystem::acquireSlot(uint32_t initialValue) {
         // Circular allocation of counter indices
-        uint32_t index = m_counterAllocIdx.fetch_add(1, std::memory_order_relaxed) % m_counterPool.maxCounters();
+        uint32_t index = m_counterAllocIdx.fetch_add(1, std::memory_order_relaxed) % m_jobRegistry.maxSlots();
 
-        auto& counter = m_counterPool[index];
+        auto& slot = m_jobRegistry[index];
 
         // Read current generation before initializing counter
         // This generation will be incremented when the counter reaches zero
-        uint32_t generation = counter.generation.load(std::memory_order_relaxed);
+        uint32_t generation = slot.generation.load(std::memory_order_relaxed);
 
         // Initialize the counter with the number of jobs
-        counter.value.store(initialValue, std::memory_order_release);
+        slot.value.store(initialValue, std::memory_order_release);
 
         return JobHandle{index, generation};
     }

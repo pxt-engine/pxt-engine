@@ -55,12 +55,19 @@ namespace pxt::core {
      * The C++17 constant std::hardware_destructive_interference_size provides a portable way
      * to query the cache line size at compile time.
      */
-    struct alignas(std::hardware_destructive_interference_size) PaddedAtomicCounter {
+    struct alignas(std::hardware_destructive_interference_size) JobSlot {
+        // Accessed by every Job
         std::atomic<uint32_t> value{0};      //< Current job count
         std::atomic<uint32_t> generation{0}; //< Generation number (incremented on recycle)
 
-        std::vector<Shared<Job>> dependents; //< Jobs that depend on this counter
-        std::mutex dependentsMutex;          //< Mutex for protecting dependents list
+        Job job; //< The job that uses this slot
+
+        // Used only for Jobs with dependencies
+        PendingJobInfo pendingInfo;
+
+        // Graph data
+        std::vector<uint32_t> dependents; //< Jobs that depends on the job in this slot
+        std::mutex dependentsMutex;       //< Mutex for protecting dependents list
     };
 
     /**
@@ -85,21 +92,21 @@ namespace pxt::core {
      * - Each counter includes both value and generation
      * - Total size: 4096 * 64 = 256 KB
      */
-    struct CounterPool {
+    struct JobRegistry {
         /**
          * @brief Accesses a counter by index.
          * @param index The counter index (must be < MAX_COUNTERS)
          * @return Reference to the padded atomic counter
          */
-        PaddedAtomicCounter& operator[](size_t index) { return m_counters[index]; }
+        JobSlot& operator[](size_t index) { return m_slots[index]; }
 
-        const PaddedAtomicCounter& operator[](size_t index) const { return m_counters[index]; }
+        const JobSlot& operator[](size_t index) const { return m_slots[index]; }
 
-        size_t maxCounters() const { return MAX_COUNTERS; }
+        size_t maxSlots() const { return MAX_SLOTS; }
 
     private:
-        static constexpr size_t MAX_COUNTERS = 4096;
-        std::array<PaddedAtomicCounter, MAX_COUNTERS> m_counters{};
+        static constexpr size_t MAX_SLOTS = 4096;
+        std::array<JobSlot, MAX_SLOTS> m_slots{};
     };
 
     /**
@@ -177,9 +184,13 @@ namespace pxt::core {
          */
         template <VoidCallable Func>
         JobHandle submit(Func&& func) {
-            JobHandle handle = acquireCounter(1);
+            JobHandle handle = acquireSlot(1);
 
-            pushJob({std::forward<Func>(func), handle.index});
+            auto& slot = m_jobRegistry[handle.index];
+
+            slot.job = Job::create(std::forward<Func>(func), handle.index, JobState::Ready);
+
+            pushJob(std::move(slot.job));
 
             return handle;
         }
@@ -196,32 +207,37 @@ namespace pxt::core {
                 return submit(std::forward<Func>(func));
             }
 
-            JobHandle handle = acquireCounter(1);
+            JobHandle handle = acquireSlot(1);
+
+            auto& slot = m_jobRegistry[handle.index];
+            slot.pendingInfo.unresolvedDepsCount.store(static_cast<uint32_t>(dependencies.size()),
+                                                       std::memory_order_release);
 
             // Create a pending job with dependencies
-            auto job = createShared<Job>(std::forward<Func>(func), handle.index, std::move(dependencies));
+            slot.job = Job::create(std::forward<Func>(func), handle.index, JobState::Pending);
 
             // Register this job as a dependent on each dependency's counter
-            for (const auto& dep : job->dependencies) {
-                if (!dep.isValid() || dep.index >= m_counterPool.maxCounters()) {
+            for (const auto& dep : dependencies) {
+                if (!dep.isValid() || dep.index >= m_jobRegistry.maxSlots()) {
                     continue;
                 }
 
-                auto& depCounter = m_counterPool[dep.index];
+                auto& depSlot = m_jobRegistry[dep.index];
 
-                std::lock_guard lock(depCounter.dependentsMutex);
+                std::lock_guard lock(depSlot.dependentsMutex);
 
                 // Check if dependency already completed
-                if (depCounter.generation.load(std::memory_order_relaxed) != dep.generation ||
-                    depCounter.value.load(std::memory_order_acquire) == 0) {
+                if (depSlot.generation.load(std::memory_order_relaxed) != dep.generation ||
+                    depSlot.value.load(std::memory_order_acquire) == 0) {
 
                     // Already done, decrement unresolved count
-                    uint32_t remaining = --job->unresolvedDependenciesCount;
+                    uint32_t remaining =
+                        slot.pendingInfo.unresolvedDepsCount.fetch_sub(1, std::memory_order_acq_rel) - 1;
 
                     if (remaining == 0) {
                         // All dependencies resolved immediately
-                        job->state = JobState::Ready;
-                        pushJob(std::move(*job));
+                        slot.job.state = JobState::Ready;
+                        pushJob(std::move(slot.job));
 
                         return handle;
                     }
@@ -230,7 +246,7 @@ namespace pxt::core {
                 }
 
                 // Dependency still pending, register
-                depCounter.dependents.push_back(job);
+                depSlot.dependents.push_back(slot.job.counterIndex);
             }
 
             return handle;
@@ -278,7 +294,7 @@ namespace pxt::core {
             if (items.empty())
                 return InvalidJobHandle;
 
-            JobHandle handle = acquireCounter(static_cast<uint32_t>(items.size()));
+            JobHandle handle = acquireSlot(static_cast<uint32_t>(items.size()));
 
             size_t workerIdx = m_nextWorker.fetch_add(1, std::memory_order_relaxed) % m_workers.size();
 
@@ -327,7 +343,7 @@ namespace pxt::core {
             if (callables.empty())
                 return InvalidJobHandle;
 
-            JobHandle handle = acquireCounter(static_cast<uint32_t>(callables.size()));
+            JobHandle handle = acquireSlot(static_cast<uint32_t>(callables.size()));
 
             size_t workerIdx = m_nextWorker.fetch_add(1, std::memory_order_relaxed) % m_workers.size();
 
@@ -374,7 +390,7 @@ namespace pxt::core {
                 return InvalidJobHandle;
 
             size_t count = end - start;
-            JobHandle handle = acquireCounter(static_cast<uint32_t>(count));
+            JobHandle handle = acquireSlot(static_cast<uint32_t>(count));
 
             size_t workerIdx = m_nextWorker.fetch_add(1, std::memory_order_relaxed) % m_workers.size();
 
@@ -476,11 +492,11 @@ namespace pxt::core {
          * @param initialValue The initial value for the counter (number of jobs in the batch)
          * @return A JobHandle containing both the counter index and generation number
          */
-        JobHandle acquireCounter(uint32_t initialValue);
+        JobHandle acquireSlot(uint32_t initialValue);
 
     private:
         // Pool of atomic counters for tracking job completion
-        CounterPool m_counterPool{};
+        JobRegistry m_jobRegistry{};
 
         // Atomic counter for allocating counter indices (circular allocation)
         std::atomic<uint32_t> m_counterAllocIdx{0};
