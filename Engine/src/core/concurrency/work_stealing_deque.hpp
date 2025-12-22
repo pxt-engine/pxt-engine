@@ -25,6 +25,8 @@
  */
 template <typename T>
 class WorkStealingDeque {
+    PXT_STATIC_ASSERT(std::is_trivially_copyable<T>::value, "WorkStealingDeque requires trivially copyable types");
+
 public:
     /**
      * @brief Constructs a work-stealing deque with the specified capacity.
@@ -34,7 +36,7 @@ public:
      */
     explicit WorkStealingDeque(size_t capacity = 1024) : m_buffer(capacity), m_mask(capacity - 1) {
         // Ensure capacity is power of 2
-        assert((capacity & (capacity - 1)) == 0 && "Capacity must be a power of 2");
+        PXT_ASSERT((capacity & (capacity - 1)) == 0 && "Capacity must be a power of 2");
     }
 
     /**
