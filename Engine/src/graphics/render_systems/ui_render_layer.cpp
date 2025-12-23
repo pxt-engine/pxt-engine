@@ -23,30 +23,19 @@ namespace pxt {
     }
 
     void UiRenderLayer::initImGui(VkRenderPass& renderPass) {
-        // we need one set per imgui rendered texture NOT PER FRAME!!! (fonts included)
         // ImGui will use the same descriptor set for all textures.
         // ImGui will use this pool for fonts and its stuff, textures will be allocated from the descriptor allocator
         // growable
         // TODO: maybe set format will change
         m_imGuiPool = DescriptorPool::Builder(m_context)
-                          .setMaxSets(2)
-                          .addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2)
+                          .setMaxSets(10)
+                          .addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 10)
                           .setPoolFlags(VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT)
                           .build();
 
-        std::vector<PoolSizeRatio> poolRatios = {
-            {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 5.0f},
-        };
-
-        m_imguiDescriptorAllocator = createUnique<DescriptorAllocatorGrowable>(m_context,
-                                                                               8, // starting sets per pool
-                                                                               poolRatios,
-                                                                               2.0f, // growth factor
-                                                                               512   // max sets cap
-        );
-
         IMGUI_CHECKVERSION();
-        ImGui::CreateContext();
+        ImGuiContext* imguiCtx = ImGui::CreateContext();
+        ImGuizmo::SetImGuiContext(imguiCtx);
         ImGui::StyleColorsDark();
 
         // enable docking and load ini file
@@ -80,26 +69,6 @@ namespace pxt {
         ImGui_ImplVulkan_Init(&initInfo);
 
         ImGui_ImplVulkan_CreateFontsTexture();
-    }
-
-    VkDescriptorSet UiRenderLayer::addImGuiTexture(VkSampler sampler, VkImageView imageView, VkImageLayout layout) {
-        VkDescriptorSet descriptorSet;
-
-        Unique<DescriptorSetLayout> imguiLayout =
-            DescriptorSetLayout::Builder(m_context)
-                .addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
-                .build();
-
-        m_imguiDescriptorAllocator->allocate(imguiLayout->getDescriptorSetLayout(), descriptorSet);
-
-        VkDescriptorImageInfo descImage{};
-        descImage.sampler = sampler;
-        descImage.imageView = imageView;
-        descImage.imageLayout = layout;
-
-        DescriptorWriter(m_context, *imguiLayout).writeImage(0, &descImage).updateSet(descriptorSet);
-
-        return descriptorSet;
     }
 
     void UiRenderLayer::render(FrameInfo& frameInfo, Renderer& renderer) {

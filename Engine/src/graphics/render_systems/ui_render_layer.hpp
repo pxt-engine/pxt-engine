@@ -27,14 +27,10 @@ namespace pxt {
     private:
         void initImGui(VkRenderPass& renderPass);
 
-        VkDescriptorSet addImGuiTexture(VkSampler sampler, VkImageView imageView, VkImageLayout layout);
-
         void saveSceneUi(Scene& scene);
         void buildUi(Scene& scene);
 
         Context& m_context;
-
-        Unique<DescriptorAllocatorGrowable> m_imguiDescriptorAllocator;
         Unique<DescriptorPool> m_imGuiPool{};
 
         bool m_openSaveSceneDialog = false;
