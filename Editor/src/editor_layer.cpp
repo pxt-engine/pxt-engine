@@ -115,30 +115,37 @@ namespace pxt::editor {
 
         ImGuizmo::SetRect(m_viewportUpperLeftScreenCoord.x, m_viewportUpperLeftScreenCoord.y, m_sceneImageExtent.x,
                           m_sceneImageExtent.y);
-        
+
+        ImGuizmo::SetGizmoSizeClipSpace(0.2f);
+
         Entity selectedEntity = frameInfo.scene.getEntity(m_selectedEntityUUID);
         TransformComponent& transform = selectedEntity.get<TransformComponent>();
 
         const glm::mat4& view = frameInfo.camera.getViewMatrix();
-        const glm::mat4& projection = frameInfo.camera.getProjectionMatrix();
+        glm::mat4& projection = frameInfo.camera.getProjectionMatrix();
+        projection[1][1] *= -1; // flip Y for Vulkan
+
         glm::mat4 modelMatrix = transform.mat4();
 
-        // m_GizmoOperation could be ImGuizmo::TRANSLATE, ROTATE, or SCALE
-        static ImGuizmo::OPERATION mCurrentGizmoOperation(ImGuizmo::TRANSLATE);
-        static ImGuizmo::MODE mCurrentGizmoMode(ImGuizmo::LOCAL);
+        ImGuizmo::OPERATION currentGizmoOperation(ImGuizmo::TRANSLATE);
+        ImGuizmo::MODE currentGizmoMode(ImGuizmo::WORLD);
 
         // Short-cut keys
         if (!ImGui::IsAnyItemActive()) {
-            if (ImGui::IsKeyPressed(ImGuiKey_E))
-                mCurrentGizmoOperation = ImGuizmo::TRANSLATE;
-            if (ImGui::IsKeyPressed(ImGuiKey_R))
-                mCurrentGizmoOperation = ImGuizmo::ROTATE;
-            if (ImGui::IsKeyPressed(ImGuiKey_T))
-                mCurrentGizmoOperation = ImGuizmo::SCALE;
+            if (ImGui::IsKeyPressed(ImGuiKey_1))
+                currentGizmoOperation = ImGuizmo::TRANSLATE;
+            if (ImGui::IsKeyPressed(ImGuiKey_2))
+                currentGizmoOperation = ImGuizmo::ROTATE;
+            if (ImGui::IsKeyPressed(ImGuiKey_3))
+                currentGizmoOperation = ImGuizmo::SCALE;
         }
 
-        ImGuizmo::Manipulate(glm::value_ptr(view), glm::value_ptr(projection), mCurrentGizmoOperation,
-                             mCurrentGizmoMode, glm::value_ptr(modelMatrix));
+        if (currentGizmoOperation == ImGuizmo::SCALE) {
+            currentGizmoMode = ImGuizmo::LOCAL; // scale always in local mode
+        }
+
+        ImGuizmo::Manipulate(glm::value_ptr(view), glm::value_ptr(projection), currentGizmoOperation,
+                             currentGizmoMode, glm::value_ptr(modelMatrix));
 
         // apply changes back to entity
         if (ImGuizmo::IsUsingAny()) {
@@ -147,7 +154,7 @@ namespace pxt::editor {
                                                   glm::value_ptr(rotation), glm::value_ptr(scale));
 
             transform.translation = translation;
-            transform.rotation = rotation; // ImGuizmo returns degrees by default
+            transform.rotation = glm::radians(rotation); // ImGuizmo returns degrees by default
             transform.scale = scale;
         }
 
