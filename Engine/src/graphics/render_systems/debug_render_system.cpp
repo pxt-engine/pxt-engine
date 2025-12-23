@@ -107,7 +107,7 @@ namespace pxt {
 
             DebugPushConstantData push{};
             push.modelMatrix = transform.mat4();
-            push.normalMatrix = transform.normalMatrix();
+            push.normalMatrix = transform.normalMatrix(push.modelMatrix);
             push.color = material->getAlbedoColor() * glm::vec4(materialComponent.tint, 1.0f);
             push.objPickingColor = objPickingIdComponent.getColorAsVec4();
             push.textureIndex = m_isAlbedoMapEnabled ? m_textureRegistry.getIndex(material->getAlbedoMap()->id) : -1;

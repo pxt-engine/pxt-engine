@@ -187,24 +187,20 @@ namespace pxt {
         glm::vec3 rotation{};
 
         /**
-         * @brief Transforms the entity's position, scale, and rotation into a 4x4 matrix
+         * @brief Computes the entity's world-space 4x4 transformation matrix.
          *
-         * Matrix corrsponds to Translate * Ry * Rx * Rz * Scale
-         * Rotations correspond to Tait-Bryan angles of Y(1), X(2), Z(3)
+         * This function follows the standard computer graphics convention for Column-Major matrices:
+         * Matrix = Translation * Rotation * Scale (applied in that order).
          *
-         * To view the rotation as extrinsic, just read the operations from right to left
-         * Otherwise, to view the rotation as intrinsic, read the operations from left to right
-         *
-         * - Extrinsic: Z(world) -> X(world) -> Y(world)
-         *
-         * - Intrinsic: Y(local) -> X(local) -> Z(local)
-         *
-         * @note https://en.wikipedia.org/wiki/Euler_angles#Rotation_matrix
-         *
-         * @return glm::mat4
+         * @details
+         * - Rotation: Uses Euler angles in RADIANS, converted to a Quaternion to avoid gimbal lock.
+         * - Order: Corresponds to Intrinsic Y -> X -> Z (Tait-Bryan) rotation sequence.
+         * - Coordinate System: Right-handed.
+         * 
+         * * @return glm::mat4 Combined transformation matrix.
          */
         glm::mat4 mat4() const;
-        glm::mat3 normalMatrix() const;
+        glm::mat3 normalMatrix(const glm::mat4& modelMatrix) const;
 
         TransformComponent() = default;
         TransformComponent(const TransformComponent&) = default;
