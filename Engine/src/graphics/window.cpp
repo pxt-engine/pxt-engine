@@ -122,7 +122,7 @@ namespace pxt {
 
             core::MouseButton button = core::mapGLFWMouseButton(glfwButton);
 
-            bool imguiBlocksInput = ImGuizmo::IsUsingAny();
+            bool imguiBlocksInput = ImGuizmo::IsUsing() || ImGuizmo::IsOver();
 
             switch (action) {
             case GLFW_PRESS: {
