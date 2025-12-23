@@ -66,6 +66,7 @@ namespace pxt {
          * @return The projection matrix.
          */
         const glm::mat4& getProjectionMatrix() const { return m_projectionMatrix; }
+        glm::mat4& getProjectionMatrix() { return m_projectionMatrix; }
 
         /**
          * @brief Retrieves the view matrix.
