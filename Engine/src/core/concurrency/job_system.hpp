@@ -216,9 +216,14 @@ namespace pxt::core {
             // Create a pending job with dependencies
             slot.job = Job::create(std::forward<Func>(func), handle.index, JobState::Pending);
 
-            // Register this job as a dependent on each dependency's counter
+            uint32_t completedDeps = 0;
+
+            // Register dependents and check if they are already completed
+            // They may have been completed between acquiring the slot and
+            // the submission of this job
             for (const auto& dep : dependencies) {
                 if (!dep.isValid() || dep.index >= m_jobRegistry.maxSlots()) {
+                    ++completedDeps;
                     continue;
                 }
 
@@ -226,27 +231,31 @@ namespace pxt::core {
 
                 std::lock_guard lock(depSlot.dependentsMutex);
 
-                // Check if dependency already completed
-                if (depSlot.generation.load(std::memory_order_relaxed) != dep.generation ||
-                    depSlot.value.load(std::memory_order_acquire) == 0) {
-
-                    // Already done, decrement unresolved count
-                    uint32_t remaining =
-                        slot.pendingInfo.unresolvedDepsCount.fetch_sub(1, std::memory_order_acq_rel) - 1;
-
-                    if (remaining == 0) {
-                        // All dependencies resolved immediately
-                        slot.job.state = JobState::Ready;
-                        pushJob(std::move(slot.job));
-
-                        return handle;
-                    }
-
-                    continue;
-                }
-
-                // Dependency still pending, register
+                // Register first, then check completion
                 depSlot.dependents.push_back(slot.job.slotIndex);
+
+                // Now check if dependency already completed
+                uint32_t depGen = depSlot.generation.load(std::memory_order_acquire);
+                uint32_t depVal = depSlot.value.load(std::memory_order_acquire);
+
+                if (depGen != dep.generation || depVal == 0) {
+                    // Already completed - remove from dependents
+                    depSlot.dependents.pop_back();
+                    ++completedDeps;
+                }
+            }
+
+            // Update unresolved count with all completed deps
+            if (completedDeps > 0) {
+                uint32_t remaining =
+                    slot.pendingInfo.unresolvedDepsCount.fetch_sub(completedDeps, std::memory_order_acq_rel) -
+                    completedDeps;
+
+                if (remaining == 0) {
+                    // All dependencies already resolved
+                    slot.job.state = JobState::Ready;
+                    pushJob(std::move(slot.job));
+                }
             }
 
             return handle;
