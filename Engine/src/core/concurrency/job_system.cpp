@@ -69,7 +69,11 @@ namespace pxt::core {
 
         // Try to take work from our own deque (LIFO)
         // This provides good cache locality as we work on recently added tasks
-        m_workers[index]->deque.pop(job);
+        bool isDequeEmpty = !m_workers[index]->deque.pop(job);
+
+        if (isDequeEmpty) {
+            return false;
+        }
 
         if (job.isValid() && job.isReady()) {
             process(job);
