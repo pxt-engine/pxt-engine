@@ -11,9 +11,9 @@ void CameraController::onUpdate(float deltaTime) {
     // --- Keyboard Rotation ---
     glm::vec3 rotate{0};
     if (Input::isKeyDown(KeyCode::RightArrow))
-        rotate.y -= 1.f;
-    if (Input::isKeyDown(KeyCode::LeftArrow))
         rotate.y += 1.f;
+    if (Input::isKeyDown(KeyCode::LeftArrow))
+        rotate.y -= 1.f;
     if (Input::isKeyDown(KeyCode::UpArrow))
         rotate.x -= 1.f;
     if (Input::isKeyDown(KeyCode::DownArrow))
@@ -30,23 +30,28 @@ void CameraController::onUpdate(float deltaTime) {
         // Invert the Y offset so that moving the mouse up (decreasing y)
         // increases the pitch (rotation.x) and vice versa.
         transform.rotation.x += offset.y * m_mouseSensitivity;
-        transform.rotation.y += -offset.x * m_mouseSensitivity;
+        transform.rotation.y += offset.x * m_mouseSensitivity;
 
         transform.rotation.x = glm::clamp(transform.rotation.x, -1.5f, 1.5f);
         transform.rotation.y = glm::mod(transform.rotation.y, glm::two_pi<float>());
     }
 
     // --- Keyboard Translation ---
-    // In Right-Handed coordinates:
-    // Yaw = rotation.y, Pitch = rotation.x
     glm::vec3 forward;
-    forward.x = glm::sin(transform.rotation.y) * glm::cos(transform.rotation.x);
-    forward.y = glm::sin(-transform.rotation.x); // Pitch (negative because looking up is positive X)
-    forward.z = glm::cos(transform.rotation.y) * glm::cos(transform.rotation.x);
+    float pitch = transform.rotation.x;
+    float yaw = transform.rotation.y;
+
+    forward.x = glm::sin(yaw) * glm::cos(pitch);
+    forward.y = -glm::sin(pitch);
+    forward.z = -glm::cos(yaw) * glm::cos(pitch);
     forward = glm::normalize(forward);
 
-    const glm::vec3 worldUp{0.f, 1.f, 0.f}; // Y-Up Standard
+    const glm::vec3 worldUp{0.f, 1.f, 0.f};
+
+    // Right vector must be perpendicular to Forward and WorldUp
+    // In -Z forward, Right should be +X: cross(forward, worldUp) handles this
     const glm::vec3 rightDir = glm::normalize(glm::cross(forward, worldUp));
+    // Re-calculate Up to ensure orthonormality
     const glm::vec3 upDir = glm::cross(rightDir, forward);
 
     // --- Keyboard Translation ---
