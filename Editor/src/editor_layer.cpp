@@ -2,7 +2,7 @@
 #include "core/events/editor_events.hpp"
 #include "core/events/imgui_events.hpp"
 
-#include <ImGuizmo.h>
+#include <glm/gtx/matrix_decompose.hpp>
 
 namespace pxt::editor {
     EditorLayer::EditorLayer() : core::Layer("EditorLayer") {}
@@ -31,6 +31,12 @@ namespace pxt::editor {
 
             return onMouseButtonPress(e);
         });
+
+        dispatcher.dispatch<core::KeyPressEvent>([this](core::KeyPressEvent& e) {
+            if (!m_isViewportHovered)
+                return false;
+            return onKeyPressEvent(e);
+        });
     }
 
     bool EditorLayer::onMouseButtonPress(core::MouseButtonPressEvent& event) {
@@ -48,6 +54,34 @@ namespace pxt::editor {
 
         Application::get().queueEvent(core::PickObjectAtEvent(px, py));
 
+        return false;
+    }
+
+    bool EditorLayer::onKeyPressEvent(core::KeyPressEvent& event) {
+        // handle key press events here
+        switch (event.getKeyCode()) {
+        case core::KeyCode::Number1:
+            m_currentGizmoOperation = ImGuizmo::TRANSLATE;
+            break;
+        case core::KeyCode::Number2:
+            m_currentGizmoOperation = ImGuizmo::SCALE;
+            break;
+        case core::KeyCode::Number3:
+            m_currentGizmoOperation = ImGuizmo::ROTATE;
+            break;
+        // TODO: this has to be a menu bar ui thing, not a key toggle
+        case core::KeyCode::Number4:
+            if (m_currentGizmoMode == ImGuizmo::WORLD) {
+                m_currentGizmoMode = ImGuizmo::LOCAL;
+            } else {
+                m_currentGizmoMode = ImGuizmo::WORLD;
+            }
+            break;
+        default:
+            // propagate event if key not handled
+            return true;
+            break;
+        }
         return false;
     }
 
@@ -117,47 +151,38 @@ namespace pxt::editor {
                           m_sceneImageExtent.y);
 
         ImGuizmo::SetGizmoSizeClipSpace(0.2f);
+        ImGuizmo::SetOrthographic(false);
+        // prevents the gizmo from "flipping" when looked from different angles
+        // if flipped, an axis is decorated with black dots
+        ImGuizmo::AllowAxisFlip(false); 
 
         Entity selectedEntity = frameInfo.scene.getEntity(m_selectedEntityUUID);
         TransformComponent& transform = selectedEntity.get<TransformComponent>();
 
-        const glm::mat4& view = frameInfo.camera.getViewMatrix();
-        glm::mat4& projection = frameInfo.camera.getProjectionMatrix();
-        projection[1][1] *= -1; // flip Y for Vulkan
+        // copy - we need to modify them to adhere opengl standards (rh, y up)
+        const glm::mat4& gizmoView = frameInfo.camera.getViewMatrix();
+        glm::mat4 gizmoProj = frameInfo.camera.getProjectionMatrix();
+        gizmoProj[1][1] *= -1; // flip Y for ImGuizmo (it expects GL style projection matrix)
 
         glm::mat4 modelMatrix = transform.mat4();
 
-        ImGuizmo::OPERATION currentGizmoOperation(ImGuizmo::TRANSLATE);
-        ImGuizmo::MODE currentGizmoMode(ImGuizmo::WORLD);
-
-        // Short-cut keys
-        if (!ImGui::IsAnyItemActive()) {
-            if (ImGui::IsKeyPressed(ImGuiKey_1))
-                currentGizmoOperation = ImGuizmo::TRANSLATE;
-            if (ImGui::IsKeyPressed(ImGuiKey_2))
-                currentGizmoOperation = ImGuizmo::ROTATE;
-            if (ImGui::IsKeyPressed(ImGuiKey_3))
-                currentGizmoOperation = ImGuizmo::SCALE;
+        if (m_currentGizmoOperation == ImGuizmo::SCALE) {
+            m_currentGizmoMode = ImGuizmo::LOCAL; // scale always in local mode
         }
 
-        if (currentGizmoOperation == ImGuizmo::SCALE) {
-            currentGizmoMode = ImGuizmo::LOCAL; // scale always in local mode
-        }
-
-        ImGuizmo::Manipulate(glm::value_ptr(view), glm::value_ptr(projection), currentGizmoOperation,
-                             currentGizmoMode, glm::value_ptr(modelMatrix));
+        ImGuizmo::Manipulate(glm::value_ptr(gizmoView), glm::value_ptr(gizmoProj), m_currentGizmoOperation,
+                             m_currentGizmoMode, glm::value_ptr(modelMatrix));
 
         // apply changes back to entity
         if (ImGuizmo::IsUsingAny()) {
             glm::vec3 translation, rotation, scale;
+            
             ImGuizmo::DecomposeMatrixToComponents(glm::value_ptr(modelMatrix), glm::value_ptr(translation),
                                                   glm::value_ptr(rotation), glm::value_ptr(scale));
-
             transform.translation = translation;
             transform.rotation = glm::radians(rotation); // ImGuizmo returns degrees by default
             transform.scale = scale;
         }
-
     }
 
     ImVec2 EditorLayer::getImageSizeWithAspectRatioForImGuiWindow(ImVec2 windowSize, float aspectRatio) {

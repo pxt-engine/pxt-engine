@@ -5,6 +5,8 @@
 #include "ui/main_menu_bar.hpp"
 #include "ui/scene_hierarchy.hpp"
 
+#include <ImGuizmo.h>
+
 namespace pxt::editor {
     class EditorLayer : public core::Layer {
     public:
@@ -19,6 +21,7 @@ namespace pxt::editor {
 
         ImVec2 getImageSizeWithAspectRatioForImGuiWindow(ImVec2 windowSize, float aspectRatio);
         bool onMouseButtonPress(core::MouseButtonPressEvent& event);
+        bool onKeyPressEvent(core::KeyPressEvent& event);
 
         bool m_isViewportFocused = false;
         bool m_isViewportHovered = false;
@@ -34,5 +37,8 @@ namespace pxt::editor {
 
         ImVec2 m_sceneImageExtent{0.f, 0.f};
         ImVec2 m_viewportUpperLeftScreenCoord{0.f, 0.f};
+
+        ImGuizmo::OPERATION m_currentGizmoOperation{ImGuizmo::TRANSLATE};
+        ImGuizmo::MODE m_currentGizmoMode{ImGuizmo::WORLD};
     };
 } // namespace pxt::editor
