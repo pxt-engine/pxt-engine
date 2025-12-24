@@ -56,18 +56,24 @@ namespace pxt::concurrency {
      * to query the cache line size at compile time.
      */
     struct alignas(std::hardware_destructive_interference_size) JobSlot {
-        // Accessed by every Job
-        std::atomic<uint32_t> value{0};      //< Current job count
-        std::atomic<uint32_t> generation{0}; //< Generation number (incremented on recycle)
+        // -- Synchronization (8 bytes) --
+        std::atomic<uint32_t> value{0};      //< Current job count (4 bytes)
+        std::atomic<uint32_t> generation{0}; //< Generation number, incremented on recycle (4 bytes)
 
-        Job job; //< The job that uses this slot
-
-        // Used only for Jobs with dependencies
-        PendingJobInfo pendingInfo;
+        // -- Cold data index (4 bytes) --
+        uint32_t coldDataIndex;
 
         // Graph data
         std::vector<uint32_t> dependents; //< Jobs that depends on the job in this slot
         std::mutex dependentsMutex;       //< Mutex for protecting dependents list
+    };
+
+    struct JobSlotColdData {
+        // The job that uses this slot
+        Job job;
+
+        // Used only for Jobs with dependencies
+        PendingJobInfo pendingInfo;
     };
 
     /**
@@ -102,11 +108,14 @@ namespace pxt::concurrency {
 
         const JobSlot& operator[](size_t index) const { return m_slots[index]; }
 
+        JobSlotColdData& getColdDataAt(size_t index) { return m_coldData[index]; }
+
         size_t maxSlots() const { return MAX_SLOTS; }
 
     private:
         static constexpr size_t MAX_SLOTS = 4096;
         std::array<JobSlot, MAX_SLOTS> m_slots{};
+        std::array<JobSlotColdData, MAX_SLOTS> m_coldData{};
     };
 
     /**
@@ -186,11 +195,11 @@ namespace pxt::concurrency {
         JobHandle submit(Func&& func) {
             JobHandle handle = acquireSlot(1);
 
-            auto& slot = m_jobRegistry[handle.index];
+            auto& slotColdData = m_jobRegistry.getColdDataAt(handle.index);
 
-            slot.job = Job::create(std::forward<Func>(func), handle.index, JobState::Ready);
+            slotColdData.job = Job::create(std::forward<Func>(func), handle.index, JobState::Ready);
 
-            pushJob(std::move(slot.job));
+            pushJob(std::move(slotColdData.job));
 
             return handle;
         }
@@ -210,11 +219,13 @@ namespace pxt::concurrency {
             JobHandle handle = acquireSlot(1);
 
             auto& slot = m_jobRegistry[handle.index];
-            slot.pendingInfo.unresolvedDepsCount.store(static_cast<uint32_t>(dependencies.size()),
-                                                       std::memory_order_release);
+
+            auto& coldData = m_jobRegistry.getColdDataAt(handle.index);
+            coldData.pendingInfo.unresolvedDepsCount.store(static_cast<uint32_t>(dependencies.size()),
+                                                           std::memory_order_release);
 
             // Create a pending job with dependencies
-            slot.job = Job::create(std::forward<Func>(func), handle.index, JobState::Pending);
+            coldData.job = Job::create(std::forward<Func>(func), handle.index, JobState::Pending);
 
             uint32_t completedDeps = 0;
 
@@ -232,7 +243,7 @@ namespace pxt::concurrency {
                 std::lock_guard lock(depSlot.dependentsMutex);
 
                 // Register first, then check completion
-                depSlot.dependents.push_back(slot.job.slotIndex);
+                depSlot.dependents.push_back(coldData.job.slotIndex);
 
                 // Now check if dependency already completed
                 uint32_t depGen = depSlot.generation.load(std::memory_order_acquire);
@@ -248,13 +259,13 @@ namespace pxt::concurrency {
             // Update unresolved count with all completed deps
             if (completedDeps > 0) {
                 uint32_t remaining =
-                    slot.pendingInfo.unresolvedDepsCount.fetch_sub(completedDeps, std::memory_order_acq_rel) -
+                    coldData.pendingInfo.unresolvedDepsCount.fetch_sub(completedDeps, std::memory_order_acq_rel) -
                     completedDeps;
 
                 if (remaining == 0) {
                     // All dependencies already resolved
-                    slot.job.state = JobState::Ready;
-                    pushJob(std::move(slot.job));
+                    coldData.job.state = JobState::Ready;
+                    pushJob(std::move(coldData.job));
                 }
             }
 

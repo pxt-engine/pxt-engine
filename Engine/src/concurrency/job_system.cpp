@@ -124,15 +124,15 @@ namespace pxt::concurrency {
 
                 // Process all jobs that were waiting (Pending state)
                 for (uint32_t dependentIdx : slot.dependents) {
-                    JobSlot& dependentSlot = m_jobRegistry[dependentIdx];
+                    auto& dependentColdData = m_jobRegistry.getColdDataAt(dependentIdx);
 
                     uint32_t unresolvedRemaining =
-                        dependentSlot.pendingInfo.unresolvedDepsCount.fetch_sub(1, std::memory_order_relaxed) - 1;
+                        dependentColdData.pendingInfo.unresolvedDepsCount.fetch_sub(1, std::memory_order_relaxed) - 1;
 
                     if (unresolvedRemaining == 0) {
                         // All dependencies resolved, transition to Ready
-                        dependentSlot.job.state = JobState::Ready;
-                        readyJobs.push_back(std::move(dependentSlot.job));
+                        dependentColdData.job.state = JobState::Ready;
+                        readyJobs.push_back(std::move(dependentColdData.job));
                     }
                 }
 
