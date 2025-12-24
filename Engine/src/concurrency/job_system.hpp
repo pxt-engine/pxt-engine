@@ -3,7 +3,9 @@
 #include "core/pch.hpp"
 
 #include "concurrency/job.hpp"
+#include "concurrency/spin_lock_guard.hpp"
 #include "concurrency/work_stealing_deque.hpp"
+#include "core/containers/fixed_vector.hpp"
 
 namespace pxt::concurrency {
 
@@ -61,11 +63,36 @@ namespace pxt::concurrency {
         std::atomic<uint32_t> generation{0}; //< Generation number, incremented on recycle (4 bytes)
 
         // -- Cold data index (4 bytes) --
-        uint32_t coldDataIndex;
+        uint32_t coldDataIndex; //< Index into cold data array (4 bytes)
 
-        // Graph data
-        std::vector<uint32_t> dependents; //< Jobs that depends on the job in this slot
-        std::mutex dependentsMutex;       //< Mutex for protecting dependents list
+        // -- Dependency management (52 bytes) --
+
+        /**
+         * @brief Lock for protecting dependents list.
+         *
+         * A Lock is needed because multiple jobs might finish and try to
+         * update the dependents list concurrently. This atomic_flag provides
+         * a lightweight spinlock to ensure thread-safe access to the dependents list.
+         */
+        std::atomic_flag dependentsLock = ATOMIC_FLAG_INIT; //< Lock for protecting dependents list (1-4 byte)
+
+        /**
+         * @brief A fixed-size vector that holds up to 11 unsigned 32-bit integers.
+         *
+         * This structure is designed to store a small number of dependent job indices
+         * efficiently, minimizing dynamic memory allocations. It uses a static array
+         * to hold the elements and keeps track of the current size.
+         *
+         * Memory Layout:
+         * * data: Array of 11 uint32_t elements (44 bytes)
+         * * size: Current number of elements in the vector (1-4 bytes)
+         * * Total Size: 48 bytes
+         */
+        core::FixedVector<uint32_t, 11> dependents; //< Jobs that depends on the job in this slot (48 bytes)
+
+        // 8 + 4 + 52 = 64 bytes total (cache line size)
+        // With max 64 bytes in total the JobSlot fits perfectly into one cache line
+        // preventing false sharing between threads accessing different slots.
     };
 
     struct JobSlotColdData {
@@ -240,20 +267,25 @@ namespace pxt::concurrency {
 
                 auto& depSlot = m_jobRegistry[dep.index];
 
-                std::lock_guard lock(depSlot.dependentsMutex);
+                { // Scoped block for locking
+                    SpinLockGuard lock(depSlot.dependentsLock);
 
-                // Register first, then check completion
-                depSlot.dependents.push_back(coldData.job.slotIndex);
+                    // Register first, then check completion
+                    depSlot.dependents.push_back(coldData.job.slotIndex);
 
-                // Now check if dependency already completed
-                uint32_t depGen = depSlot.generation.load(std::memory_order_acquire);
-                uint32_t depVal = depSlot.value.load(std::memory_order_acquire);
+                    // Now check if dependency already completed
+                    uint32_t depGen = depSlot.generation.load(std::memory_order_acquire);
+                    uint32_t depVal = depSlot.value.load(std::memory_order_acquire);
 
-                if (depGen != dep.generation || depVal == 0) {
-                    // Already completed - remove from dependents
-                    depSlot.dependents.pop_back();
-                    ++completedDeps;
-                }
+                    const bool isAlreadyCompleted = depGen != dep.generation || depVal == 0;
+
+                    if (isAlreadyCompleted) {
+                        // Already completed - remove from dependents
+                        depSlot.dependents.pop_back();
+                        ++completedDeps;
+                    }
+
+                } // End of scoped block for locking
             }
 
             // Update unresolved count with all completed deps

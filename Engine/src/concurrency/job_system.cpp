@@ -91,7 +91,11 @@ namespace pxt::concurrency {
             if (target == index)
                 continue;
 
-            m_workers[target]->deque.steal(job);
+            isDequeEmpty = m_workers[target]->deque.steal(job);
+
+            if (isDequeEmpty) {
+                continue;
+            }
 
             if (job.isValid() && job.isReady()) {
                 process(job);
@@ -119,11 +123,12 @@ namespace pxt::concurrency {
             // Job batch complete - check for dependent jobs
             std::vector<Job> readyJobs;
 
-            {
-                std::lock_guard lock(slot.dependentsMutex);
+            { // Scoped block for locking
+                SpinLockGuard lock(slot.dependentsLock);
 
                 // Process all jobs that were waiting (Pending state)
                 for (uint32_t dependentIdx : slot.dependents) {
+                    auto& dependentSlot = m_jobRegistry[dependentIdx];
                     auto& dependentColdData = m_jobRegistry.getColdDataAt(dependentIdx);
 
                     uint32_t unresolvedRemaining =
@@ -137,7 +142,7 @@ namespace pxt::concurrency {
                 }
 
                 slot.dependents.clear();
-            }
+            } // End of scoped block for locking
 
             // Schedule all newly ready jobs
             for (auto& ready : readyJobs) {
