@@ -1,8 +1,8 @@
-#include "core/concurrency/job_system.hpp"
+#include "concurrency/job_system.hpp"
 
-#include "core/concurrency/cpu_relax.hpp"
+#include "concurrency/cpu_relax.hpp"
 
-namespace pxt::core {
+namespace pxt::concurrency {
 
     JobSystem::JobSystem(size_t threadCount) {
         m_workers.reserve(threadCount);
@@ -214,4 +214,4 @@ namespace pxt::core {
         return JobHandle{index, generation};
     }
 
-} // namespace pxt::core
+} // namespace pxt::concurrency

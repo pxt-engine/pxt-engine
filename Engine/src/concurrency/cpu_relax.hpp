@@ -1,6 +1,7 @@
 #pragma once
 
 // clang-format off
+namespace pxt::concurrency {
 
 #if defined(_MSC_VER)
     #include <intrin.h>
@@ -32,5 +33,7 @@ inline void cpuRelax() noexcept {
     std::this_thread::yield();
 #endif
 }
+
+} // namespace pxt::concurrency
 
 // clang-format on

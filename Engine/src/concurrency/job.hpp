@@ -1,6 +1,6 @@
 #include "core/pch.hpp"
 
-namespace pxt::core {
+namespace pxt::concurrency {
 
     /**
      * @brief A JobFunction encapsulates a callable job function.
@@ -98,4 +98,4 @@ namespace pxt::core {
         std::atomic<uint32_t> unresolvedDepsCount{0}; //< Count of unfinished dependencies
     };
 
-} // namespace pxt::core
+} // namespace pxt::concurrency

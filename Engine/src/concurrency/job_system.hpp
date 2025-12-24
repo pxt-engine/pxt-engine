@@ -2,10 +2,10 @@
 
 #include "core/pch.hpp"
 
-#include "core/concurrency/job.hpp"
-#include "core/concurrency/work_stealing_deque.hpp"
+#include "concurrency/job.hpp"
+#include "concurrency/work_stealing_deque.hpp"
 
-namespace pxt::core {
+namespace pxt::concurrency {
 
     template <typename F>
     concept VoidCallable = std::invocable<F> && std::same_as<std::invoke_result_t<F>, void>;
@@ -532,4 +532,4 @@ namespace pxt::core {
         static inline thread_local std::mt19937 t_rng{std::random_device{}()};
     };
 
-} // namespace pxt::core
+} // namespace pxt::concurrency
