@@ -254,12 +254,22 @@ namespace pxt::concurrency {
             // Create a pending job with dependencies
             coldData.job = Job::create(std::forward<Func>(func), handle.index, JobState::Pending);
 
+            //? Initialize unresolvedDepsCount BEFORE registering with any dependency.
+            //? We start with the total count and will adjust downward for already-completed deps
+            //? This prevents the race where a dependency completes and tries to decrement
+            //? before we've initialized the counter
+            coldData.pendingInfo.unresolvedDepsCount.store(static_cast<uint32_t>(dependencies.size()),
+                                                           std::memory_order_release);
+
             uint32_t completedDeps = 0;
 
-            // Register dependents and check if they are already completed
-            // They may have been completed between acquiring the slot and
-            // the submission of this job
+            //? Check completion status BEFORE registering as dependent
+            //? This prevents the race where:
+            //? 1. We register as dependent
+            //? 2. Dependency completes and scans dependents (we're there but shouldn't be)
+            //? 3. We check and see it's complete, try to remove ourselves (already processed)
             for (const auto& dep : dependencies) {
+                // Skip invalid dependencies
                 if (!dep.isValid() || dep.index >= m_jobRegistry.maxSlots()) {
                     ++completedDeps;
                     continue;
@@ -267,35 +277,51 @@ namespace pxt::concurrency {
 
                 auto& depSlot = m_jobRegistry[dep.index];
 
+                //? Check if dependency is already completed before registering
+                //? Use acquire to ensure we see all writes from the completing job
+                uint32_t depGen = depSlot.generation.load(std::memory_order_acquire);
+                uint32_t depVal = depSlot.value.load(std::memory_order_acquire);
+
+                const bool isAlreadyCompleted = (depGen != dep.generation) || (depVal == 0);
+
+                if (isAlreadyCompleted) {
+                    // Already completed - don't register at all
+                    ++completedDeps;
+                    continue;
+                }
+
+                //? Register as dependent only if not completed
                 { // Scoped block for locking
                     SpinLockGuard lock(depSlot.dependentsLock);
 
-                    // Register first, then check completion
-                    depSlot.dependents.push_back(coldData.job.slotIndex);
+                    // Double-check completion status while holding lock
+                    // The dependency could have completed between our check and acquiring the lock
+                    depGen = depSlot.generation.load(std::memory_order_acquire);
+                    depVal = depSlot.value.load(std::memory_order_acquire);
 
-                    // Now check if dependency already completed
-                    uint32_t depGen = depSlot.generation.load(std::memory_order_acquire);
-                    uint32_t depVal = depSlot.value.load(std::memory_order_acquire);
+                    const bool completedWhileLocking = (depGen != dep.generation) || (depVal == 0);
 
-                    const bool isAlreadyCompleted = depGen != dep.generation || depVal == 0;
-
-                    if (isAlreadyCompleted) {
-                        // Already completed - remove from dependents
-                        depSlot.dependents.pop_back();
+                    if (completedWhileLocking) {
+                        // Completed while we were acquiring the lock - don't register
                         ++completedDeps;
+                    } else {
+                        // Still not complete - safe to register now
+                        // At this point, unresolvedDepsCount is already initialized,
+                        // so if this dependency completes, it can safely decrement it
+                        depSlot.dependents.push_back(coldData.job.slotIndex);
                     }
-
-                } // End of scoped block for locking
+                } // End scoped block for locking
             }
 
-            // Update unresolved count with all completed deps
+            // Adjust for dependencies that were already completed
+            // We initialized with dependencies.size(), now subtract the completed ones
             if (completedDeps > 0) {
                 uint32_t remaining =
                     coldData.pendingInfo.unresolvedDepsCount.fetch_sub(completedDeps, std::memory_order_acq_rel) -
                     completedDeps;
 
+                // If all dependencies were already completed, submit immediately as ready
                 if (remaining == 0) {
-                    // All dependencies already resolved
                     coldData.job.state = JobState::Ready;
                     pushJob(std::move(coldData.job));
                 }
