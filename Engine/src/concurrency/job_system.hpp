@@ -323,6 +323,10 @@ namespace pxt::concurrency {
          * - Container is empty-checkable
          * - Func can be called with the container's value type
          *
+         * **CRITICAL LIFETIME REQUIREMENT**:
+         * The container AND its elements must remain valid and unmodified until all jobs complete.
+         * The jobs capture references to the container's elements, not copies.
+         *
          * Usage examples:
          * \code{.cpp}
          * std::vector<int> data = {1, 2, 3, 4, 5};
@@ -351,6 +355,9 @@ namespace pxt::concurrency {
             size_t workerIdx = m_nextWorker.fetch_add(1, std::memory_order_relaxed) % m_workers.size();
 
             for (auto& item : items) {
+                //! SAFETY: Capturing item by reference - caller must ensure container outlives jobs
+                // TODO: maybe provide a slower alternative that copies the item instead?
+
                 // Create a job that calls func with the item
                 // We capture by reference since the item must outlive the job
                 m_workers[workerIdx]->deque.push({[&item, func]() { func(item); }, handle.index});
