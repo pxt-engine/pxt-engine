@@ -181,30 +181,57 @@ namespace pxt::concurrency {
                 continue; // Work found, keep going immediately
             }
 
-            // Spinning Phase:
-            // Stay active for a short burst to catch new jobs without the overhead
-            // of a context switch. This is beneficial when work arrives frequently.
+            // Spinning Phase: staged spin-wait
+            // First spin aggressively for bursty workloads,
+            // then progressively reduce polling frequency before sleeping.
+            constexpr uint32_t FAST_SPIN_ITERATIONS = 100;
+            constexpr uint32_t SLOW_SPIN_ITERATIONS = 200;
+            constexpr uint32_t SPINS_PER_BACKOFF_STEP = 50;
+
+            // Small deterministic jitter to avoid lockstep spinning
+            // When multiple threads enter this phase simultaneously,
+            // this helps spread out their checks slightly
+            const uint32_t jitter = (index * 13) & 7;
+
             bool foundWork = false;
-            constexpr int MAX_SPIN_ITERATIONS = 300;
-            for (int spin = 0; spin < MAX_SPIN_ITERATIONS; ++spin) {
+
+            // Fast spinning: check frequently (every iteration)
+            for (int spin = 0; spin < FAST_SPIN_ITERATIONS + jitter; ++spin) {
+                if (hasWork(index)) {
+                    foundWork = true;
+                    break;
+                }
+                cpuRelax();
+            }
+
+            if (foundWork) {
+                continue;
+            }
+
+            // Slow spinning: exponential pause increase
+            // Check less frequently, pause longer between checks
+            for (int spin = 0; spin < SLOW_SPIN_ITERATIONS; ++spin) {
                 if (hasWork(index)) {
                     foundWork = true;
                     break;
                 }
 
-                // Provide a hint to the processor that the code sequence is a spin-wait loop.
-                // This can help improve the performance and power consumption of spin-wait loops.
-                cpuRelax();
+                const uint32_t backoffStep = spin / SPINS_PER_BACKOFF_STEP;
+                const uint32_t pauseCount = 1 << backoffStep;
+
+                // Progressive backoff: pause longer as we spin more
+                // This reduces CPU usage while maintaining some responsiveness
+                for (int pause = 0; pause < pauseCount; ++pause) {
+                    cpuRelax();
+                }
             }
 
-            // If work was found during spinning, continue the loop to process it.
             if (foundWork) {
                 continue;
             }
 
             // Sleeping Phase:
             // No work found after spinning, sleep until notified
-            // This prevents burning CPU cycles when the system is idle
             std::unique_lock lock(m_mutex);
             m_condition.wait(lock, [this, index, &st] {
                 return m_stop.load(std::memory_order_relaxed) || st.stop_requested() || hasWork(index);
@@ -226,6 +253,36 @@ namespace pxt::concurrency {
         }
 
         return false;
+    }
+
+    void JobSystem::notifyWorkers(size_t jobCount) {
+        if (jobCount == 0) {
+            return;
+        }
+
+        // For a single job, wake one worker
+        if (jobCount == 1) {
+            m_condition.notify_one();
+            return;
+        }
+
+        // For batches, wake min(jobs, workers) workers
+        // No point waking more workers than we have jobs
+        // Also no point waking more workers than we have threads
+        size_t workersToWake = std::min(jobCount, m_workers.size());
+
+        // Cap at a reasonable maximum to avoid notification overhead
+        // Even for huge batches, waking ~half the workers is usually sufficient
+        // due to work stealing - awake workers will wake others if needed
+        constexpr size_t MAX_INITIAL_WAKEUPS = 8;
+        workersToWake = std::min(workersToWake, MAX_INITIAL_WAKEUPS);
+
+        // Notify the calculated number of workers
+        // Each notify_one wakes a single sleeping thread
+        // This loop is preferred over notify_all to avoid waking too many threads
+        for (size_t i = 0; i < workersToWake; ++i) {
+            m_condition.notify_one();
+        }
     }
 
     JobHandle JobSystem::acquireSlot(uint32_t initialValue) {

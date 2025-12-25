@@ -390,7 +390,8 @@ namespace pxt::concurrency {
                 workerIdx = (workerIdx + 1) % m_workers.size();
             }
 
-            m_condition.notify_all();
+            notifyWorkers(items.size());
+
             return handle;
         }
 
@@ -437,7 +438,8 @@ namespace pxt::concurrency {
                 workerIdx = (workerIdx + 1) % m_workers.size();
             }
 
-            m_condition.notify_all();
+            notifyWorkers(callables.size());
+
             return handle;
         }
 
@@ -485,7 +487,8 @@ namespace pxt::concurrency {
                 workerIdx = (workerIdx + 1) % m_workers.size();
             }
 
-            m_condition.notify_all();
+            notifyWorkers(count);
+
             return handle;
         }
 
@@ -565,7 +568,25 @@ namespace pxt::concurrency {
          */
         void workerLoop(size_t index, std::stop_token st);
 
+        /**
+         * @brief Heuristic check for available work
+         *
+         * @param index Worker index
+         * @return True if there is probably work available
+         */
         bool hasWork(size_t index) const;
+
+        /**
+         * @brief Notifies one or more workers that new jobs are available.
+         *
+         * @param jobCount The number of newly submitted jobs
+         *
+         * Wakes up sleeping workers to ensure timely processing of new jobs.
+         * The number of workers notified may depend on the job count and current load.
+         *
+         * This prevents the thundering herd problem by only waking as many workers as needed.
+         */
+        void notifyWorkers(size_t jobCount);
 
         /**
          * @brief Acquires a slot from the registry and initializes it with generation tracking.
