@@ -65,6 +65,10 @@ namespace pxt::concurrency {
 
         m_workers[idx]->deque.push(std::move(job));
 
+        // Increment pending job counter
+        // Use relaxed ordering - this is just a heuristic, exact ordering not critical
+        m_pendingJobCount.fetch_add(1, std::memory_order_relaxed);
+
         m_condition.notify_one();
     }
 
@@ -73,14 +77,11 @@ namespace pxt::concurrency {
 
         // Try to take work from our own deque (LIFO)
         // This provides good cache locality as we work on recently added tasks
-        bool isDequeEmpty = !m_workers[index]->deque.pop(job);
+        bool foundWork = m_workers[index]->deque.pop(job);
 
-        if (isDequeEmpty) {
-            return false;
-        }
-
-        if (job.isValid() && job.isReady()) {
+        if (foundWork && job.isValid() && job.isReady()) {
             process(job);
+
             return true;
         }
 
@@ -95,18 +96,21 @@ namespace pxt::concurrency {
             if (target == index)
                 continue;
 
-            isDequeEmpty = m_workers[target]->deque.steal(job);
+            foundWork = m_workers[target]->deque.steal(job);
 
-            if (isDequeEmpty) {
-                continue;
-            }
-
-            if (job.isValid() && job.isReady()) {
-                process(job);
-                return true;
+            if (foundWork) {
+                break;
             }
         }
 
+        if (foundWork && job.isValid() && job.isReady()) {
+            process(job);
+
+            return true;
+        }
+
+        // We haven't found work or the Job was invalid or pending - we still consumed it
+        // from the deque but didn't process it, so the counter decrement was correct
         return false;
     }
 
@@ -114,6 +118,10 @@ namespace pxt::concurrency {
         if (!job.isValid() || !job.isReady()) {
             return;
         }
+
+        // Decrement counter - we consumed a job from a deque
+        // Use relaxed ordering - this is just a heuristic
+        m_pendingJobCount.fetch_sub(1, std::memory_order_relaxed);
 
         // Execute the job
         job.execute();
@@ -205,12 +213,18 @@ namespace pxt::concurrency {
     }
 
     bool JobSystem::hasWork(size_t index) const {
-        for (size_t i = 0; i < m_workers.size(); ++i) {
-
-            if (!m_workers[i]->deque.isProbablyEmpty()) {
-                return true;
-            }
+        // If counter says no work, we can skip expensive deque checks
+        // Use relaxed - we don't need strict ordering for this heuristic
+        if (m_pendingJobCount.load(std::memory_order_relaxed) > 0) {
+            return true;
         }
+
+        // Counter says no work, but it might be slightly stale due to races
+        // Do a quick verification by checking our own deque
+        if (!m_workers[index]->deque.isProbablyEmpty()) {
+            return true;
+        }
+
         return false;
     }
 

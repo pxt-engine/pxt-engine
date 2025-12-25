@@ -585,10 +585,14 @@ namespace pxt::concurrency {
         // Atomic counter for allocating counter indices (circular allocation)
         std::atomic<uint32_t> m_counterAllocIdx{0};
 
-        std::vector<Unique<Worker>> m_workers;
-
         // Atomic counter for round-robin job distribution across workers
         std::atomic<size_t> m_nextWorker{0};
+
+        // Global counter of pending jobs across all workers
+        // This is a performance optimization to avoid scanning all worker deques
+        // The counter is approximate - it may briefly be inaccurate, but that's fine
+        // for a heuristic used in spin-waiting
+        std::atomic<uint32_t> m_pendingJobCount{0};
 
         // Flag to signal all workers to stop
         std::atomic<bool> m_stop{false};
@@ -598,6 +602,8 @@ namespace pxt::concurrency {
 
         // Condition variable for waking sleeping workers when work becomes available
         std::condition_variable m_condition;
+
+        std::vector<Unique<Worker>> m_workers;
 
         // Thread-local variable storing the current worker's index
         // Allows each thread to know which worker it represents without passing parameters
