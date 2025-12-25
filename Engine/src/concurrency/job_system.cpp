@@ -54,6 +54,10 @@ namespace pxt::concurrency {
                 std::this_thread::yield();
             }
         }
+
+        // One final acquire fence to ensure we see all side effects
+        // from the completed job(s) before returning to the caller
+        std::atomic_thread_fence(std::memory_order_acquire);
     }
 
     void JobSystem::pushJob(Job&& job) {
@@ -116,8 +120,11 @@ namespace pxt::concurrency {
 
         auto& slot = m_jobRegistry[job.slotIndex];
 
+        //? Use std::memory_order_acq_rel ordering for the final decrement
+        //? - Release: Ensures all writes from job.execute() are visible to threads that observe remaining=0
+        //? - Acquire: Ensures we see all writes from other jobs in this batch
         // Decrement counter and check if this was the last job
-        uint32_t remaining = slot.value.fetch_sub(1, std::memory_order_release) - 1;
+        uint32_t remaining = slot.value.fetch_sub(1, std::memory_order_acq_rel) - 1;
 
         if (remaining == 0) {
             // Job batch complete - check for dependent jobs
@@ -131,8 +138,11 @@ namespace pxt::concurrency {
                     auto& dependentSlot = m_jobRegistry[dependentIdx];
                     auto& dependentColdData = m_jobRegistry.getColdDataAt(dependentIdx);
 
+                    //? Use std::memory_order_acq_rel ordering for the final decrement
+                    //? - Release: Our completion is visible to the dependent
+                    //? - Acquire: We see all writes from other dependencies of this job
                     uint32_t unresolvedRemaining =
-                        dependentColdData.pendingInfo.unresolvedDepsCount.fetch_sub(1, std::memory_order_relaxed) - 1;
+                        dependentColdData.pendingInfo.unresolvedDepsCount.fetch_sub(1, std::memory_order_acq_rel) - 1;
 
                     if (unresolvedRemaining == 0) {
                         // All dependencies resolved, transition to Ready
@@ -149,7 +159,8 @@ namespace pxt::concurrency {
                 pushJob(std::move(ready));
             }
 
-            // Increment generation
+            // Increment generation with release semantics to make it visible to wait()
+            // This invalidates handles that were created during this generation
             slot.generation.fetch_add(1, std::memory_order_release);
         }
     }
