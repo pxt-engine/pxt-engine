@@ -1,3 +1,5 @@
+#pragma once
+
 #include "core/pch.hpp"
 
 namespace pxt::concurrency {
@@ -12,6 +14,23 @@ namespace pxt::concurrency {
     struct JobFunction {
         void (*invoke)(const void*) = nullptr;
         alignas(std::max_align_t) std::byte buffer[48];
+
+        JobFunction() = default;
+
+        template <typename Func>
+        requires(!std::is_same_v<std::decay_t<Func>, JobFunction>)
+        JobFunction(Func&& f) {
+            using DecayedFunc = std::decay_t<Func>;
+
+            static_assert(sizeof(DecayedFunc) <= sizeof(buffer), "Lambda too large for buffer");
+            static_assert(std::is_trivially_copyable_v<DecayedFunc>, "Captures must be trivially copyable");
+
+            // Construct the lambda into the buffer
+            new (buffer) DecayedFunc(std::forward<Func>(f));
+
+            // Map the invoker
+            invoke = [](const void* ptr) { (*reinterpret_cast<const DecayedFunc*>(ptr))(); };
+        }
     };
 
     /**
@@ -48,13 +67,16 @@ namespace pxt::concurrency {
         Pending, //< Job is pending execution (waiting for dependencies)
     };
 
+    enum class JobPriority : uint8_t { Low, Normal, High };
+
     /**
      * @brief A Job represents a single unit of work to be executed by the JobSystem.
      */
     struct Job {
-        JobFunction function;             //< Function to execute
-        JobState state = JobState::Ready; //< Current state of the job
-        uint32_t slotIndex = 0;           //< Index into the slot registry for tracking completion
+        JobFunction function;                       //< Function to execute
+        JobState state = JobState::Ready;           //< Current state of the job
+        JobPriority priority = JobPriority::Normal; //<
+        uint32_t slotIndex = 0;                     //< Index into the slot registry for tracking completion
 
         template <typename Func>
         static Job create(Func&& f, uint32_t cIdx, JobState state = JobState::Ready) {
@@ -92,10 +114,6 @@ namespace pxt::concurrency {
          * @return true if state is Pending
          */
         bool isPending() const { return state == JobState::Pending; }
-    };
-
-    struct PendingJobInfo {
-        std::atomic<uint32_t> unresolvedDepsCount{0}; //< Count of unfinished dependencies
     };
 
 } // namespace pxt::concurrency
