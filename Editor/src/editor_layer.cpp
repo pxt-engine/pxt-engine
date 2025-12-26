@@ -223,7 +223,7 @@ namespace pxt::editor {
                 m_currentGizmoOperation = op;
             }
 
-            if (ImGui::IsItemHovered()) {
+            if (ImGui::IsItemHovered(ImGuiHoveredFlags_ForTooltip)) {
                 ImGui::SetTooltip("%s", tooltip);
             }
 
