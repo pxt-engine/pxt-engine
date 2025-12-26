@@ -35,6 +35,14 @@ namespace pxt::core {
     public:
         FixedVector() = default;
 
+        constexpr FixedVector(std::initializer_list<T> init) noexcept {
+            PXT_ASSERT(init.size() <= Capacity && "Initializer list exceeds FixedVector capacity");
+
+            for (const auto& item : init) {
+                push_back(item);
+            }
+        }
+
         // Element access
 
         constexpr T& operator[](size_t index) noexcept { return m_data[index]; }
@@ -105,15 +113,70 @@ namespace pxt::core {
 
         [[nodiscard]] constexpr bool full() const noexcept { return m_size == Capacity; }
 
-        // Iterators
+        // Iterator types
+        using iterator = T*;
+        using const_iterator = const T*;
+        using reverse_iterator = std::reverse_iterator<iterator>;
+        using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
-        constexpr T* begin() noexcept { return m_data.data(); }
+        // Forward iterators
+        constexpr iterator begin() noexcept { return m_data.data(); }
 
-        constexpr const T* begin() const noexcept { return m_data.data(); }
+        constexpr const_iterator begin() const noexcept { return m_data.data(); }
 
-        constexpr T* end() noexcept { return m_data.data() + m_size; }
+        constexpr const_iterator cbegin() const noexcept { return m_data.data(); }
 
-        constexpr const T* end() const noexcept { return m_data.data() + m_size; }
+        constexpr iterator end() noexcept { return m_data.data() + m_size; }
+
+        constexpr const_iterator end() const noexcept { return m_data.data() + m_size; }
+
+        constexpr const_iterator cend() const noexcept { return m_data.data() + m_size; }
+
+        // Reverse iterators
+        constexpr reverse_iterator rbegin() noexcept { return reverse_iterator(end()); }
+
+        constexpr const_reverse_iterator rbegin() const noexcept { return const_reverse_iterator(end()); }
+
+        constexpr const_reverse_iterator crbegin() const noexcept { return const_reverse_iterator(end()); }
+
+        constexpr reverse_iterator rend() noexcept { return reverse_iterator(begin()); }
+
+        constexpr const_reverse_iterator rend() const noexcept { return const_reverse_iterator(begin()); }
+
+        constexpr const_reverse_iterator crend() const noexcept { return const_reverse_iterator(begin()); }
+
+        constexpr iterator erase(const_iterator pos) {
+            size_t index = static_cast<size_t>(pos - begin());
+
+            if (index >= m_size)
+                return end();
+
+            // Shift elements left
+            for (size_t i = index; i + 1 < m_size; ++i) {
+                m_data[i] = std::move(m_data[i + 1]);
+            }
+
+            --m_size;
+            return begin() + index;
+        }
+
+        constexpr iterator erase(const_iterator first, const_iterator last) {
+            size_t start = static_cast<size_t>(first - begin());
+            size_t finish = static_cast<size_t>(last - begin());
+
+            if (start >= m_size || start >= finish)
+                return begin() + start;
+
+            size_t count = finish - start;
+
+            // Shift remaining elements left
+            for (size_t i = start; i + count < m_size; ++i) {
+                m_data[i] = std::move(m_data[i + count]);
+            }
+
+            m_size -= static_cast<SizeType>(count);
+            return begin() + start;
+        }
 
     private:
         std::array<T, Capacity> m_data{};
