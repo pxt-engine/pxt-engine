@@ -9,8 +9,7 @@ namespace pxt {
 
     class MeshImporter {
     public:
-        static Shared<Mesh> importObj(ResourceManager& rm, const std::filesystem::path& filePath,
-                                      ResourceInfo* resourceInfo = nullptr);
+        static Shared<Mesh> importObj(const std::filesystem::path& filePath, ResourceInfo* resourceInfo = nullptr);
 
         static void updateUi(ResourceInfo* resourceInfo);
     };

@@ -8,8 +8,7 @@
 
 namespace pxt {
 
-    Shared<Mesh> MeshImporter::importObj(ResourceManager& rm, const std::filesystem::path& filePath,
-                                         ResourceInfo* resourceInfo) {
+    Shared<Mesh> MeshImporter::importObj(const std::filesystem::path& filePath, ResourceInfo* resourceInfo) {
 
         std::vector<Mesh::Vertex> vertices{}; // List of vertices in the model.
         std::vector<uint32_t> indices{};      // List of indices for indexed rendering.
