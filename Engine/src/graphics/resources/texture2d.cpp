@@ -14,7 +14,10 @@ namespace pxt {
         : VulkanImage(context, info, buffer) {
         createTextureImage(buffer);
         createTextureImageView();
-        createTextureSampler();
+
+        if ((m_info.flags & ImageFlags::NoSampler) == ImageFlags::None) {
+            createTextureSampler();
+        }
     }
 
     void Texture2D::createTextureImage(const std::span<uint8_t> buffer) {
