@@ -1,5 +1,6 @@
 #pragma once
 
+#include "editor_texture_registry.hpp"
 #include "pxtengine.h"
 #include "ui/entity_inspector.hpp"
 #include "ui/main_menu_bar.hpp"
@@ -18,10 +19,13 @@ namespace pxt::editor {
     private:
         void updateSceneUi(FrameInfo& frameInfo);
         void updateGizmos(FrameInfo& frameInfo);
+        void updateViewportOverlayButtons(FrameInfo& frameInfo, float buttonsSize = 0.6f);
 
         ImVec2 getImageSizeWithAspectRatioForImGuiWindow(ImVec2 windowSize, float aspectRatio);
         bool onMouseButtonPress(core::MouseButtonPressEvent& event);
         bool onKeyPressEvent(core::KeyPressEvent& event);
+
+        Unique<EditorTextureRegistry> m_editorTextureRegistry = nullptr;
 
         bool m_isViewportFocused = false;
         bool m_isViewportHovered = false;

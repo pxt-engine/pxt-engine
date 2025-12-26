@@ -2,10 +2,12 @@
 #include "core/events/editor_events.hpp"
 #include "core/events/imgui_events.hpp"
 
-#include <glm/gtx/matrix_decompose.hpp>
+#include <glm/gtx/matrix_decompose.hpp> // will use it in the future for gizmos
 
 namespace pxt::editor {
-    EditorLayer::EditorLayer() : core::Layer("EditorLayer") {}
+    EditorLayer::EditorLayer() : core::Layer("EditorLayer") {
+        m_editorTextureRegistry = createUnique<EditorTextureRegistry>();
+    }
 
     void EditorLayer::onEvent(core::Event& event) {
         core::EventDispatcher dispatcher(event);
@@ -134,6 +136,8 @@ namespace pxt::editor {
         // this has to be called inside the window where ImGuizmo is used
         updateGizmos(frameInfo);
 
+        updateViewportOverlayButtons(frameInfo, 0.8);
+
         ImGui::End();
         ImGui::PopStyleVar();
     }
@@ -154,7 +158,7 @@ namespace pxt::editor {
         ImGuizmo::SetOrthographic(false);
         // prevents the gizmo from "flipping" when looked from different angles
         // if flipped, an axis is decorated with black dots
-        ImGuizmo::AllowAxisFlip(false); 
+        ImGuizmo::AllowAxisFlip(false);
 
         Entity selectedEntity = frameInfo.scene.getEntity(m_selectedEntityUUID);
         TransformComponent& transform = selectedEntity.get<TransformComponent>();
@@ -176,13 +180,67 @@ namespace pxt::editor {
         // apply changes back to entity
         if (ImGuizmo::IsUsingAny()) {
             glm::vec3 translation, rotation, scale;
-            
+
             ImGuizmo::DecomposeMatrixToComponents(glm::value_ptr(modelMatrix), glm::value_ptr(translation),
                                                   glm::value_ptr(rotation), glm::value_ptr(scale));
             transform.translation = translation;
             transform.rotation = glm::radians(rotation); // ImGuizmo returns degrees by default
             transform.scale = scale;
         }
+    }
+
+    void EditorLayer::updateViewportOverlayButtons(FrameInfo& frameInfo, float buttonsSize) {
+        const float buttonSize = 90.0f * buttonsSize;
+        const float padding = 10.0f;
+
+        ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize |
+                                       ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav |
+                                       ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBackground;
+
+        // Top-right of viewport
+        ImVec2 windowPos(m_viewportUpperLeftScreenCoord.x + m_sceneImageExtent.x - padding,
+                         m_viewportUpperLeftScreenCoord.y + padding);
+
+        ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always, ImVec2(1.0f, 0.0f));
+        ImGui::Begin("ViewportOverlayButtons", nullptr, windowFlags);
+
+        auto DrawImageToggleButton = [&](ImTextureID texture, const char* tooltip, const char* strId,
+                                         ImGuizmo::OPERATION op) {
+            const bool isActive = (m_currentGizmoOperation == op);
+
+            if (isActive) {
+                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.25f, 0.45f, 0.85f, 0.90f));
+                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.30f, 0.50f, 0.90f, 1.00f));
+                ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.20f, 0.40f, 0.80f, 1.00f));
+            } else {
+                // Neutral background for inactive state
+                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.15f, 0.15f, 0.15f, 0.60f));
+                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.25f, 0.25f, 0.25f, 0.80f));
+                ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.20f, 0.20f, 0.20f, 0.90f));
+            }
+
+            if (ImGui::ImageButton(strId, texture, ImVec2(buttonSize, buttonSize), ImVec2(0, 0), ImVec2(1, 1))) {
+                m_currentGizmoOperation = op;
+            }
+
+            if (ImGui::IsItemHovered()) {
+                ImGui::SetTooltip("%s", tooltip);
+            }
+
+            ImGui::PopStyleColor(3);
+        };
+
+        ImTextureID m_translateIcon = (ImTextureID)m_editorTextureRegistry->get("translation_gizmo.png");
+        ImTextureID m_scaleIcon = (ImTextureID)m_editorTextureRegistry->get("scale_gizmo.png");
+        ImTextureID m_rotateIcon = (ImTextureID)m_editorTextureRegistry->get("rotation_gizmo.png");
+
+        DrawImageToggleButton(m_translateIcon, "Translate (1)", "##translate-gizmo", ImGuizmo::TRANSLATE);
+        ImGui::SameLine();
+        DrawImageToggleButton(m_scaleIcon, "Scale (2)", "##scale-gizmo", ImGuizmo::SCALE);
+        ImGui::SameLine();
+        DrawImageToggleButton(m_rotateIcon, "Rotate (3)", "##rotate-gizmo", ImGuizmo::ROTATE);
+
+        ImGui::End();
     }
 
     ImVec2 EditorLayer::getImageSizeWithAspectRatioForImGuiWindow(ImVec2 windowSize, float aspectRatio) {
