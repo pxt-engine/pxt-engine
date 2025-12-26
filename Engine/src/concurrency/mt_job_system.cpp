@@ -1,10 +1,10 @@
-#include "concurrency/job_system.hpp"
+#include "concurrency/mt_job_system.hpp"
 
 #include "concurrency/cpu_relax.hpp"
 
 namespace pxt::concurrency {
 
-    JobSystem::JobSystem(size_t threadCount) {
+    MultiThreadedJobSystem::MultiThreadedJobSystem(size_t threadCount) {
         m_workers.reserve(threadCount);
 
         // Creates worker objects with their deques
@@ -23,13 +23,13 @@ namespace pxt::concurrency {
         }
     }
 
-    JobSystem::~JobSystem() {
+    MultiThreadedJobSystem::~MultiThreadedJobSystem() {
         m_stop.store(true, std::memory_order_release);
         m_condition.notify_all();
     }
 
-    void JobSystem::wait(JobHandle handle) {
-        if (handle == InvalidJobHandle || handle.index >= m_jobRegistry.maxSlots()) {
+    void MultiThreadedJobSystem::wait(const JobHandle handle) {
+        if (!handle.isValid() || handle.index >= m_jobRegistry.maxSlots()) {
             return;
         }
 
@@ -60,7 +60,7 @@ namespace pxt::concurrency {
         std::atomic_thread_fence(std::memory_order_acquire);
     }
 
-    void JobSystem::pushJob(Job&& job) {
+    void MultiThreadedJobSystem::pushJob(Job&& job) {
         size_t idx = m_nextWorker.fetch_add(1, std::memory_order_relaxed) % m_workers.size();
 
         m_workers[idx]->deque.push(std::move(job));
@@ -72,7 +72,7 @@ namespace pxt::concurrency {
         m_condition.notify_one();
     }
 
-    bool JobSystem::executeOneJob(size_t index) {
+    bool MultiThreadedJobSystem::executeOneJob(size_t index) {
         Job job;
 
         // Try to take work from our own deque (LIFO)
@@ -114,7 +114,7 @@ namespace pxt::concurrency {
         return false;
     }
 
-    void JobSystem::process(Job& job) {
+    void MultiThreadedJobSystem::process(Job& job) {
         if (!job.isValid() || !job.isReady()) {
             return;
         }
@@ -173,7 +173,7 @@ namespace pxt::concurrency {
         }
     }
 
-    void JobSystem::workerLoop(size_t index, std::stop_token st) {
+    void MultiThreadedJobSystem::workerLoop(size_t index, std::stop_token st) {
         while (!st.stop_requested() && !m_stop.load(std::memory_order_relaxed)) {
 
             // Active Execution Phase: Try to execute one job
@@ -239,7 +239,7 @@ namespace pxt::concurrency {
         }
     }
 
-    bool JobSystem::hasWork(size_t index) const {
+    bool MultiThreadedJobSystem::hasWork(size_t index) const {
         // If counter says no work, we can skip expensive deque checks
         // Use relaxed - we don't need strict ordering for this heuristic
         if (m_pendingJobCount.load(std::memory_order_relaxed) > 0) {
@@ -255,7 +255,7 @@ namespace pxt::concurrency {
         return false;
     }
 
-    void JobSystem::notifyWorkers(size_t jobCount) {
+    void MultiThreadedJobSystem::notifyWorkers(size_t jobCount) {
         if (jobCount == 0) {
             return;
         }
@@ -285,7 +285,7 @@ namespace pxt::concurrency {
         }
     }
 
-    JobHandle JobSystem::acquireSlot(uint32_t initialValue) {
+    JobHandle MultiThreadedJobSystem::acquireSlot(uint32_t initialValue) {
         // Circular allocation of slot indices
         uint32_t index = m_counterAllocIdx.fetch_add(1, std::memory_order_relaxed) % m_jobRegistry.maxSlots();
 
