@@ -29,15 +29,15 @@ namespace pxt::concurrency {
     }
 
     void MultiThreadedJobSystem::wait(const JobHandle handle) {
-        if (!handle.isValid() || handle.index >= m_jobRegistry.maxSlots()) {
+        if (!handle.isValid() || handle.index() >= m_jobRegistry.maxSlots()) {
             return;
         }
 
-        auto& slot = m_jobRegistry[handle.index];
+        auto& slot = m_jobRegistry[handle.index()];
 
         // Check generation: if mismatch, this handle is stale and job is already done
         uint32_t currentGen = slot.generation.load(std::memory_order_relaxed);
-        if (currentGen != handle.generation) {
+        if (currentGen != handle.generation()) {
             // Generation mismatch: the job has already completed in a previous cycle
             return;
         }
@@ -45,7 +45,7 @@ namespace pxt::concurrency {
         // Busy-wait with helping: actively execute jobs while waiting
         while (slot.value.load(std::memory_order_acquire) > 0) {
             // Double-check generation hasn't changed (counter recycled mid-wait)
-            if (slot.generation.load(std::memory_order_relaxed) != handle.generation) {
+            if (slot.generation.load(std::memory_order_relaxed) != handle.generation()) {
                 return;
             }
 
@@ -285,7 +285,7 @@ namespace pxt::concurrency {
         }
     }
 
-    JobHandle MultiThreadedJobSystem::acquireSlot(uint32_t initialValue) {
+    JobHandle MultiThreadedJobSystem::acquireSlot(uint32_t jobsCount) {
         // Circular allocation of slot indices
         uint32_t index = m_counterAllocIdx.fetch_add(1, std::memory_order_relaxed) % m_jobRegistry.maxSlots();
 
@@ -296,9 +296,11 @@ namespace pxt::concurrency {
         uint32_t generation = slot.generation.load(std::memory_order_relaxed);
 
         // Initialize the counter with the number of jobs
-        slot.value.store(initialValue, std::memory_order_release);
+        slot.value.store(jobsCount, std::memory_order_release);
 
-        return JobHandle{index, generation};
+        const bool isBatch = jobsCount > 1;
+
+        return JobHandle::make(index, generation, isBatch);
     }
 
 } // namespace pxt::concurrency

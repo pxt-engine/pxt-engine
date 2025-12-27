@@ -89,8 +89,7 @@ namespace pxt::concurrency {
          * * size: Current number of elements in the vector (1-4 bytes)
          * * Total Size: 48 bytes
          */
-        core::FixedVector<uint32_t, MAX_JOB_DEPENDENCIES>
-            dependents; //< Jobs that depends on the job in this slot (48 bytes)
+        core::FixedVector<uint32_t, MAX_JOB_DEPENDENCIES> dependents;
 
         // 8 + 4 + 52 = 64 bytes total (cache line size)
         // With max 64 bytes in total the JobSlot fits perfectly into one cache line
@@ -197,11 +196,11 @@ namespace pxt::concurrency {
 
         JobHandle submit(const JobDescription& desc) override {
             JobHandle handle = acquireSlot(1);
-            auto& slotColdData = m_jobRegistry.getColdDataAt(handle.index);
+            auto& slotColdData = m_jobRegistry.getColdDataAt(handle.index());
 
             slotColdData.job.function = desc.function;
             slotColdData.job.priority = desc.priority;
-            slotColdData.job.slotIndex = handle.index;
+            slotColdData.job.slotIndex = handle.index();
 
             if (desc.dependencies.size() == 0) {
                 slotColdData.job.state = JobState::Ready;
@@ -219,7 +218,7 @@ namespace pxt::concurrency {
             deps.erase(std::remove_if(deps.begin(), deps.end(), [](const JobHandle& h) { return !h.isValid(); }),
                        deps.end());
 
-            auto& coldData = m_jobRegistry.getColdDataAt(handle.index);
+            auto& coldData = m_jobRegistry.getColdDataAt(handle.index());
 
             // If there are no dependencies, submit as a normal job
             if (deps.empty()) {
@@ -248,19 +247,19 @@ namespace pxt::concurrency {
             //? 3. We check and see it's complete, try to remove ourselves (already processed)
             for (const auto& dep : deps) {
                 // Skip invalid dependencies
-                if (!dep.isValid() || dep.index >= m_jobRegistry.maxSlots()) {
+                if (!dep.isValid() || dep.index() >= m_jobRegistry.maxSlots()) {
                     ++completedDeps;
                     continue;
                 }
 
-                auto& depSlot = m_jobRegistry[dep.index];
+                auto& depSlot = m_jobRegistry[dep.index()];
 
                 //? Check if dependency is already completed before registering
                 //? Use acquire to ensure we see all writes from the completing job
                 uint32_t depGen = depSlot.generation.load(std::memory_order_acquire);
                 uint32_t depVal = depSlot.value.load(std::memory_order_acquire);
 
-                const bool isAlreadyCompleted = (depGen != dep.generation) || (depVal == 0);
+                const bool isAlreadyCompleted = (depGen != dep.generation()) || (depVal == 0);
 
                 if (isAlreadyCompleted) {
                     // Already completed - don't register at all
@@ -277,7 +276,7 @@ namespace pxt::concurrency {
                     depGen = depSlot.generation.load(std::memory_order_acquire);
                     depVal = depSlot.value.load(std::memory_order_acquire);
 
-                    const bool completedWhileLocking = (depGen != dep.generation) || (depVal == 0);
+                    const bool completedWhileLocking = (depGen != dep.generation()) || (depVal == 0);
 
                     if (completedWhileLocking) {
                         // Completed while we were acquiring the lock - don't register
@@ -409,10 +408,10 @@ namespace pxt::concurrency {
          * is captured. The generation will be incremented when the counter reaches zero,
          * ensuring that any handles created now will detect completion via generation mismatch.
          *
-         * @param initialValue The initial value for the counter (number of jobs in the batch)
+         * @param jobsCount The initial value for the counter (number of jobs in the batch)
          * @return A JobHandle containing both the counter index and generation number
          */
-        JobHandle acquireSlot(uint32_t initialValue);
+        JobHandle acquireSlot(uint32_t jobsCount);
 
     private:
         JobRegistry m_jobRegistry{};

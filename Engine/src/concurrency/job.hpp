@@ -40,27 +40,54 @@ namespace pxt::concurrency {
      * index is reused while an old handle still references it. Each time a counter
      * completes and is recycled, its generation is incremented.
      *
-     * Structure:
-     * - index: The slot index (0 to MAX_SLOTS-1)
-     * - generation: The generation number of this allocation
-     *
-     * A handle is valid only if both the index and generation match the slot in the registry.
+     * The JobHandle is a 64-bit value with the following layout:
+     * - Bits 0-30: Index (31 bits)
+     * - Bits 31-61: Generation (31 bits)
+     * - Bit 62: Batch flag (1 bit)
+     * - Bit 63: Valid flag (1 bit)
      */
     struct JobHandle {
-        uint32_t index = 0xFFFFFFFF;
-        uint32_t generation = 0;
+        uint64_t value = 0;
 
-        bool operator==(const JobHandle& other) const { return index == other.index && generation == other.generation; }
+        // Bit sizes
+        static constexpr uint32_t IndexBits = 31;
+        static constexpr uint32_t GenerationBits = 31;
 
-        bool operator!=(const JobHandle& other) const { return !(*this == other); }
+        // Shifts
+        static constexpr uint32_t IndexShift = 0;
+        static constexpr uint32_t GenerationShift = IndexBits;
+        static constexpr uint32_t BatchShift = IndexBits + GenerationBits;
+        static constexpr uint32_t ValidShift = BatchShift + 1;
 
-        /**
-         * @brief Checks if this handle is valid (not the invalid sentinel value).
-         */
-        bool isValid() const { return index != 0xFFFFFFFF; }
+        // Masks
+        static constexpr uint64_t IndexMask = ((1ull << IndexBits) - 1ull) << IndexShift;
+
+        static constexpr uint64_t GenerationMask = ((1ull << GenerationBits) - 1ull) << GenerationShift;
+
+        static constexpr uint64_t ValidMask = 1ull << ValidShift;
+
+        static constexpr uint64_t BatchMask = 1ull << BatchShift;
+
+        // Accessors
+        constexpr bool isValid() const { return (value & ValidMask) != 0; }
+
+        constexpr bool isBatch() const { return (value & BatchMask) != 0; }
+
+        constexpr uint32_t index() const { return static_cast<uint32_t>((value & IndexMask) >> IndexShift); }
+
+        constexpr uint32_t generation() const {
+            return static_cast<uint32_t>((value & GenerationMask) >> GenerationShift);
+        }
+
+        // Factory
+        static constexpr JobHandle make(uint32_t index, uint32_t generation, bool isBatch = false) {
+            return JobHandle{((uint64_t(index) << IndexShift) & IndexMask) |
+                             ((uint64_t(generation) << GenerationShift) & GenerationMask) | ValidMask |
+                             (isBatch ? BatchMask : 0ull)};
+        }
+
+        static constexpr JobHandle invalid() { return JobHandle{0}; }
     };
-
-    static constexpr JobHandle InvalidJobHandle = {0xFFFFFFFF, 0xFFFFFFFF};
 
     enum class JobState : uint8_t {
         Ready,   //< Job is ready to execute
