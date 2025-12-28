@@ -41,7 +41,7 @@ namespace pxt {
          * @param direction The direction the camera is facing.
          * @param up The up vector, defaults to (0,-1,0).
          */
-        void setViewDirection(glm::vec3 position, glm::vec3 direction, glm::vec3 up = glm::vec3{0.f, -1.f, 0.f});
+        void setViewDirection(glm::vec3 position, glm::vec3 direction, glm::vec3 up = glm::vec3{0.f, 1.f, 0.f});
 
         /**
          * @brief Sets the camera view matrix to look at a specific target.
@@ -50,15 +50,7 @@ namespace pxt {
          * @param target The target position to look at.
          * @param up The up vector, defaults to (0,-1,0).
          */
-        void setViewTarget(glm::vec3 position, glm::vec3 target, glm::vec3 up = glm::vec3{0.f, -1.f, 0.f});
-
-        /**
-         * @brief Sets the camera view matrix using YXZ Euler angles.
-         *
-         * @param position The camera position in world coordinates.
-         * @param rotation Euler angles representing the camera's orientation.
-         */
-        void setViewYXZ(glm::vec3 position, glm::vec3 rotation);
+        void setViewTarget(glm::vec3 position, glm::vec3 target, glm::vec3 up = glm::vec3{0.f, 1.f, 0.f});
 
         /**
          * @brief Retrieves the projection matrix.
@@ -66,6 +58,7 @@ namespace pxt {
          * @return The projection matrix.
          */
         const glm::mat4& getProjectionMatrix() const { return m_projectionMatrix; }
+        glm::mat4& getProjectionMatrix() { return m_projectionMatrix; }
 
         /**
          * @brief Retrieves the view matrix.
@@ -107,16 +100,7 @@ namespace pxt {
         void drawCameraUi();
 
     private:
-        /**
-         * @brief Updates the camera's view matrix based on provided basis vectors.
-         *
-         * @param u The right vector of the camera.
-         * @param v The up vector of the camera.
-         * @param w The forward vector of the camera.
-         * @param position The camera position in world coordinates.
-         */
-        void updateViewMatrix(glm::vec3 u, glm::vec3 v, glm::vec3 w, glm::vec3 position);
-
+        
         glm::mat4 m_projectionMatrix{1.f};
         glm::mat4 m_viewMatrix{1.f};
         glm::mat4 m_inverseViewMatrix{1.f};

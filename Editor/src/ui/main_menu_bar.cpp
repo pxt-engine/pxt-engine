@@ -1,4 +1,5 @@
 #include "main_menu_bar.hpp"
+#include "core/events/window_event.hpp"
 
 namespace pxt::editor {
     void MainMenuBar::onUpdateUi(FrameInfo& frameInfo) {
@@ -14,8 +15,7 @@ namespace pxt::editor {
                     m_openSaveSceneDialog = true;
                 }
                 if (ImGui::MenuItem("Exit")) {
-                    // TODO: Implement "Exit" logic here
-                    printf("File -> Exit clicked!\n");
+                    Application::get().queueEvent(core::WindowCloseEvent());
                 }
                 ImGui::EndMenu();
             }

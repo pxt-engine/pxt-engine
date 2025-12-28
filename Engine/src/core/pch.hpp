@@ -52,6 +52,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/hash.hpp>
+#include <glm/gtx/quaternion.hpp>
 using u32vec2 = glm::highp_u32vec2;
 
 // Vulkan Headers - For using the Vulkan API, a low-level graphics API

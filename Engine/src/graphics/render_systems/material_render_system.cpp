@@ -110,7 +110,7 @@ namespace pxt {
 
             MaterialPushConstantData push{};
             push.modelMatrix = transform.mat4();
-            push.normalMatrix = transform.normalMatrix();
+            push.normalMatrix = transform.normalMatrix(push.modelMatrix);
             push.color = material->getAlbedoColor() * glm::vec4(materialComponent.tint, 1.0f);
             push.specularIntensity = material->getBlinnPhongSpecularIntensity();
             push.shininess = material->getBlinnPhongSpecularShininess();

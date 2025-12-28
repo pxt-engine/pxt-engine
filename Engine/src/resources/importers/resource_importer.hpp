@@ -11,7 +11,7 @@ namespace pxt {
     class ResourceManager; // forward declaration
 
     using ResourceImportFunction =
-        std::function<Shared<Resource>(ResourceManager&, const std::filesystem::path&, ResourceInfo* resourceInfo)>;
+        std::function<Shared<Resource>(const std::filesystem::path&, ResourceInfo* resourceInfo)>;
 
     using ResourceImportUiFunction = std::function<void(ResourceInfo* resourceInfo)>;
 
@@ -25,8 +25,7 @@ namespace pxt {
 
     class ResourceImporter {
     public:
-        Shared<Resource> import(ResourceManager& rm, const std::filesystem::path& filePath,
-                                ResourceInfo* resourceInfo = nullptr);
+        Shared<Resource> import(const std::filesystem::path& filePath, ResourceInfo* resourceInfo = nullptr);
 
         ImporterEntry* getImporterEntry(const std::string& extension);
 

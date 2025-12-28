@@ -10,8 +10,7 @@ namespace pxt {
         return nullptr;
     }
 
-    Shared<Resource> ResourceImporter::import(ResourceManager& rm, const std::filesystem::path& filePath,
-                                              ResourceInfo* resourceInfo) {
+    Shared<Resource> ResourceImporter::import(const std::filesystem::path& filePath, ResourceInfo* resourceInfo) {
 
         std::string extension = filePath.extension().string();
 
@@ -25,6 +24,6 @@ namespace pxt {
             return nullptr;
         }
 
-        return entry->importFunction(rm, filePath, resourceInfo);
+        return entry->importFunction(filePath, resourceInfo);
     }
 } // namespace pxt

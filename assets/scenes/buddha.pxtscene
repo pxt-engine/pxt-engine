@@ -3,7 +3,7 @@ entities:
   - entity: 01998c92-ee89-7c58-8126-a7e509da3ae2
     NameComponent: dragon
     TransformComponent:
-      translation: [0, 1, -0.71]
+      translation: [0, -1, 0.71]
       scale: [0.005, 0.005, 0.005]
       rotation: [3.1415927, 0, 0]
     MaterialComponent:
@@ -31,7 +31,7 @@ entities:
   - entity: 01998c92-e808-72a3-835f-e05f87fd4a4d
     NameComponent: Glass sphere
     TransformComponent:
-      translation: [0, 0, -5.24]
+      translation: [0, 0, 5.24]
       scale: [0.06, 0.06, 0.06]
       rotation: [0, 0, 0]
     MaterialComponent:
@@ -59,7 +59,7 @@ entities:
   - entity: 01998c92-e808-785d-8371-a912c75279c3
     NameComponent: Emissive sphere
     TransformComponent:
-      translation: [0.21, 0.12, -0.17]
+      translation: [0.21, -0.12, 0.17]
       scale: [0.02, 0.02, 0.02]
       rotation: [0, 0, 0]
     MaterialComponent:
@@ -87,9 +87,9 @@ entities:
   - entity: 01998c92-e738-7a43-8161-c0dc6d60debe
     NameComponent: Roof
     TransformComponent:
-      translation: [0, -1, 0]
+      translation: [0, 1, 0]
       scale: [1, 1, 1]
-      rotation: [3.1415927, 0, 0]
+      rotation: [-3.1415927, 0, 0]
     MaterialComponent:
       materialId: 01998c92-e3ad-77b3-8329-019ae2daef37
       material: default_material
@@ -115,9 +115,9 @@ entities:
   - entity: 01998c92-e738-7bfb-821c-79106666e08f
     NameComponent: Front Wall
     TransformComponent:
-      translation: [0, 0, 1]
+      translation: [0, 0, -1]
       scale: [1, 1, 1]
-      rotation: [1.5707964, 0, 0]
+      rotation: [-1.5707964, 0, 0]
     MaterialComponent:
       materialId: 01998c92-e3ad-77b3-8329-019ae2daef37
       material: default_material
@@ -145,7 +145,7 @@ entities:
     TransformComponent:
       translation: [1, 0, 0]
       scale: [1, 1, 1]
-      rotation: [0, 0, -1.5707964]
+      rotation: [0, 0, 1.5707964]
     MaterialComponent:
       materialId: 01998c92-e3ad-77b3-8329-019ae2daef37
       material: default_material
@@ -173,7 +173,7 @@ entities:
     TransformComponent:
       translation: [-1, 0, 0]
       scale: [1, 1, 1]
-      rotation: [0, 0, 1.5707964]
+      rotation: [0, 0, -1.5707964]
     MaterialComponent:
       materialId: 01998c92-e3ad-77b3-8329-019ae2daef37
       material: default_material
@@ -199,7 +199,7 @@ entities:
   - entity: 01998c92-e738-7ef5-8324-026bad854a68
     NameComponent: Floor
     TransformComponent:
-      translation: [0, 1, 0]
+      translation: [0, -1, 0]
       scale: [1, 1, 1]
       rotation: [0, 0, 0]
     MaterialComponent:
@@ -227,9 +227,9 @@ entities:
   - entity: 01998c92-e4f9-7348-83bb-8b5f11bafc60
     NameComponent: camera
     TransformComponent:
-      translation: [0.3868643, 0.49036592, -0.75693834]
+      translation: [0.3868643, -0.49036592, 0.75693834]
       scale: [0, 0, 0]
-      rotation: [-0.17, -0.301, 0]
+      rotation: [0.17, 0.301, 0]
     CameraComponent:
       isMainCamera: true
       isPerspective: true
