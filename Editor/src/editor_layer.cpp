@@ -2,6 +2,7 @@
 #include "core/events/editor_events.hpp"
 #include "core/events/imgui_events.hpp"
 #include "ui/widgets/mode_selector_image_button.hpp"
+#include "ui/widgets/toggle_image_button.hpp"
 
 #include <glm/gtx/matrix_decompose.hpp> // will use it in the future for gizmos
 
@@ -228,8 +229,8 @@ namespace pxt::editor {
                                             m_currentGizmoOperation, buttonSize);
 
         ImGui::SameLine(0.f, 10.f);
-        ui::ModeSelectorImageButton::render(worldIcon, "##world-mode-gizmo", "World Mode (4)", ImGuizmo::WORLD,
-                                            m_currentGizmoMode, buttonSize);
+        ui::ToggleImageButton::render(worldIcon, "##world-mode-gizmo", "World Mode (4)", ImGuizmo::WORLD,
+                                      ImGuizmo::LOCAL, m_currentGizmoMode, buttonSize);
 
         ImGui::End();
     }
