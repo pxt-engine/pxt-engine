@@ -31,6 +31,14 @@ namespace pxt::concurrency {
             // Map the invoker
             invoke = [](const void* ptr) { (*reinterpret_cast<const DecayedFunc*>(ptr))(); };
         }
+
+        void operator()() const {
+            if (invoke) {
+                invoke(buffer);
+            }
+        }
+
+        explicit operator bool() const { return invoke != nullptr; }
     };
 
     /**
@@ -122,7 +130,7 @@ namespace pxt::concurrency {
             return job;
         }
 
-        void execute() { function.invoke(function.buffer); }
+        void execute() { function(); }
 
         /**
          * @brief Checks if this job is valid and ready to execute.
