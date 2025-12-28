@@ -198,12 +198,12 @@ namespace pxt {
     }
 
     void Application::run() {
-
-        Camera camera;
-
         auto currentTime = std::chrono::high_resolution_clock::now();
 
         m_scene.onStart();
+        // TODO: pay attention to reference
+        Camera& mainCamera = m_scene.getMainCameraEntity().get<CameraComponent>().camera;
+        
         uint32_t frameCount = 0;
         while (isRunning()) {
             // reset temporary inputs
@@ -218,7 +218,7 @@ namespace pxt {
 
             m_scene.onUpdate(elapsedTime);
 
-            updateCamera(camera);
+            updateMainCamera();
 
             if (auto commandBuffer = m_renderer.beginFrame()) {
                 int frameIndex = m_renderer.getFrameIndex();
@@ -228,7 +228,7 @@ namespace pxt {
                     elapsedTime,
                     m_renderer.getAspectRatio(),
                     commandBuffer,
-                    camera,
+                    mainCamera,
                     m_globalDescriptorSets[frameIndex],
                     m_renderLayerPtr->getImGuiSceneDescriptorSet(),
                     m_scene,
@@ -284,19 +284,14 @@ namespace pxt {
         m_layerStack.onEvent(event);
     }
 
-    void Application::updateCamera(Camera& camera) {
-        if (Entity mainCameraEntity = m_scene.getMainCameraEntity()) {
-            const auto& cameraComponent = mainCameraEntity.get<CameraComponent>();
-            const auto& transform = mainCameraEntity.get<TransformComponent>();
+    void Application::updateMainCamera() {
+        Entity mainCameraEntity = m_scene.getMainCameraEntity();
+        auto& cameraComponent = mainCameraEntity.get<CameraComponent>();
 
-            camera = cameraComponent.camera;
-            camera.setViewYXZ(transform.translation, transform.rotation);
-
-            if (camera.isPerspective()) {
-                camera.setPerspective(m_renderLayerPtr->getSceneAspectRatio());
-            } else {
-                camera.setOrthographic();
-            }
+        if (cameraComponent.camera.isPerspective()) {
+            cameraComponent.camera.setPerspective(m_renderLayerPtr->getSceneAspectRatio());
+        } else {
+            cameraComponent.camera.setOrthographic();
         }
     }
 

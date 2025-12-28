@@ -69,11 +69,8 @@ void main() {
                 // so we draw the outline color here
 
                 // if the outline neighbor is behind another object, we draw it darker
-                // TODO: this is still not pixel perfect. By definition we cannot know
-                // if an outline pixel is behind another object because the outline itself
-                // lives outside the object. A proper solution would require depth information.
-                vec4 pixelIdColor = fetchIdColor(neighborCoord, imageExtent);
-                if (pixelIdColor != push.selectedObjectColor) {
+                vec4 nighborIdColor = fetchIdColor(neighborCoord, imageExtent);
+                if (nighborIdColor != push.selectedObjectColor) {
                     imageStore(outputImage, pixelCoord, shade_darker(push.outlineColor, 0.5));
                     return;
                 }

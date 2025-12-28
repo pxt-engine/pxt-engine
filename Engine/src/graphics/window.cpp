@@ -8,6 +8,8 @@
 #include "core/input/mapper/glfw_input_mapper.hpp"
 #include "core/logger.hpp"
 
+#include <ImGuizmo.h>
+
 namespace pxt {
 
     Window::Window(const WindowData& props) : m_data(props) {
@@ -62,13 +64,13 @@ namespace pxt {
             ImGui_ImplGlfw_KeyCallback(window, glfwKey, scancode, action, mods);
 
             // let ImGui handle it if it wants (only press and repeat events)
-            bool imguiWantCaptureKeyboard = io.WantCaptureKeyboard;
+            bool imguiBlocksInput = io.WantCaptureKeyboard || ImGuizmo::IsUsingAny();
 
             core::KeyCode key = core::mapGLFWKey(glfwKey);
 
             switch (action) {
             case GLFW_PRESS: {
-                if (imguiWantCaptureKeyboard)
+                if (imguiBlocksInput)
                     return;
 
                 core::Input::getState().onKeyPress(key);
@@ -85,7 +87,7 @@ namespace pxt {
                 break;
             }
             case GLFW_REPEAT: {
-                if (imguiWantCaptureKeyboard)
+                if (imguiBlocksInput)
                     return;
 
                 core::Input::getState().onKeyRepeat(key);
@@ -120,8 +122,13 @@ namespace pxt {
 
             core::MouseButton button = core::mapGLFWMouseButton(glfwButton);
 
+            bool imguiBlocksInput = ImGuizmo::IsUsing() || ImGuizmo::IsOver();
+
             switch (action) {
             case GLFW_PRESS: {
+                if (imguiBlocksInput)
+                    return;
+
                 core::Input::getState().onMousePress(button);
                 core::MouseButtonPressEvent event(button);
                 data.eventCallback(event);
@@ -150,6 +157,10 @@ namespace pxt {
             WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
 
             ImGui_ImplGlfw_CursorPosCallback(window, xPos, yPos);
+
+            // prevent mouse movement events when using gizmos
+            if (ImGuizmo::IsUsingAny())
+                return;
 
             // PXT_INFO("Viewport Hovered: {}, Viewport Focused: {}", ui::s_isViewportHovered, ui::s_isViewportFocused);
 

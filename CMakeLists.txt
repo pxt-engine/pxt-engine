@@ -98,6 +98,20 @@ target_include_directories(imgui PUBLIC ${Vulkan_INCLUDE_DIRS})
 # Link dependencies to ImGui
 target_link_libraries(imgui PUBLIC glfw Vulkan::Vulkan)
 
+# IMGUIZMO Library
+set(IMGUIZMO_DIR ${PROJECT_SOURCE_DIR}/Engine/vendor/imguizmo)
+
+# Create ImGuizmo library
+add_library(imguizmo STATIC
+    ${IMGUIZMO_DIR}/ImGuizmo.cpp
+)
+
+# Include directories for ImGuizmo
+target_include_directories(imguizmo PUBLIC ${IMGUIZMO_DIR})
+
+# Link ImGuizmo to ImGui (it needs imgui.h)
+target_link_libraries(imguizmo PUBLIC imgui)
+
 ####
 
 file(GLOB_RECURSE SOURCES 
@@ -163,6 +177,7 @@ if (WIN32)
     stb
     Vulkan::Vulkan
     imgui
+    imguizmo
     Tracy::TracyClient
     spdlog::spdlog_header_only
     Vulkan::shaderc_combined

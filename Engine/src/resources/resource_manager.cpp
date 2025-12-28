@@ -24,7 +24,7 @@ namespace pxt {
         const auto filePath = std::filesystem::path(alias);
 
         try {
-            auto importedResource = m_resourceImporter.import(*this, filePath, resourceInfo);
+            auto importedResource = m_resourceImporter.import(filePath, resourceInfo);
 
             add(importedResource, alias);
 
@@ -94,8 +94,8 @@ namespace pxt {
                     std::string filename = m_currentlyImportingResourcePath.substr(
                         m_currentlyImportingResourcePath.find_last_of("/\\") + 1);
 
-                    auto importedResource = m_resourceImporter.import(*this, m_currentlyImportingResourcePath,
-                                                                      m_currentImportResourceInfo.get());
+                    auto importedResource =
+                        m_resourceImporter.import(m_currentlyImportingResourcePath, m_currentImportResourceInfo.get());
 
                     if (!importedResource) {
                         m_isImportingResource = false;

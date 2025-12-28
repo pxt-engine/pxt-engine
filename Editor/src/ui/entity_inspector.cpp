@@ -94,7 +94,11 @@ namespace pxt::editor {
         RegisterComponent<TransformComponent>("TransformComponent", [](auto& c) {
             ImGui::DragFloat3("Translation", glm::value_ptr(c.translation), 0.01f);
             ImGui::DragFloat3("Scale", glm::value_ptr(c.scale), 0.01f);
-            ImGui::DragFloat3("Rotation", glm::value_ptr(c.rotation), 0.01f);
+
+            glm::vec3 rotationDegrees = glm::degrees(c.rotation);
+            if (ImGui::DragFloat3("Rotation", glm::value_ptr(rotationDegrees), 0.5f)) {
+                c.rotation = glm::radians(rotationDegrees);
+            }
         });
 
         // MeshComponent

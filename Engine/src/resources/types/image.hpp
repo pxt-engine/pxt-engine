@@ -74,7 +74,8 @@ namespace pxt {
      */
     enum class ImageFlags : int32_t {
         None = 0,                         // No flags set
-        UnnormalizedCoordinates = 1 << 0, // Use unnormalized coordinates for sampling
+        NoSampler = 1 << 0,               // Do not create a sampler for this image
+        UnnormalizedCoordinates = 1 << 1, // Use unnormalized coordinates for sampling
     };
 
     inline ImageFlags operator&(ImageFlags a, ImageFlags b) {
