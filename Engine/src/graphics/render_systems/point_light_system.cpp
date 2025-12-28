@@ -2,7 +2,7 @@
 
 #include "scene/ecs/entity.hpp"
 
-namespace PXTEngine {
+namespace pxt {
 
     struct PointLightPushConstants {
         glm::vec4 position{};
@@ -10,15 +10,13 @@ namespace PXTEngine {
         float radius;
     };
 
-    PointLightSystem::PointLightSystem(Context& context, VkRenderPass renderPass, VkDescriptorSetLayout globalSetLayout) :
-		m_context(context), m_renderPass(renderPass) {
+    PointLightSystem::PointLightSystem(Context& context, VkRenderPass renderPass, VkDescriptorSetLayout globalSetLayout)
+        : m_context(context), m_renderPass(renderPass) {
         createPipelineLayout(globalSetLayout);
         createPipeline(renderPass);
     }
 
-    PointLightSystem::~PointLightSystem() {
-        vkDestroyPipelineLayout(m_context.getDevice(), m_pipelineLayout, nullptr);
-    }
+    PointLightSystem::~PointLightSystem() { vkDestroyPipelineLayout(m_context.getDevice(), m_pipelineLayout, nullptr); }
 
     void PointLightSystem::createPipelineLayout(VkDescriptorSetLayout globalSetLayout) {
         VkPushConstantRange pushConstantRange{};
@@ -28,7 +26,6 @@ namespace PXTEngine {
 
         std::vector<VkDescriptorSetLayout> descriptorSetLayouts{globalSetLayout};
 
-
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
         pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(descriptorSetLayouts.size());
@@ -36,12 +33,11 @@ namespace PXTEngine {
         pipelineLayoutInfo.pushConstantRangeCount = 1;
         pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
 
-        if (vkCreatePipelineLayout(m_context.getDevice(), &pipelineLayoutInfo, nullptr, &m_pipelineLayout) != VK_SUCCESS) {
+        if (vkCreatePipelineLayout(m_context.getDevice(), &pipelineLayoutInfo, nullptr, &m_pipelineLayout) !=
+            VK_SUCCESS) {
             throw std::runtime_error("failed to create pipeline layout!");
         }
     }
-
-
 
     void PointLightSystem::createPipeline(bool useCompiledSpirvFiles) {
         PXT_ASSERT(m_pipelineLayout != nullptr, "Cannot create pipeline before pipelineLayout");
@@ -65,11 +61,7 @@ namespace PXTEngine {
             shaderFilePaths.push_back(baseShaderPath + filePath + filenameSuffix);
         };
 
-		m_pipeline = createUnique<Pipeline>(
-			m_context,
-            shaderFilePaths,
-			pipelineConfig
-		);
+        m_pipeline = createUnique<Pipeline>(m_context, shaderFilePaths, pipelineConfig);
     }
 
     void PointLightSystem::update(FrameInfo& frameInfo, GlobalUbo& ubo) {
@@ -78,11 +70,12 @@ namespace PXTEngine {
         auto view = frameInfo.scene.getEntitiesWith<PointLightComponent, ColorComponent, TransformComponent>();
         for (auto entity : view) {
 
-            const auto&[light, color, transform] = view.get<PointLightComponent, ColorComponent, TransformComponent>(entity);
+            const auto& [light, color, transform] =
+                view.get<PointLightComponent, ColorComponent, TransformComponent>(entity);
 
-            //update lights in the ubo
+            // update lights in the ubo
             ubo.pointLights[lightIndex].position = glm::vec4(transform.translation, 1.f);
-            ubo.pointLights[lightIndex].color = glm::vec4((glm::vec3) color, light.lightIntensity);
+            ubo.pointLights[lightIndex].color = glm::vec4((glm::vec3)color, light.lightIntensity);
 
             lightIndex += 1;
         }
@@ -92,13 +85,14 @@ namespace PXTEngine {
 
     void PointLightSystem::render(FrameInfo& frameInfo) {
         // sort lights by distance to camera
-        //TODO: WE SHOULD DO THIS FOR EVERY TRANSPARENT OBJECT or use order independent transparency
+        // TODO: WE SHOULD DO THIS FOR EVERY TRANSPARENT OBJECT or use order independent transparency
         std::map<float, entt::entity> sorted;
 
         auto view = frameInfo.scene.getEntitiesWith<PointLightComponent, ColorComponent, TransformComponent>();
         for (auto entity : view) {
 
-            const auto&[light, color, transform] = view.get<PointLightComponent, ColorComponent, TransformComponent>(entity);
+            const auto& [light, color, transform] =
+                view.get<PointLightComponent, ColorComponent, TransformComponent>(entity);
 
             glm::vec3 lightPos = transform.translation;
             glm::vec3 cameraPos = frameInfo.camera.getPosition();
@@ -110,43 +104,31 @@ namespace PXTEngine {
 
             sorted[distanceSq] = entity;
         }
-        
+
         m_pipeline->bind(frameInfo.commandBuffer);
 
-        vkCmdBindDescriptorSets(
-            frameInfo.commandBuffer,
-            VK_PIPELINE_BIND_POINT_GRAPHICS,
-            m_pipelineLayout,
-            0,
-            1,
-            &frameInfo.globalDescriptorSet,
-            0,
-            nullptr
-        );
+        vkCmdBindDescriptorSets(frameInfo.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1,
+                                &frameInfo.globalDescriptorSet, 0, nullptr);
 
-        for (auto& [_, entity] : std::ranges::reverse_view(sorted))
-        {
-            const auto&[light, color, transform] = view.get<PointLightComponent, ColorComponent, TransformComponent>(entity);
+        for (auto& [_, entity] : std::ranges::reverse_view(sorted)) {
+            const auto& [light, color, transform] =
+                view.get<PointLightComponent, ColorComponent, TransformComponent>(entity);
 
             PointLightPushConstants push{};
             push.position = glm::vec4(transform.translation, 1.f);
-            push.color = glm::vec4((glm::vec3) color, light.lightIntensity);
+            push.color = glm::vec4((glm::vec3)color, light.lightIntensity);
             push.radius = transform.scale.x;
 
-            vkCmdPushConstants(
-                frameInfo.commandBuffer,
-                m_pipelineLayout,
-                VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-                0,
-                sizeof(PointLightPushConstants),
-                &push
-            );
-            
+            vkCmdPushConstants(frameInfo.commandBuffer, m_pipelineLayout,
+                               VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0,
+                               sizeof(PointLightPushConstants), &push);
+
             vkCmdDraw(frameInfo.commandBuffer, 6, 1, 0, 0);
         }
     }
+
     void PointLightSystem::reloadShaders() {
         PXT_INFO("Reloading shaders...");
-		createPipeline(false);
+        createPipeline(false);
     }
-}
+} // namespace pxt

@@ -1,6 +1,6 @@
 #include "graphics/descriptors/descriptor_writer.hpp"
 
-namespace PXTEngine {    
+namespace pxt {
     DescriptorWriter::DescriptorWriter(Context& context, DescriptorSetLayout& setLayout)
         : m_context(context), m_setLayout(setLayout) {}
 
@@ -8,7 +8,8 @@ namespace PXTEngine {
         for (auto& write : m_writes) {
             write.dstSet = set;
         }
-        vkUpdateDescriptorSets(m_context.getDevice(), static_cast<uint32_t>(m_writes.size()), m_writes.data(), 0, nullptr);
+        vkUpdateDescriptorSets(m_context.getDevice(), static_cast<uint32_t>(m_writes.size()), m_writes.data(), 0,
+                               nullptr);
     }
 
-}
+} // namespace pxt

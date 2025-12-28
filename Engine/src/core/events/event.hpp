@@ -2,52 +2,59 @@
 
 #include "core/pch.hpp"
 
-namespace PXTEngine {
+namespace pxt::core {
 
     /**
      * @class Event
      * @brief Base class for all event types.
-     * 
-     * The Event class is the base class for all event types in the engine. 
+     *
+     * The Event class is the base class for all event types in the engine.
      * It provides an interface for getting the event type, name, and string representation.
      */
     class Event {
     public:
         virtual ~Event() = default;
 
-        enum class Type
-        {
+        enum class Type {
             None = 0,
 
             // Window events
-            WindowClose, 
-            WindowResize, 
-            WindowMoved, 
-            WindowFocus, 
+            WindowClose,
+            WindowResize,
+            WindowMoved,
+            WindowFocus,
             WindowLostFocus,
 
             // Keyboard events
-            KeyPress, 
-            KeyRelease, 
+            KeyPress,
+            KeyRelease,
             KeyDown,
 
             // Mouse events
-            MouseButtonPress, 
-            MouseButtonRelease, 
-            MouseMove, 
+            MouseButtonPress,
+            MouseButtonRelease,
+            MouseMove,
             MouseScroll,
+
+            // ImGui events
+            ImGuiViewportResize,
+
+            // Editor events
+            PickObjectAt,
+            SelectedEntityChanged,
         };
 
-        virtual Event::Type getEventType() const = 0;
-        virtual std::string getName() const = 0;
-        virtual std::string toString() const { return getName(); }
+        [[nodiscard]] virtual Event::Type getEventType() const = 0;
+        [[nodiscard]] virtual std::string getName() const = 0;
 
-        bool isHandled() const { return m_handled; }
+        [[nodiscard]] virtual std::string toString() const { return getName(); }
+
+        [[nodiscard]] bool isHandled() const { return m_handled; }
+
         void markHandled() { m_handled = true; }
 
     private:
         bool m_handled = false;
-
     };
 
-}
+} // namespace pxt::core

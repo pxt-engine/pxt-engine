@@ -1,5 +1,7 @@
 #pragma once
 
+// clang-format off
+
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
 // Windows (32-bit and 64-bit, this part is common)
 	#define PXT_PLATFORM_WINDOWS
@@ -49,4 +51,6 @@
 #if defined(PXT_PLATFORM_APPLE) || defined(PXT_PLATFORM_ANDROID) || defined(PXT_PLATFORM_LINUX) || \
 	defined(PXT_PLATFORM_UNIX)  || defined(PXT_PLATFORM_POSIX)
 #define PXT_PLATFORM_POSIX_LIKE
+
+// clang-format on
 #endif

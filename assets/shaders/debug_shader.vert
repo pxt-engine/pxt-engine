@@ -18,6 +18,8 @@ layout(push_constant) uniform Push {
 	mat4 modelMatrix;
 	mat4 normalMatrix;
 	vec4 color;
+	vec4 objPickingColor;
+	int enableObjectPicking;
 	int enableWireframe;
 	int enableNormalsColor;
 	int textureIndex;

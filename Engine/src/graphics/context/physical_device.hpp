@@ -4,7 +4,7 @@
 #include "graphics/context/instance.hpp"
 #include "graphics/context/surface.hpp"
 
-namespace PXTEngine {
+namespace pxt {
 
     /**
      * @struct SwapChainSupportDetails
@@ -100,9 +100,7 @@ namespace PXTEngine {
          *
          * @return `true` if both graphics and presentation queue families are valid.
          */
-        bool isComplete() {
-            return graphicsFamilyHasValue && presentFamilyHasValue;
-        }
+        bool isComplete() { return graphicsFamilyHasValue && presentFamilyHasValue; }
     };
 
     /**
@@ -112,42 +110,33 @@ namespace PXTEngine {
      * This class is responsible for selecting a suitable physical device for rendering operations.
      * It checks for required features, extensions, and queue families needed for the application.
      */
-	class PhysicalDevice {
-	public:
+    class PhysicalDevice {
+    public:
         PhysicalDevice(Instance& instance, Surface& surface);
 
-        VkPhysicalDevice getDevice() {
-            return m_physicalDevice;
-        }
+        VkPhysicalDevice getDevice() { return m_physicalDevice; }
 
-        QueueFamilyIndices findQueueFamilies() {
-            return findQueueFamiliesForDevice(m_physicalDevice);
-        }
+        QueueFamilyIndices findQueueFamilies() { return findQueueFamiliesForDevice(m_physicalDevice); }
 
-        SwapChainSupportDetails querySwapChainSupport() {
-            return querySwapChainSupportForDevice(m_physicalDevice);
-        }
+        SwapChainSupportDetails querySwapChainSupport() { return querySwapChainSupportForDevice(m_physicalDevice); }
 
         VkPhysicalDeviceProperties properties;
 
         std::vector<const char*> deviceExtensions = {
             VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-			// descriptor indexing extension
+            // descriptor indexing extension
             VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
             // ray tracing extensions
-            VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
-            VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME,
-            VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
-			VK_NV_RAY_TRACING_VALIDATION_EXTENSION_NAME,
-			// buffer device address extension
+            VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME, VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME,
+            VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME, VK_NV_RAY_TRACING_VALIDATION_EXTENSION_NAME,
+            // buffer device address extension
             VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
-			// debuging extension
-			VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME,
-			// 2d view compatible extension (for viewing 3d texture slices in imgui)
-			VK_EXT_IMAGE_2D_VIEW_OF_3D_EXTENSION_NAME
-        };
+            // debuging extension
+            VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME,
+            // 2d view compatible extension (for viewing 3d texture slices in imgui)
+            VK_EXT_IMAGE_2D_VIEW_OF_3D_EXTENSION_NAME};
 
-	private:
+    private:
         /**
          * @brief Picks a suitable physical device.
          *
@@ -187,8 +176,8 @@ namespace PXTEngine {
         /**
          * @brief Queries the swap chain support details for a physical device.
          *
-         * This function queries the swap chain support details for a physical device, including the surface capabilities,
-         * formats, and present modes.
+         * This function queries the swap chain support details for a physical device, including the surface
+         * capabilities, formats, and present modes.
          *
          * @param device The physical device to query the swap chain support details for.
          * @return The swap chain support details.
@@ -199,8 +188,8 @@ namespace PXTEngine {
          * @brief Checks if the required device extensions are supported.
          *
          * This function checks if all the required device extensions are supported by the physical device.
-		 * If some extensions are optional (for example, NVIDIA-specific extensions), they are ignored and
-		 * removed form deviceExtensions vector.
+         * If some extensions are optional (for example, NVIDIA-specific extensions), they are ignored and
+         * removed form deviceExtensions vector.
          *
          * @param device The physical device to check.
          * @return true if all extensions are supported, false otherwise.
@@ -211,6 +200,5 @@ namespace PXTEngine {
         Surface& m_surface;
 
         VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
-		
-	};
-}
+    };
+} // namespace pxt

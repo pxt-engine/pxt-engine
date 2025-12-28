@@ -1,72 +1,84 @@
 #pragma once
 
+#include "core/filesystem.hpp"
+#include "core/layer/layer.hpp"
 #include "core/pch.hpp"
+#include "resources/importers/resource_importer.hpp"
 #include "resources/resource.hpp"
 
-namespace PXTEngine {
+namespace pxt {
 
-	// forward declaration
-	class Material;
+    // forward declaration
+    class Material;
 
-	/**
-	 * @class ResourceManager
-	 *
-	 * @brief Manages resources in the engine, allowing for retrieval and storage of resources.
-	 */
-	class ResourceManager {
-	public:
-		ResourceManager() = default;
-		~ResourceManager();
+    /**
+     * @class ResourceManager
+     *
+     * @brief Manages resources in the engine, allowing for retrieval and storage of resources.
+     */
+    class ResourceManager : public core::Layer {
+    public:
+        ResourceManager();
+        ~ResourceManager();
 
-		/**
-		 * @brief Retrieves a resource by its alias and casts it to the specified type.
-		 * If the alias is not found, it tries to load the resource using the provided string
-		 * as resourceId. If the resource is not found, it returns a nullptr.
-		 *
-		 * @tparam T The type of the resource to retrieve.
-		 * @param alias The alias of the resource to retrieve.
-		 * @param resourceInfo Optional pointer to store additional resource information.
-		 *
-		 * @return A shared pointer to the requested resource of type T.
-		 */
-		template<typename T>
+        /**
+         * @brief Retrieves a resource by its alias and casts it to the specified type.
+         * If the alias is not found, it tries to load the resource using the provided string
+         * as resourceId. If the resource is not found, it returns a nullptr.
+         *
+         * @tparam T The type of the resource to retrieve.
+         * @param alias The alias of the resource to retrieve.
+         * @param resourceInfo Optional pointer to store additional resource information.
+         *
+         * @return A shared pointer to the requested resource of type T.
+         */
+        template <typename T>
         Shared<T> get(const std::string& alias, ResourceInfo* resourceInfo = nullptr) {
-              return std::static_pointer_cast<T>(get(alias, resourceInfo));
+            return std::static_pointer_cast<T>(get(alias, resourceInfo));
         }
 
-		/**
-		 * @brief Retrieves a resource by its alias.
-		 * If the alias is not found, it tries to load the resource using the provided string
-		 * as resourceId. If the resource is not found, it returns a nullptr.
-		 *
-		 * @param alias The alias of the resource to retrieve.
-		 * @param resourceInfo Optional pointer to store additional resource information.
-		 *
-		 * @return A shared pointer to the requested resource.
-		 */
-		Shared<Resource> get(const std::string& alias, ResourceInfo* resourceInfo = nullptr);
+        /**
+         * @brief Retrieves a resource by its alias.
+         * If the alias is not found, it tries to load the resource using the provided string
+         * as resourceId. If the resource is not found, it returns a nullptr.
+         *
+         * @param alias The alias of the resource to retrieve.
+         * @param resourceInfo Optional pointer to store additional resource information.
+         *
+         * @return A shared pointer to the requested resource.
+         */
+        Shared<Resource> get(const std::string& alias, ResourceInfo* resourceInfo = nullptr);
 
-		/**
-		 * @brief Adds a resource to the manager.
-		 * 
-		 * @param resource The resource to add.
-		 * @param alias The alias to associate with the resource.
-		 * 
-		 * @return The ID of the added resource.
-		 */
-		ResourceId add(const Shared<Resource>& resource, const std::string& alias);
+        /**
+         * @brief Adds a resource to the manager.
+         *
+         * @param resource The resource to add.
+         * @param alias The alias to associate with the resource.
+         *
+         * @return The ID of the added resource.
+         */
+        ResourceId add(const Shared<Resource>& resource, const std::string& alias);
 
-		/**
-		 * @brief Iterates over all resources and applies the given function to each.
-		 * 
-		 * @param function The function to apply to each resource.
-		 */
-		void foreach(const std::function<void(const Shared<Resource>&)>& function);
+        /**
+         * @brief Iterates over all resources and applies the given function to each.
+         *
+         * @param function The function to apply to each resource.
+         */
+        void foreach (const std::function<void(const Shared<Resource>&)>& function);
 
-		static Shared<Material> defaultMaterial;
-	          
-	private:
-	    std::unordered_map<ResourceId, Shared<Resource>> m_resources;
-		std::unordered_map<std::string, ResourceId> m_aliases;
-	};
-}
+        void onUpdateUi(FrameInfo& frameInfo) override;
+
+        static Shared<Material> defaultMaterial;
+
+    private:
+        std::unordered_map<ResourceId, Shared<Resource>> m_resources;
+        std::unordered_map<std::string, ResourceId> m_aliases;
+
+        ResourceImporter m_resourceImporter{};
+
+        bool m_isImportingResource = false;
+        std::string m_currentlyImportingResourcePath = "";
+        ImporterEntry* m_currentImporterEntry = nullptr;
+        Unique<ResourceInfo> m_currentImportResourceInfo = nullptr;
+    };
+} // namespace pxt

@@ -1,282 +1,243 @@
 #include "graphics/pipeline.hpp"
 
+#include "graphics/frame_info.hpp"
 #include "graphics/resources/vk_mesh.hpp"
 #include "graphics/resources/vk_shader.hpp"
-#include "graphics/frame_info.hpp"
 
-namespace PXTEngine {
+namespace pxt {
 
     struct SpecializationData {
         int32_t maxLights;
     };
 
     Pipeline::Pipeline(Context& context, const std::vector<std::string>& shaderFilePaths,
-                       const RasterizationPipelineConfigInfo& configInfo) : m_context(context) {
+                       const RasterizationPipelineConfigInfo& configInfo)
+        : m_context(context) {
         createGraphicsPipeline(shaderFilePaths, configInfo);
     }
 
-	Pipeline::Pipeline(Context& context, const RayTracingPipelineConfigInfo& configInfo)
-        : m_context(context) {
-		createRayTracingPipeline(configInfo);
-	}
-
-	Pipeline::Pipeline(Context& context, const std::string& shaderFilePath,
-		const ComputePipelineConfigInfo& configInfo)
-		: m_context(context) {
-		createComputePipeline(shaderFilePath, configInfo);
-	}
-
-	Pipeline::~Pipeline() {
-        vkDestroyPipeline(m_context.getDevice(), m_pipeline, nullptr);
+    Pipeline::Pipeline(Context& context, const RayTracingPipelineConfigInfo& configInfo) : m_context(context) {
+        createRayTracingPipeline(configInfo);
     }
 
-    std::vector<char> Pipeline::readFile(const std::string& filename) {
-        std::ifstream file{filename, std::ios::ate | std::ios::binary};
+    Pipeline::Pipeline(Context& context, const std::string& shaderFilePath, const ComputePipelineConfigInfo& configInfo)
+        : m_context(context) {
+        createComputePipeline(shaderFilePath, configInfo);
+    }
 
-        if (!file.is_open()) {
-            throw std::runtime_error("failed to open file: " + filename);
+    Pipeline::~Pipeline() { vkDestroyPipeline(m_context.getDevice(), m_pipeline, nullptr); }
+
+    void Pipeline::createShaderModule(const std::vector<char>& code, VkShaderModule* shaderModule) {
+        VkShaderModuleCreateInfo createInfo{};
+        createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+        createInfo.codeSize = code.size();
+        createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
+
+        if (vkCreateShaderModule(m_context.getDevice(), &createInfo, nullptr, shaderModule) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create shader module!");
+        }
+    }
+
+    void Pipeline::createGraphicsPipeline(const std::vector<std::string>& shaderFilePaths,
+                                          const RasterizationPipelineConfigInfo& configInfo) {
+        // Ensure that the pipeline layout and render pass are properly set.
+        PXT_ASSERT(configInfo.pipelineLayout != nullptr,
+                   "Cannot create graphics pipeline: no pipelineLayout provided in config info");
+
+        PXT_ASSERT(configInfo.renderPass != nullptr,
+                   "Cannot create graphics pipeline: no renderPass provided in config info");
+
+        // --- SPECIALIZATION CONSTANT SETUP (if needed for all shaders) ---
+        SpecializationData specializationData = {MAX_LIGHTS};
+
+        VkSpecializationMapEntry mapEntries[1] = {{0, offsetof(SpecializationData, maxLights), sizeof(int32_t)}};
+
+        VkSpecializationInfo specializationInfo{};
+        specializationInfo.mapEntryCount = 1;
+        specializationInfo.pMapEntries = mapEntries;
+        specializationInfo.dataSize = sizeof(SpecializationData);
+        specializationInfo.pData = &specializationData;
+
+        // --- Prepare shader stages ---
+        // Container to keep created shader stage infos.
+        std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
+        // Container to contain vulkan shader wrappers (if they go out of scope before the pipeline is created,
+        // the shader modules will be destroyed automatically).
+        std::vector<Unique<VulkanShader>> shaders{shaderFilePaths.size()};
+
+        // Loop through each provided shader stage.
+        for (int i = 0; i < shaderFilePaths.size(); i++) {
+            const auto& filepath = shaderFilePaths[i];
+            // to handle memory stuff atomatically
+            shaders[i] = createUnique<VulkanShader>(m_context, filepath);
+
+            VkPipelineShaderStageCreateInfo shaderStageCreateInfo = shaders[i]->getShaderStageCreateInfo();
+            shaderStageCreateInfo.pSpecializationInfo = &specializationInfo;
+
+            shaderStages.push_back(shaderStageCreateInfo);
         }
 
-        size_t fileSize = (size_t)file.tellg();
-        std::vector<char> buffer(fileSize);
+        // --- Set up the vertex input state ---
+        auto& bindingDescriptions = configInfo.bindingDescriptions;
+        auto& attributeDescriptions = configInfo.attributeDescriptions;
 
-        file.seekg(0);
-        file.read(buffer.data(), fileSize);
+        VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
+        vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+        vertexInputInfo.vertexBindingDescriptionCount = static_cast<uint32_t>(bindingDescriptions.size());
+        vertexInputInfo.pVertexBindingDescriptions = bindingDescriptions.data();
+        vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
+        vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
 
-        file.close();
+        // --- Create the graphics pipeline ---
+        VkGraphicsPipelineCreateInfo pipelineInfo{};
+        pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+        pipelineInfo.stageCount = static_cast<uint32_t>(shaderStages.size());
+        pipelineInfo.pStages = shaderStages.data();
+        pipelineInfo.pVertexInputState = &vertexInputInfo;
+        pipelineInfo.pInputAssemblyState = &configInfo.inputAssemblyInfo;
+        pipelineInfo.pViewportState = &configInfo.viewportInfo;
+        pipelineInfo.pRasterizationState = &configInfo.rasterizationInfo;
+        pipelineInfo.pMultisampleState = &configInfo.multisampleInfo;
+        pipelineInfo.pColorBlendState = &configInfo.colorBlendInfo;
+        pipelineInfo.pDepthStencilState = &configInfo.depthStencilInfo;
+        pipelineInfo.pDynamicState = &configInfo.dynamicStateInfo;
+        pipelineInfo.layout = configInfo.pipelineLayout;
+        pipelineInfo.renderPass = configInfo.renderPass;
+        pipelineInfo.subpass = configInfo.subpass;
+        pipelineInfo.basePipelineHandle = VK_NULL_HANDLE; // Optional
+        pipelineInfo.basePipelineIndex = -1;              // Optional
 
-        return buffer;
+        if (vkCreateGraphicsPipelines(m_context.getDevice(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_pipeline) !=
+            VK_SUCCESS) {
+            throw std::runtime_error("failed to create graphics pipeline!");
+        }
     }
 
-	void Pipeline::createShaderModule(const std::vector<char>& code, VkShaderModule* shaderModule) {
-		VkShaderModuleCreateInfo createInfo{};
-		createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-		createInfo.codeSize = code.size();
-		createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
+    void Pipeline::createRayTracingPipeline(const RayTracingPipelineConfigInfo& configInfo) {
+        // --- SPECIALIZATION CONSTANT SETUP (if needed for all shaders) ---
+        SpecializationData specializationData = {MAX_LIGHTS};
 
-		if (vkCreateShaderModule(m_context.getDevice(), &createInfo, nullptr, shaderModule) != VK_SUCCESS) {
-			throw std::runtime_error("failed to create shader module!");
-		}
-	}
+        VkSpecializationMapEntry mapEntries[1] = {{0, offsetof(SpecializationData, maxLights), sizeof(int32_t)}};
 
-	void Pipeline::createGraphicsPipeline(
-		const std::vector<std::string>& shaderFilePaths,
-		const RasterizationPipelineConfigInfo& configInfo
-	) {
-		// Ensure that the pipeline layout and render pass are properly set.
-		PXT_ASSERT(configInfo.pipelineLayout != nullptr,
-			"Cannot create graphics pipeline: no pipelineLayout provided in config info");
+        VkSpecializationInfo specializationInfo{};
+        specializationInfo.mapEntryCount = 1;
+        specializationInfo.pMapEntries = mapEntries;
+        specializationInfo.dataSize = sizeof(SpecializationData);
+        specializationInfo.pData = &specializationData;
 
-		PXT_ASSERT(configInfo.renderPass != nullptr,
-			"Cannot create graphics pipeline: no renderPass provided in config info");
+        // --- Prepare shader stages ---
+        // Containers to keep created shader stage infos and shader group infos.
+        std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
+        std::vector<VkRayTracingShaderGroupCreateInfoKHR> shaderGroups;
+        std::vector<Unique<VulkanShader>> shaders{};
 
-		// --- SPECIALIZATION CONSTANT SETUP (if needed for all shaders) ---
-		SpecializationData specializationData = { MAX_LIGHTS };
+        // Loop each group
+        for (const auto& group : configInfo.shaderGroups) {
+            // Loop through each provided shader stage in the group
+            // Prepare the shader group create info.
+            VkRayTracingShaderGroupCreateInfoKHR shaderGroupInfo{};
+            shaderGroupInfo.sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR;
+            shaderGroupInfo.type = group.type;
+            // first we set them all unused
+            shaderGroupInfo.generalShader = VK_SHADER_UNUSED_KHR;
+            shaderGroupInfo.closestHitShader = VK_SHADER_UNUSED_KHR;
+            shaderGroupInfo.anyHitShader = VK_SHADER_UNUSED_KHR;
+            shaderGroupInfo.intersectionShader = VK_SHADER_UNUSED_KHR;
+            shaderGroupInfo.pShaderGroupCaptureReplayHandle = nullptr; // Optional
 
-		VkSpecializationMapEntry mapEntries[1] = {
-			{ 0, offsetof(SpecializationData, maxLights), sizeof(int32_t) }
-		};
+            for (const auto& [stage, filepath] : group.stages) {
+                // create vulkan shader
+                shaders.push_back(createUnique<VulkanShader>(m_context, filepath));
 
-		VkSpecializationInfo specializationInfo{};
-		specializationInfo.mapEntryCount = 1;
-		specializationInfo.pMapEntries = mapEntries;
-		specializationInfo.dataSize = sizeof(SpecializationData);
-		specializationInfo.pData = &specializationData;
+                VkPipelineShaderStageCreateInfo shaderStageCreateInfo = shaders.back()->getShaderStageCreateInfo();
+                shaderStageCreateInfo.pSpecializationInfo = &specializationInfo;
 
-		// --- Prepare shader stages ---
-		// Container to keep created shader stage infos.
-		std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
-		// Container to contain vulkan shader wrappers (if they go out of scope before the pipeline is created,
-		// the shader modules will be destroyed automatically).
-		std::vector<Unique<VulkanShader>> shaders{ shaderFilePaths.size() };
+                shaderStages.push_back(shaders.back()->getShaderStageCreateInfo());
 
-		// Loop through each provided shader stage.
-		for (int i = 0; i < shaderFilePaths.size(); i++) {
-			const auto& filepath = shaderFilePaths[i];
-			// to handle memory stuff atomatically
-			shaders[i] = createUnique<VulkanShader>(m_context, filepath);
+                uint32_t currentStageIndex = static_cast<uint32_t>(shaderStages.size() - 1);
 
-			VkPipelineShaderStageCreateInfo shaderStageCreateInfo = shaders[i]->getShaderStageCreateInfo();
-			shaderStageCreateInfo.pSpecializationInfo = &specializationInfo;
+                // then we set the correct shader index in the group
+                switch (group.type) {
+                case VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR:
+                    // For RGEN or MISS, there's only one shader in the group
+                    shaderGroupInfo.generalShader = currentStageIndex;
+                    break;
+                case VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR:
+                    if (stage == VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR) {
+                        shaderGroupInfo.closestHitShader = currentStageIndex;
+                    } else if (stage == VK_SHADER_STAGE_ANY_HIT_BIT_KHR) {
+                        shaderGroupInfo.anyHitShader = currentStageIndex;
+                    }
+                    // Add other stages in the future (e.. intersection for custom primitive hit groups)
+                    /* else if (stage == VK_SHADER_STAGE_INTERSECTION_BIT_KHR) {
+                            shaderGroupInfo.intersectionShader = currentStageIndex;
+                    }
+                    */
+                    break;
+                case VK_RAY_TRACING_SHADER_GROUP_TYPE_PROCEDURAL_HIT_GROUP_KHR:
+                    if (stage == VK_SHADER_STAGE_INTERSECTION_BIT_KHR) {
+                        shaderGroupInfo.intersectionShader = currentStageIndex;
+                    } else if (stage == VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR) {
+                        shaderGroupInfo.closestHitShader = currentStageIndex;
+                    } else if (stage == VK_SHADER_STAGE_ANY_HIT_BIT_KHR) {
+                        shaderGroupInfo.anyHitShader = currentStageIndex;
+                    }
+                    break;
+                default:
+                    // Handle error or unsupported group type
+                    throw std::runtime_error("Unsupported shader group type in createRayTracingPipeline");
+                }
+            }
 
-			shaderStages.push_back(shaderStageCreateInfo);
-		}
+            shaderGroups.push_back(shaderGroupInfo);
+        }
 
-		// --- Set up the vertex input state ---
-		auto& bindingDescriptions = configInfo.bindingDescriptions;
-		auto& attributeDescriptions = configInfo.attributeDescriptions;
+        VkRayTracingPipelineCreateInfoKHR pipelineInfo = {};
+        pipelineInfo.sType = VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_KHR;
+        pipelineInfo.stageCount = static_cast<uint32_t>(shaderStages.size());
+        pipelineInfo.pStages = shaderStages.data();
+        pipelineInfo.groupCount = static_cast<uint32_t>(shaderGroups.size());
+        pipelineInfo.pGroups = shaderGroups.data();
+        pipelineInfo.maxPipelineRayRecursionDepth = configInfo.maxPipelineRayRecursionDepth;
+        pipelineInfo.layout = configInfo.pipelineLayout;
+        // pipelineInfo.pLibraryInfo = ...; // For pipeline libraries
+        // pipelineInfo.pLibraryInterface = ...; // For pipeline libraries
+        // pipelineInfo.pDynamicState = ...; // For dynamic states
 
-		VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
-		vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-		vertexInputInfo.vertexBindingDescriptionCount = static_cast<uint32_t>(bindingDescriptions.size());
-		vertexInputInfo.pVertexBindingDescriptions = bindingDescriptions.data();
-		vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
-		vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
+        if (vkCreateRayTracingPipelinesKHR(m_context.getDevice(), VK_NULL_HANDLE, VK_NULL_HANDLE, 1, &pipelineInfo,
+                                           nullptr, &m_pipeline) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to create ray tracing pipeline!");
+        }
 
-		// --- Create the graphics pipeline ---
-		VkGraphicsPipelineCreateInfo pipelineInfo{};
-		pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-		pipelineInfo.stageCount = static_cast<uint32_t>(shaderStages.size());
-		pipelineInfo.pStages = shaderStages.data();
-		pipelineInfo.pVertexInputState = &vertexInputInfo;
-		pipelineInfo.pInputAssemblyState = &configInfo.inputAssemblyInfo;
-		pipelineInfo.pViewportState = &configInfo.viewportInfo;
-		pipelineInfo.pRasterizationState = &configInfo.rasterizationInfo;
-		pipelineInfo.pMultisampleState = &configInfo.multisampleInfo;
-		pipelineInfo.pColorBlendState = &configInfo.colorBlendInfo;
-		pipelineInfo.pDepthStencilState = &configInfo.depthStencilInfo;
-		pipelineInfo.pDynamicState = &configInfo.dynamicStateInfo;
-		pipelineInfo.layout = configInfo.pipelineLayout;
-		pipelineInfo.renderPass = configInfo.renderPass;
-		pipelineInfo.subpass = configInfo.subpass;
-		pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;  // Optional
-		pipelineInfo.basePipelineIndex = -1;                // Optional
+        m_pipelineBindPoint = VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR;
+    }
 
-		if (vkCreateGraphicsPipelines(
-			m_context.getDevice(),
-			VK_NULL_HANDLE,
-			1,
-			&pipelineInfo,
-			nullptr,
-			&m_pipeline) != VK_SUCCESS) {
-			throw std::runtime_error("failed to create graphics pipeline!");
-		}
-	}
+    void Pipeline::createComputePipeline(const std::string& shaderFilePath,
+                                         const ComputePipelineConfigInfo& configInfo) {
+        PXT_ASSERT(configInfo.pipelineLayout != nullptr,
+                   "Cannot create compute pipeline: no pipelineLayout provided in config info");
 
-	void Pipeline::createRayTracingPipeline(const RayTracingPipelineConfigInfo& configInfo) {
-		// --- SPECIALIZATION CONSTANT SETUP (if needed for all shaders) ---
-		SpecializationData specializationData = { MAX_LIGHTS };
+        // A compute pipeline has only one shader stage
+        Unique<VulkanShader> computeShader = createUnique<VulkanShader>(m_context, shaderFilePath);
+        VkPipelineShaderStageCreateInfo shaderStageInfo = computeShader->getShaderStageCreateInfo();
 
-		VkSpecializationMapEntry mapEntries[1] = {
-			{ 0, offsetof(SpecializationData, maxLights), sizeof(int32_t) }
-		};
+        VkComputePipelineCreateInfo pipelineInfo{};
+        pipelineInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+        pipelineInfo.stage = shaderStageInfo;
+        pipelineInfo.layout = configInfo.pipelineLayout;
+        pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
+        pipelineInfo.basePipelineIndex = -1;
 
-		VkSpecializationInfo specializationInfo{};
-		specializationInfo.mapEntryCount = 1;
-		specializationInfo.pMapEntries = mapEntries;
-		specializationInfo.dataSize = sizeof(SpecializationData);
-		specializationInfo.pData = &specializationData;
-		
-		// --- Prepare shader stages ---
-		// Containers to keep created shader stage infos and shader group infos.
-		std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
-		std::vector<VkRayTracingShaderGroupCreateInfoKHR> shaderGroups;
-		std::vector<Unique<VulkanShader>> shaders{};
+        if (vkCreateComputePipelines(m_context.getDevice(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_pipeline) !=
+            VK_SUCCESS) {
+            throw std::runtime_error("failed to create compute pipeline!");
+        }
 
-		// Loop each group
-		for (const auto& group : configInfo.shaderGroups) {
-			// Loop through each provided shader stage in the group
-			// Prepare the shader group create info.
-			VkRayTracingShaderGroupCreateInfoKHR shaderGroupInfo{};
-			shaderGroupInfo.sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR;
-			shaderGroupInfo.type = group.type;
-			// first we set them all unused
-			shaderGroupInfo.generalShader = VK_SHADER_UNUSED_KHR;
-			shaderGroupInfo.closestHitShader = VK_SHADER_UNUSED_KHR;
-			shaderGroupInfo.anyHitShader = VK_SHADER_UNUSED_KHR;
-			shaderGroupInfo.intersectionShader = VK_SHADER_UNUSED_KHR;
-			shaderGroupInfo.pShaderGroupCaptureReplayHandle = nullptr; // Optional
+        // Set the correct bind point for vkCmdBindPipeline
+        m_pipelineBindPoint = VK_PIPELINE_BIND_POINT_COMPUTE;
+    }
 
-			for (const auto& [stage, filepath] : group.stages) {
-				// create vulkan shader
-				shaders.push_back(createUnique<VulkanShader>(m_context, filepath));
-
-				VkPipelineShaderStageCreateInfo shaderStageCreateInfo = shaders.back()->getShaderStageCreateInfo();
-				shaderStageCreateInfo.pSpecializationInfo = &specializationInfo;
-
-				shaderStages.push_back(shaders.back()->getShaderStageCreateInfo());
-
-				uint32_t currentStageIndex = static_cast<uint32_t>(shaderStages.size() - 1);
-
-				// then we set the correct shader index in the group
-				switch (group.type) {
-				case VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR:
-					// For RGEN or MISS, there's only one shader in the group
-					shaderGroupInfo.generalShader = currentStageIndex;
-					break;
-				case VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR:
-					if (stage == VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR) {
-						shaderGroupInfo.closestHitShader = currentStageIndex;
-					}
-					else if (stage == VK_SHADER_STAGE_ANY_HIT_BIT_KHR) {
-						shaderGroupInfo.anyHitShader = currentStageIndex;
-					}
-					// Add other stages in the future (e.. intersection for custom primitive hit groups)
-					/* else if (stage == VK_SHADER_STAGE_INTERSECTION_BIT_KHR) {
-						shaderGroupInfo.intersectionShader = currentStageIndex;
-					}
-					*/
-					break;
-				case VK_RAY_TRACING_SHADER_GROUP_TYPE_PROCEDURAL_HIT_GROUP_KHR:
-					if (stage == VK_SHADER_STAGE_INTERSECTION_BIT_KHR) {
-						shaderGroupInfo.intersectionShader = currentStageIndex;
-					}
-					else if (stage == VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR) {
-						shaderGroupInfo.closestHitShader = currentStageIndex;
-					}
-					else if (stage == VK_SHADER_STAGE_ANY_HIT_BIT_KHR) {
-						shaderGroupInfo.anyHitShader = currentStageIndex;
-					}
-					break;
-				default:
-					// Handle error or unsupported group type
-					throw std::runtime_error("Unsupported shader group type in createRayTracingPipeline");
-				}
-			}
-
-			shaderGroups.push_back(shaderGroupInfo);
-		}
-
-		VkRayTracingPipelineCreateInfoKHR pipelineInfo = {};
-		pipelineInfo.sType = VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_KHR;
-		pipelineInfo.stageCount = static_cast<uint32_t>(shaderStages.size());
-		pipelineInfo.pStages = shaderStages.data();
-		pipelineInfo.groupCount = static_cast<uint32_t>(shaderGroups.size());
-		pipelineInfo.pGroups = shaderGroups.data();
-		pipelineInfo.maxPipelineRayRecursionDepth = configInfo.maxPipelineRayRecursionDepth;
-		pipelineInfo.layout = configInfo.pipelineLayout;
-		// pipelineInfo.pLibraryInfo = ...; // For pipeline libraries
-		// pipelineInfo.pLibraryInterface = ...; // For pipeline libraries
-		// pipelineInfo.pDynamicState = ...; // For dynamic states
-
-		if (vkCreateRayTracingPipelinesKHR(m_context.getDevice(), VK_NULL_HANDLE, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_pipeline) != VK_SUCCESS) {
-			throw std::runtime_error("Failed to create ray tracing pipeline!");
-		}
-
-		m_pipelineBindPoint = VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR;
-	}
-
-	void Pipeline::createComputePipeline(const std::string& shaderFilePath, const ComputePipelineConfigInfo& configInfo) {
-		PXT_ASSERT(configInfo.pipelineLayout != nullptr,
-			"Cannot create compute pipeline: no pipelineLayout provided in config info");
-
-		// A compute pipeline has only one shader stage
-		Unique<VulkanShader> computeShader = createUnique<VulkanShader>(m_context, shaderFilePath);
-		VkPipelineShaderStageCreateInfo shaderStageInfo = computeShader->getShaderStageCreateInfo();
-
-		VkComputePipelineCreateInfo pipelineInfo{};
-		pipelineInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
-		pipelineInfo.stage = shaderStageInfo;
-		pipelineInfo.layout = configInfo.pipelineLayout;
-		pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
-		pipelineInfo.basePipelineIndex = -1;
-
-		if (vkCreateComputePipelines(
-			m_context.getDevice(),
-			VK_NULL_HANDLE,
-			1,
-			&pipelineInfo,
-			nullptr,
-			&m_pipeline) != VK_SUCCESS) {
-			throw std::runtime_error("failed to create compute pipeline!");
-		}
-
-		// Set the correct bind point for vkCmdBindPipeline
-		m_pipelineBindPoint = VK_PIPELINE_BIND_POINT_COMPUTE;
-	}
-
-
-	void Pipeline::bind(VkCommandBuffer commandBuffer) {
+    void Pipeline::bind(VkCommandBuffer commandBuffer) {
         vkCmdBindPipeline(commandBuffer, m_pipelineBindPoint, m_pipeline);
     }
 
@@ -291,20 +252,20 @@ namespace PXTEngine {
         configInfo.rasterizationInfo.polygonMode = VK_POLYGON_MODE_FILL;
         configInfo.rasterizationInfo.lineWidth = 1.0f;
         configInfo.rasterizationInfo.cullMode = VK_CULL_MODE_NONE;
-        configInfo.rasterizationInfo.frontFace = VK_FRONT_FACE_CLOCKWISE;
+        configInfo.rasterizationInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
         configInfo.rasterizationInfo.depthBiasEnable = VK_FALSE;
-        configInfo.rasterizationInfo.depthBiasConstantFactor = 0.0f;  // Optional
-        configInfo.rasterizationInfo.depthBiasClamp = 0.0f;           // Optional
-        configInfo.rasterizationInfo.depthBiasSlopeFactor = 0.0f;     // Optional
+        configInfo.rasterizationInfo.depthBiasConstantFactor = 0.0f; // Optional
+        configInfo.rasterizationInfo.depthBiasClamp = 0.0f;          // Optional
+        configInfo.rasterizationInfo.depthBiasSlopeFactor = 0.0f;    // Optional
 
         // TODO: MSAA
         configInfo.multisampleInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
         configInfo.multisampleInfo.sampleShadingEnable = VK_FALSE;
         configInfo.multisampleInfo.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-        configInfo.multisampleInfo.minSampleShading = 1.0f;           // Optional
-        configInfo.multisampleInfo.pSampleMask = nullptr;             // Optional
-        configInfo.multisampleInfo.alphaToCoverageEnable = VK_FALSE;  // Optional
-        configInfo.multisampleInfo.alphaToOneEnable = VK_FALSE;       // Optional
+        configInfo.multisampleInfo.minSampleShading = 1.0f;          // Optional
+        configInfo.multisampleInfo.pSampleMask = nullptr;            // Optional
+        configInfo.multisampleInfo.alphaToCoverageEnable = VK_FALSE; // Optional
+        configInfo.multisampleInfo.alphaToOneEnable = VK_FALSE;      // Optional
 
         configInfo.viewportInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
         configInfo.viewportInfo.viewportCount = 1;
@@ -313,36 +274,35 @@ namespace PXTEngine {
         configInfo.viewportInfo.pScissors = nullptr;
 
         configInfo.colorBlendAttachment.colorWriteMask =
-            VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT |
-            VK_COLOR_COMPONENT_A_BIT;
+            VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
         configInfo.colorBlendAttachment.blendEnable = VK_FALSE;
-        configInfo.colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;   // Optional
-        configInfo.colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO;  // Optional
-        configInfo.colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;              // Optional
-        configInfo.colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;   // Optional
-        configInfo.colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;  // Optional
-        configInfo.colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;              // Optional
+        configInfo.colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;  // Optional
+        configInfo.colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO; // Optional
+        configInfo.colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;             // Optional
+        configInfo.colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;  // Optional
+        configInfo.colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO; // Optional
+        configInfo.colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;             // Optional
 
         configInfo.colorBlendInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
         configInfo.colorBlendInfo.logicOpEnable = VK_FALSE;
-        configInfo.colorBlendInfo.logicOp = VK_LOGIC_OP_COPY;  // Optional
+        configInfo.colorBlendInfo.logicOp = VK_LOGIC_OP_COPY; // Optional
         configInfo.colorBlendInfo.attachmentCount = 1;
         configInfo.colorBlendInfo.pAttachments = &configInfo.colorBlendAttachment;
-        configInfo.colorBlendInfo.blendConstants[0] = 0.0f;  // Optional
-        configInfo.colorBlendInfo.blendConstants[1] = 0.0f;  // Optional
-        configInfo.colorBlendInfo.blendConstants[2] = 0.0f;  // Optional
-        configInfo.colorBlendInfo.blendConstants[3] = 0.0f;  // Optional
+        configInfo.colorBlendInfo.blendConstants[0] = 0.0f; // Optional
+        configInfo.colorBlendInfo.blendConstants[1] = 0.0f; // Optional
+        configInfo.colorBlendInfo.blendConstants[2] = 0.0f; // Optional
+        configInfo.colorBlendInfo.blendConstants[3] = 0.0f; // Optional
 
         configInfo.depthStencilInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
         configInfo.depthStencilInfo.depthTestEnable = VK_TRUE;
         configInfo.depthStencilInfo.depthWriteEnable = VK_TRUE;
         configInfo.depthStencilInfo.depthCompareOp = VK_COMPARE_OP_LESS;
         configInfo.depthStencilInfo.depthBoundsTestEnable = VK_FALSE;
-        configInfo.depthStencilInfo.minDepthBounds = 0.0f;  // Optional
-        configInfo.depthStencilInfo.maxDepthBounds = 1.0f;  // Optional
+        configInfo.depthStencilInfo.minDepthBounds = 0.0f; // Optional
+        configInfo.depthStencilInfo.maxDepthBounds = 1.0f; // Optional
         configInfo.depthStencilInfo.stencilTestEnable = VK_FALSE;
-        configInfo.depthStencilInfo.front = {};  // Optional
-        configInfo.depthStencilInfo.back = {};   // Optional
+        configInfo.depthStencilInfo.front = {}; // Optional
+        configInfo.depthStencilInfo.back = {};  // Optional
 
         configInfo.dynamicStateEnables = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
         configInfo.dynamicStateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
@@ -356,8 +316,7 @@ namespace PXTEngine {
 
     void Pipeline::enableAlphaBlending(RasterizationPipelineConfigInfo& configInfo) {
         configInfo.colorBlendAttachment.colorWriteMask =
-            VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT |
-            VK_COLOR_COMPONENT_A_BIT; 
+            VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 
         configInfo.colorBlendAttachment.blendEnable = VK_TRUE;
         configInfo.colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
@@ -365,13 +324,19 @@ namespace PXTEngine {
         configInfo.colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
 
         configInfo.colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-		// previously used value when rendering to the swapchain
-		//configInfo.colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+        // previously used value when rendering to the swapchain
+        // configInfo.colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
 
-		// this value is needed when rendering the image to imgui using ImGui::Image
-		// (see https://github.com/ocornut/imgui/issues/6569#issuecomment-2878782866)
+        // this value is needed when rendering the image to imgui using ImGui::Image
+        // (see https://github.com/ocornut/imgui/issues/6569#issuecomment-2878782866)
         configInfo.colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
         configInfo.colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
     }
 
-}
+    void Pipeline::disableDepthTest(RasterizationPipelineConfigInfo& configInfo) {
+        configInfo.depthStencilInfo.depthTestEnable = VK_FALSE;
+        configInfo.depthStencilInfo.depthWriteEnable = VK_FALSE;
+        configInfo.depthStencilInfo.stencilTestEnable = VK_FALSE;
+    }
+
+} // namespace pxt

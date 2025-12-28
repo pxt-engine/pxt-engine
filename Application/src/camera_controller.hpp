@@ -1,16 +1,16 @@
 #include "pxtengine.h"
 
-using namespace PXTEngine;
+using namespace pxt;
 
 class CameraController : public Script {
-    public:
-        void onUpdate(float deltaTime) override;
-        
-    private:
-        float m_moveSpeed{1.f};
-        float m_lookSpeed{1.75f};
+public:
+    void onUpdate(float deltaTime) override;
 
-        glm::vec2 m_lastMousePos{0.f, 0.f};
-        bool m_firstMouse = true;
-        float m_mouseSensitivity = 0.0025f; // Adjust to taste
+private:
+    float m_moveSpeed{1.f};
+    float m_lookSpeed{1.75f};
+
+    glm::vec2 m_lastMousePos{0.f, 0.f};
+    bool m_firstMouse = true;
+    float m_mouseSensitivity = 0.0025f; // Adjust to taste
 };

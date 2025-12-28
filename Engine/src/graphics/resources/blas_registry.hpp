@@ -5,31 +5,30 @@
 #include "graphics/resources/vk_buffer.hpp"
 #include "graphics/resources/vk_mesh.hpp"
 
-namespace PXTEngine {
-	struct BLAS {
-		VkAccelerationStructureKHR handle = VK_NULL_HANDLE;
-		VkAccelerationStructureBuildSizesInfoKHR buildSizes;
-		VkAccelerationStructureGeometryKHR geometry;
-		Unique<VulkanBuffer> buffer;
+namespace pxt {
+    struct BLAS {
+        VkAccelerationStructureKHR handle = VK_NULL_HANDLE;
+        VkAccelerationStructureBuildSizesInfoKHR buildSizes;
+        VkAccelerationStructureGeometryKHR geometry;
+        Unique<VulkanBuffer> buffer;
 
-		bool operator==(const BLAS& other) const {
-			return handle == other.handle;
-		}
-	};
+        bool operator==(const BLAS& other) const { return handle == other.handle; }
+    };
 
-	class BLASRegistry {
-	public:
-		BLASRegistry(Context& context);
-		~BLASRegistry();
-		BLASRegistry(const BLASRegistry&) = delete;
-		BLASRegistry& operator=(const BLASRegistry&) = delete;
+    class BLASRegistry {
+    public:
+        BLASRegistry(Context& context);
+        ~BLASRegistry();
+        BLASRegistry(const BLASRegistry&) = delete;
+        BLASRegistry& operator=(const BLASRegistry&) = delete;
 
-		Shared<BLAS> getOrCreateBLAS(Shared<Mesh>& mesh);
-	private:
-		VkAccelerationStructureGeometryKHR getAccelerationStructureGeometry(VulkanMesh& mesh);
-		Shared<BLAS> createBLAS(VulkanMesh& mesh);
+        Shared<BLAS> getOrCreateBLAS(Shared<Mesh>& mesh);
 
-		Context& m_context;
-		std::unordered_map<UUID, Shared<BLAS>> m_blasRegistry;
-	};
-}
+    private:
+        VkAccelerationStructureGeometryKHR getAccelerationStructureGeometry(VulkanMesh& mesh);
+        Shared<BLAS> createBLAS(VulkanMesh& mesh);
+
+        Context& m_context;
+        std::unordered_map<core::UUID, Shared<BLAS>> m_blasRegistry;
+    };
+} // namespace pxt

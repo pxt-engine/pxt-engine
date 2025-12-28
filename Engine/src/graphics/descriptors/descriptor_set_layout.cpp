@@ -1,11 +1,10 @@
 #include "graphics/descriptors/descriptor_set_layout.hpp"
 
-namespace PXTEngine {
-    DescriptorSetLayout::Builder& DescriptorSetLayout::Builder::addBinding(
-        const uint32_t binding,
-        const VkDescriptorType descriptorType,
-        const VkShaderStageFlags stageFlags,
-        const uint32_t count) {
+namespace pxt {
+    DescriptorSetLayout::Builder& DescriptorSetLayout::Builder::addBinding(const uint32_t binding,
+                                                                           const VkDescriptorType descriptorType,
+                                                                           const VkShaderStageFlags stageFlags,
+                                                                           const uint32_t count) {
 
         PXT_ASSERT(!m_bindings.contains(binding), "Binding already in use");
 
@@ -24,25 +23,21 @@ namespace PXTEngine {
     }
 
     DescriptorSetLayout::DescriptorSetLayout(Context& context,
-        std::unordered_map<uint32_t, VkDescriptorSetLayoutBinding> bindings) :
-    m_context{context},
-    m_bindings{std::move(bindings)} {
+                                             std::unordered_map<uint32_t, VkDescriptorSetLayoutBinding> bindings)
+        : m_context{context}, m_bindings{std::move(bindings)} {
 
         std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings{};
-        for (auto val: m_bindings | std::views::values) {
+        for (auto val : m_bindings | std::views::values) {
             setLayoutBindings.push_back(val);
         }
-        
+
         VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo{};
         descriptorSetLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
         descriptorSetLayoutInfo.bindingCount = static_cast<uint32_t>(setLayoutBindings.size());
         descriptorSetLayoutInfo.pBindings = setLayoutBindings.data();
-        
-        if (vkCreateDescriptorSetLayout(
-                m_context.getDevice(),
-                &descriptorSetLayoutInfo,
-                nullptr,
-                &m_descriptorSetLayout) != VK_SUCCESS) {
+
+        if (vkCreateDescriptorSetLayout(m_context.getDevice(), &descriptorSetLayoutInfo, nullptr,
+                                        &m_descriptorSetLayout) != VK_SUCCESS) {
             throw std::runtime_error("failed to create descriptor set layout!");
         }
     }
@@ -50,4 +45,4 @@ namespace PXTEngine {
     DescriptorSetLayout::~DescriptorSetLayout() {
         vkDestroyDescriptorSetLayout(m_context.getDevice(), m_descriptorSetLayout, nullptr);
     }
-}
+} // namespace pxt

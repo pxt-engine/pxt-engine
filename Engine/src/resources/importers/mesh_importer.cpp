@@ -6,15 +6,14 @@
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <tiny_obj_loader.h>
 
-namespace PXTEngine {
+namespace pxt {
 
-	Shared<Mesh> MeshImporter::importObj(ResourceManager& rm, const std::filesystem::path& filePath,
-        ResourceInfo* resourceInfo) {
+    Shared<Mesh> MeshImporter::importObj(const std::filesystem::path& filePath, ResourceInfo* resourceInfo) {
 
-	    std::vector<Mesh::Vertex> vertices{};  // List of vertices in the model.
-	    std::vector<uint32_t> indices{}; // List of indices for indexed rendering.
+        std::vector<Mesh::Vertex> vertices{}; // List of vertices in the model.
+        std::vector<uint32_t> indices{};      // List of indices for indexed rendering.
 
-		tinyobj::attrib_t attrib;
+        tinyobj::attrib_t attrib;
         std::vector<tinyobj::shape_t> shapes;
         std::vector<tinyobj::material_t> materials;
         std::string warn, err;
@@ -33,8 +32,7 @@ namespace PXTEngine {
 
                 if (index.vertex_index >= 0) {
                     vertex.position = {
-                        attrib.vertices[3 * index.vertex_index + 0],
-                        attrib.vertices[3 * index.vertex_index + 1],
+                        attrib.vertices[3 * index.vertex_index + 0], attrib.vertices[3 * index.vertex_index + 1],
                         attrib.vertices[3 * index.vertex_index + 2],
                         1.0f // unused
                     };
@@ -48,8 +46,7 @@ namespace PXTEngine {
 
                 if (index.normal_index >= 0) {
                     vertex.normal = {
-                        attrib.normals[3 * index.normal_index + 0],
-                        attrib.normals[3 * index.normal_index + 1],
+                        attrib.normals[3 * index.normal_index + 0], attrib.normals[3 * index.normal_index + 1],
                         attrib.normals[3 * index.normal_index + 2],
                         1.0f // unused
                     };
@@ -57,20 +54,18 @@ namespace PXTEngine {
 
                 if (index.texcoord_index >= 0) {
                     vertex.uv = {
-						attrib.texcoords[2 * index.texcoord_index + 0],
-	                    1.0f - attrib.texcoords[2 * index.texcoord_index + 1],
-                        1.0f, 1.0f // unused
+                        attrib.texcoords[2 * index.texcoord_index + 0],
+                        1.0f - attrib.texcoords[2 * index.texcoord_index + 1], 1.0f, 1.0f // unused
                     };
-                }
-                else {
-					vertex.uv = { 0.0f, 0.0f, 1.0f, 1.0f };
+                } else {
+                    vertex.uv = {0.0f, 0.0f, 1.0f, 1.0f};
                 }
 
-				if (!uniqueVertices.contains(vertex)) {
-				    uniqueVertices[vertex] = static_cast<uint32_t>(vertices.size());
-				    vertices.push_back(vertex);
-				}
-				indices.push_back(uniqueVertices[vertex]);
+                if (!uniqueVertices.contains(vertex)) {
+                    uniqueVertices[vertex] = static_cast<uint32_t>(vertices.size());
+                    vertices.push_back(vertex);
+                }
+                indices.push_back(uniqueVertices[vertex]);
             }
         }
 
@@ -107,21 +102,23 @@ namespace PXTEngine {
 
                 tangent = glm::normalize(tangent);
 
-                float handedness = (glm::dot(glm::cross(glm::vec3(v0.normal), glm::vec3(v1.normal)), tangent) < 0.0f) ? -1.0f : 1.0f;
+                float handedness =
+                    (glm::dot(glm::cross(glm::vec3(v0.normal), glm::vec3(v1.normal)), tangent) < 0.0f) ? -1.0f : 1.0f;
                 glm::vec4 tangent4 = glm::vec4(tangent, handedness);
 
                 v0.tangent = tangent4;
                 v1.tangent = tangent4;
                 v2.tangent = tangent4;
             }
-        }
-        else {
+        } else {
             // Assign default tangents if no UVs are present
             for (Mesh::Vertex& v : vertices) {
                 v.tangent = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
             }
         }
 
-		return VulkanMesh::create(vertices, indices);
-	}
-}
+        return VulkanMesh::create(vertices, indices);
+    }
+
+    void MeshImporter::updateUi(ResourceInfo* resourceInfo) { ImGui::SeparatorText("Mesh Importer Settings"); }
+} // namespace pxt

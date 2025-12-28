@@ -6,7 +6,7 @@
 #define ENABLE_RAYTRACING_EXT 1
 #endif
 
-namespace PXTEngine {
+namespace pxt {
 
     /* ------------------------ Local callback functions ------------------------ */
 
@@ -22,9 +22,10 @@ namespace PXTEngine {
      * @param pUserData Pointer to user data (unused).
      * @return VK_FALSE to indicate that the Vulkan call should not be aborted.
      */
-    static VKAPI_ATTR VkBool32 VKAPI_CALL
-    gpuDebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType,
-                  const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,  void *pUserData) {
+    static VKAPI_ATTR VkBool32 VKAPI_CALL gpuDebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+                                                           VkDebugUtilsMessageTypeFlagsEXT messageType,
+                                                           const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+                                                           void* pUserData) {
 
         std::stringstream ss;
 
@@ -42,13 +43,13 @@ namespace PXTEngine {
         ss << pCallbackData->pMessage << std::endl;
 
         if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT) {
-			PXT_DEBUG(ss.str());
+            PXT_DEBUG(ss.str());
         } else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT) {
-			PXT_INFO(ss.str());
+            PXT_INFO(ss.str());
         } else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
-			PXT_WARN(ss.str());
+            PXT_WARN(ss.str());
         } else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
-			PXT_ERROR(ss.str());
+            PXT_ERROR(ss.str());
         }
 
         return VK_FALSE;
@@ -66,12 +67,15 @@ namespace PXTEngine {
      * @param pDebugMessenger Pointer to the debug messenger handle.
      * @return VK_SUCCESS if the messenger was created successfully, or a Vulkan error code.
      */
-    VkResult createDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo,
-            const VkAllocationCallbacks *pAllocator, VkDebugUtilsMessengerEXT *pDebugMessenger) {
+    VkResult createDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
+                                          const VkAllocationCallbacks* pAllocator,
+                                          VkDebugUtilsMessengerEXT* pDebugMessenger) {
 
-        auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
+        auto func =
+            (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
 
-        if (func == nullptr) return VK_ERROR_EXTENSION_NOT_PRESENT;
+        if (func == nullptr)
+            return VK_ERROR_EXTENSION_NOT_PRESENT;
 
         return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
     }
@@ -85,10 +89,11 @@ namespace PXTEngine {
      * @param debugMessenger The debug messenger handle.
      * @param pAllocator Pointer to the allocation callbacks.
      */
-    void destroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, 
-            const VkAllocationCallbacks *pAllocator) {
+    void destroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger,
+                                       const VkAllocationCallbacks* pAllocator) {
 
-        auto func = (PFN_vkDestroyDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
+        auto func =
+            (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
 
         if (func != nullptr) {
             func(instance, debugMessenger, pAllocator);
@@ -110,11 +115,11 @@ namespace PXTEngine {
         vkDestroyInstance(m_instance, nullptr);
     }
 
-    std::vector<const char *> Instance::getRequiredExtensions() {
+    std::vector<const char*> Instance::getRequiredExtensions() {
         uint32_t glfwExtensionCount = 0;
-        const char **glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+        const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 
-        std::vector<const char *> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
+        std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
 
         if (enableValidationLayers) {
             extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
@@ -153,15 +158,12 @@ namespace PXTEngine {
             VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;    // Invalid usage that may lead to crashes
 
         debugCreateInfo.messageType =
-            VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |     // General events not tied to a specific Vulkan spec issue
-            VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |  // Violations of the Vulkan spec or best practices
-            VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;  // Potential non-optimal usage
-
+            VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |    // General events not tied to a specific Vulkan spec issue
+            VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | // Violations of the Vulkan spec or best practices
+            VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT; // Potential non-optimal usage
 
         // Define the VkValidationFeaturesEXT for debug printf
-        VkValidationFeatureEnableEXT enabledValidationFeatures[] = {
-            VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT 
-        };
+        VkValidationFeatureEnableEXT enabledValidationFeatures[] = {VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT};
         VkValidationFeaturesEXT validationFeatures{};
         validationFeatures.sType = VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT;
         validationFeatures.enabledValidationFeatureCount = 1;
@@ -190,8 +192,9 @@ namespace PXTEngine {
     }
 
     void Instance::setupDebugMessenger() {
-        if (!enableValidationLayers) return;
-        
+        if (!enableValidationLayers)
+            return;
+
         VkDebugUtilsMessengerCreateInfoEXT createInfo;
         populateDebugMessengerCreateInfo(createInfo);
 
@@ -221,7 +224,7 @@ namespace PXTEngine {
 
         std::cout << "required extensions:" << std::endl;
         auto requiredExtensions = getRequiredExtensions();
-        
+
         for (const auto& required : requiredExtensions) {
             std::cout << "\t" << required << std::endl;
             if (available.find(required) == available.end()) {
@@ -235,18 +238,18 @@ namespace PXTEngine {
         createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
 
         // defines the severity levels of messages that the debug messenger should listen to.
-        createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
-                                     VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+        createInfo.messageSeverity =
+            VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
 
         // specifies the types of debug messages to capture.
-        createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT    |
+        createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
                                  VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
                                  VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
 
         // specifies the callback function to be called when a debug message is generated.
         createInfo.pfnUserCallback = gpuDebugCallback;
 
-        createInfo.pUserData = nullptr;  // Optional
+        createInfo.pUserData = nullptr; // Optional
     }
 
     bool Instance::checkValidationLayerSupport() {
@@ -254,10 +257,9 @@ namespace PXTEngine {
         vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
 
         std::vector<VkLayerProperties> availableLayers(layerCount);
-        vkEnumerateInstanceLayerProperties(&layerCount,
-                                           availableLayers.data());
+        vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
 
-        for (const char *layerName : validationLayers) {
+        for (const char* layerName : validationLayers) {
             bool layerFound = false;
 
             for (const auto& layerProperties : availableLayers) {
@@ -274,4 +276,4 @@ namespace PXTEngine {
 
         return true;
     }
-}
+} // namespace pxt

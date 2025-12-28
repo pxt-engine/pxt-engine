@@ -4,7 +4,7 @@
 #include "scene/camera.hpp"
 #include "scene/scene.hpp"
 
-namespace PXTEngine {
+namespace pxt {
     struct PointLight {
         glm::vec4 position{};
         glm::vec4 color{}; // w is intensity
@@ -23,12 +23,14 @@ namespace PXTEngine {
     struct FrameInfo {
         int frameIndex;
         float frameTime;
+        float sceneAspectRatio;
         VkCommandBuffer commandBuffer;
         Camera& camera;
         VkDescriptorSet globalDescriptorSet;
+        VkDescriptorSet sceneDescriptorSet;
         Scene& scene;
-        VkFence frameFence;        // The fence signaled when the command buffer is complete
+        VkFence frameFence;         // The fence signaled when the command buffer is complete
         VkSemaphore imageAvailable; // The semaphore signaled when the image is available
         VkSemaphore renderFinished; // The semaphore signaled when rendering is done
     };
-}
+} // namespace pxt

@@ -24,7 +24,6 @@ PFN_vkCmdTraceRaysKHR vkCmdTraceRaysKHR_ = nullptr;
 
 // Define other function pointers as declared in the header
 
-
 // Function to load all required ray tracing and BDA function pointers
 void g_loadRayTracingFunctions(VkDevice device) {
     // Use vkGetDeviceProcAddr to load device-level extension functions
@@ -32,65 +31,77 @@ void g_loadRayTracingFunctions(VkDevice device) {
     // Acceleration Structure functions
     vkCreateAccelerationStructureKHR_ = reinterpret_cast<PFN_vkCreateAccelerationStructureKHR>(
         vkGetDeviceProcAddr(device, "vkCreateAccelerationStructureKHR"));
-    if (!vkCreateAccelerationStructureKHR_) throw std::runtime_error("Failed to load vkCreateAccelerationStructureKHR");
+    if (!vkCreateAccelerationStructureKHR_)
+        throw std::runtime_error("Failed to load vkCreateAccelerationStructureKHR");
 
     vkDestroyAccelerationStructureKHR_ = reinterpret_cast<PFN_vkDestroyAccelerationStructureKHR>(
         vkGetDeviceProcAddr(device, "vkDestroyAccelerationStructureKHR"));
-    if (!vkDestroyAccelerationStructureKHR_) throw std::runtime_error("Failed to load vkDestroyAccelerationStructureKHR");
+    if (!vkDestroyAccelerationStructureKHR_)
+        throw std::runtime_error("Failed to load vkDestroyAccelerationStructureKHR");
 
     vkCmdBuildAccelerationStructuresKHR_ = reinterpret_cast<PFN_vkCmdBuildAccelerationStructuresKHR>(
         vkGetDeviceProcAddr(device, "vkCmdBuildAccelerationStructuresKHR"));
-    if (!vkCmdBuildAccelerationStructuresKHR_) throw std::runtime_error("Failed to load vkCmdBuildAccelerationStructuresKHR");
+    if (!vkCmdBuildAccelerationStructuresKHR_)
+        throw std::runtime_error("Failed to load vkCmdBuildAccelerationStructuresKHR");
 
-	vkGetAccelerationStructureBuildSizesKHR_ = reinterpret_cast<PFN_vkGetAccelerationStructureBuildSizesKHR>(
-		vkGetDeviceProcAddr(device, "vkGetAccelerationStructureBuildSizesKHR"));
-	if (!vkGetAccelerationStructureBuildSizesKHR_) throw std::runtime_error("Failed to load vkGetAccelerationStructureBuildSizesKHR");
+    vkGetAccelerationStructureBuildSizesKHR_ = reinterpret_cast<PFN_vkGetAccelerationStructureBuildSizesKHR>(
+        vkGetDeviceProcAddr(device, "vkGetAccelerationStructureBuildSizesKHR"));
+    if (!vkGetAccelerationStructureBuildSizesKHR_)
+        throw std::runtime_error("Failed to load vkGetAccelerationStructureBuildSizesKHR");
 
-	// add if needed later (^_^)
+    // add if needed later (^_^)
     /*
     vkCmdCopyAccelerationStructureKHR_ = reinterpret_cast<PFN_vkCmdCopyAccelerationStructureKHR>(
         vkGetDeviceProcAddr(device, "vkCmdCopyAccelerationStructureKHR"));
-    if (!vkCmdCopyAccelerationStructureKHR_) throw std::runtime_error("Failed to load vkCmdCopyAccelerationStructureKHR");
+    if (!vkCmdCopyAccelerationStructureKHR_) throw std::runtime_error("Failed to load
+    vkCmdCopyAccelerationStructureKHR");
 
     vkCopyAccelerationStructureToMemoryKHR_ = reinterpret_cast<PFN_vkCopyAccelerationStructureToMemoryKHR>(
         vkGetDeviceProcAddr(device, "vkCopyAccelerationStructureToMemoryKHR"));
-    if (!vkCopyAccelerationStructureToMemoryKHR_) throw std::runtime_error("Failed to load vkCopyAccelerationStructureToMemoryKHR");
+    if (!vkCopyAccelerationStructureToMemoryKHR_) throw std::runtime_error("Failed to load
+    vkCopyAccelerationStructureToMemoryKHR");
 
     vkCopyMemoryToAccelerationStructureKHR_ = reinterpret_cast<PFN_vkCopyMemoryToAccelerationStructureKHR>(
         vkGetDeviceProcAddr(device, "vkCopyMemoryToAccelerationStructureKHR"));
-    if (!vkCopyMemoryToAccelerationStructureKHR_) throw std::runtime_error("Failed to load vkCopyMemoryToAccelerationStructureKHR");
+    if (!vkCopyMemoryToAccelerationStructureKHR_) throw std::runtime_error("Failed to load
+    vkCopyMemoryToAccelerationStructureKHR");
 
     vkWriteAccelerationStructuresPropertiesKHR_ = reinterpret_cast<PFN_vkWriteAccelerationStructuresPropertiesKHR>(
         vkGetDeviceProcAddr(device, "vkWriteAccelerationStructuresPropertiesKHR"));
-    if (!vkWriteAccelerationStructuresPropertiesKHR_) throw std::runtime_error("Failed to load vkWriteAccelerationStructuresPropertiesKHR");
+    if (!vkWriteAccelerationStructuresPropertiesKHR_) throw std::runtime_error("Failed to load
+    vkWriteAccelerationStructuresPropertiesKHR");
 
     vkGetAccelerationStructureDeviceAddressKHR_ = reinterpret_cast<PFN_vkGetAccelerationStructureDeviceAddressKHR>(
         vkGetDeviceProcAddr(device, "vkGetAccelerationStructureDeviceAddressKHR"));
-    if (!vkGetAccelerationStructureDeviceAddressKHR_) throw std::runtime_error("Failed to load vkGetAccelerationStructureDeviceAddressKHR");
+    if (!vkGetAccelerationStructureDeviceAddressKHR_) throw std::runtime_error("Failed to load
+    vkGetAccelerationStructureDeviceAddressKHR");
     */
 
     // Ray Tracing Pipeline functions
     vkCreateRayTracingPipelinesKHR_ = reinterpret_cast<PFN_vkCreateRayTracingPipelinesKHR>(
         vkGetDeviceProcAddr(device, "vkCreateRayTracingPipelinesKHR"));
-    if (!vkCreateRayTracingPipelinesKHR_) throw std::runtime_error("Failed to load vkCreateRayTracingPipelinesKHR");
+    if (!vkCreateRayTracingPipelinesKHR_)
+        throw std::runtime_error("Failed to load vkCreateRayTracingPipelinesKHR");
 
     vkGetRayTracingShaderGroupHandlesKHR_ = reinterpret_cast<PFN_vkGetRayTracingShaderGroupHandlesKHR>(
         vkGetDeviceProcAddr(device, "vkGetRayTracingShaderGroupHandlesKHR"));
-    if (!vkGetRayTracingShaderGroupHandlesKHR_) throw std::runtime_error("Failed to load vkGetRayTracingShaderGroupHandlesKHR");
+    if (!vkGetRayTracingShaderGroupHandlesKHR_)
+        throw std::runtime_error("Failed to load vkGetRayTracingShaderGroupHandlesKHR");
 
-    vkCmdTraceRaysKHR_ = reinterpret_cast<PFN_vkCmdTraceRaysKHR>(
-        vkGetDeviceProcAddr(device, "vkCmdTraceRaysKHR"));
-    if (!vkCmdTraceRaysKHR_) throw std::runtime_error("Failed to load vkCmdTraceRaysKHR");
+    vkCmdTraceRaysKHR_ = reinterpret_cast<PFN_vkCmdTraceRaysKHR>(vkGetDeviceProcAddr(device, "vkCmdTraceRaysKHR"));
+    if (!vkCmdTraceRaysKHR_)
+        throw std::runtime_error("Failed to load vkCmdTraceRaysKHR");
 
     // Load other functions as needed
     // vkGetRayTracingShaderGroupStackSizeKHR_ = reinterpret_cast<PFN_vkGetRayTracingShaderGroupStackSizeKHR>(
     //     vkGetDeviceProcAddr(device, "vkGetRayTracingShaderGroupStackSizeKHR"));
-    // if (!vkGetRayTracingShaderGroupStackSizeKHR_) throw std::runtime_error("Failed to load vkGetRayTracingShaderGroupStackSizeKHR");
+    // if (!vkGetRayTracingShaderGroupStackSizeKHR_) throw std::runtime_error("Failed to load
+    // vkGetRayTracingShaderGroupStackSizeKHR");
 
     // vkCmdSetRayTracingPipelineStackSizeKHR_ = reinterpret_cast<PFN_vkCmdSetRayTracingPipelineStackSizeKHR>(
     //     vkGetDeviceProcAddr(device, "vkCmdSetRayTracingPipelineStackSizeKHR"));
-    // if (!vkCmdSetRayTracingPipelineStackSizeKHR_) throw std::runtime_error("Failed to load vkCmdSetRayTracingPipelineStackSizeKHR");
+    // if (!vkCmdSetRayTracingPipelineStackSizeKHR_) throw std::runtime_error("Failed to load
+    // vkCmdSetRayTracingPipelineStackSizeKHR");
 
-   PXT_INFO("Successfully loaded Vulkan Ray Tracing function pointers.");
+    PXT_INFO("Successfully loaded Vulkan Ray Tracing function pointers.");
 }
-

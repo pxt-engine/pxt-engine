@@ -2,13 +2,15 @@
 
 #include "core/pch.hpp"
 #include "resources/types/mesh.hpp"
-#include "resources/resource_manager.hpp"
 
-namespace PXTEngine {
+namespace pxt {
 
-	class MeshImporter {
-	public:
-		static Shared<Mesh> importObj(ResourceManager& rm, const std::filesystem::path& filePath,
-			ResourceInfo* resourceInfo = nullptr);
-	};
-}
+    class ResourceManager; // forward declaration
+
+    class MeshImporter {
+    public:
+        static Shared<Mesh> importObj(const std::filesystem::path& filePath, ResourceInfo* resourceInfo = nullptr);
+
+        static void updateUi(ResourceInfo* resourceInfo);
+    };
+} // namespace pxt

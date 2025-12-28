@@ -2,21 +2,21 @@
 
 #include "core/pch.hpp"
 
-namespace PXTEngine {
+namespace pxt::core {
+    UUID UUID::s_invalidId = UUID(0, 0);
 
-	UUID::UUID(const std::string& uuidString) {
+    UUID::UUID(const std::string& UUIDString) {
         // Length: 32 hex characters + 4 hyphens = 36 characters.
-        if (uuidString.length() != 36) return;
-        
+        if (UUIDString.length() != 36)
+            return;
 
         // Check hyphen positions.
-        if (uuidString[8]  != '-' || uuidString[13] != '-' || 
-            uuidString[18] != '-' || uuidString[23] != '-') {
+        if (UUIDString[8] != '-' || UUIDString[13] != '-' || UUIDString[18] != '-' || UUIDString[23] != '-') {
             return;
         }
 
         // Create a copy of the string and remove the hyphens.
-        std::string hexString = uuidString;
+        std::string hexString = UUIDString;
         std::erase(hexString, '-');
 
         try {
@@ -29,40 +29,38 @@ namespace PXTEngine {
         }
     }
 
-	UUID::UUID() {
-		*this = generateUUIDv7();
-	}
+    UUID::UUID() { *this = generateUUIDv7(); }
 
-	UUID::UUID(const UUIDVersion version) {
-		switch (version) {
-		case V4:
-			*this = generateUUIDv4();
-			break;
-		case V7:
-			*this = generateUUIDv7();
-			break;
-		}
-	}
+    UUID::UUID(const UUIDVersion version) {
+        switch (version) {
+        case V4:
+            *this = generateUUIDv4();
+            break;
+        case V7:
+            *this = generateUUIDv7();
+            break;
+        }
+    }
 
-	UUID UUID::generateUUIDv4() {
-		// UUID v4 structure: 128 bits of random data with version and variant bits set.
-		// Version 4 (0100) is in bits 60-63. Variant (10xx) is in bits 64-65.
+    UUID UUID::generateUUIDv4() {
+        // UUID v4 structure: 128 bits of random data with version and variant bits set.
+        // Version 4 (0100) is in bits 60-63. Variant (10xx) is in bits 64-65.
 
-		std::random_device rd;
-		std::mt19937_64 gen(rd());
-		std::uniform_int_distribution<uint64_t> dist;
+        std::random_device rd;
+        std::mt19937_64 gen(rd());
+        std::uniform_int_distribution<uint64_t> dist;
 
-		uint64_t randomHigh = dist(gen);
-		uint64_t randomLow = dist(gen);
+        uint64_t randomHigh = dist(gen);
+        uint64_t randomLow = dist(gen);
 
-		// Set version 4 (0100) in high part (bits 12-15 from right).
-		randomHigh = (randomHigh & 0xFFFFFFFFFFFF0FFFULL) | 0x0000000000004000ULL;
+        // Set version 4 (0100) in high part (bits 12-15 from right).
+        randomHigh = (randomHigh & 0xFFFFFFFFFFFF0FFFULL) | 0x0000000000004000ULL;
 
-		// Set variant 1 (10xx) in low part (bits 62-63 from right).
-		randomLow = (randomLow & 0x3FFFFFFFFFFFFFFFULL) | 0x8000000000000000ULL;
+        // Set variant 1 (10xx) in low part (bits 62-63 from right).
+        randomLow = (randomLow & 0x3FFFFFFFFFFFFFFFULL) | 0x8000000000000000ULL;
 
-        return { randomHigh, randomLow };
-	}
+        return {randomHigh, randomLow};
+    }
 
     UUID UUID::generateUUIDv7() {
         // UUID v7 structure: 48-bit timestamp | 4-bit version |
@@ -82,15 +80,15 @@ namespace PXTEngine {
         const uint64_t randomBPart = dist(gen); // Use lower 62 bits for rand_b
 
         // Assemble high 64 bits: timestamp (48) | version (7) | rand_a (12 random)
-        uint64_t high = (timestampMs << 16) |   // Timestamp shifted
-			(0x7ULL << 12) |                    // Version 7 shifted
-			(randomAPart & 0xFFFULL);           // rand_a (12 random bits) placed
+        uint64_t high = (timestampMs << 16) |     // Timestamp shifted
+                        (0x7ULL << 12) |          // Version 7 shifted
+                        (randomAPart & 0xFFFULL); // rand_a (12 random bits) placed
 
         // Assemble low 64 bits: variant (10xx) | rand_b (62 random)
-			uint64_t low = (0x8ULL << 60) |       // Variant 1 (10) shifted
-            (randomBPart & 0x3FFFFFFFFFFFFFFULL); // Rand_b (62 random bits) placed
+        uint64_t low = (0x8ULL << 60) |                      // Variant 1 (10) shifted
+                       (randomBPart & 0x3FFFFFFFFFFFFFFULL); // Rand_b (62 random bits) placed
 
-        return { high, low };
+        return {high, low};
     }
 
     std::string UUID::toString() const {
@@ -107,4 +105,4 @@ namespace PXTEngine {
         return ss.str();
     }
 
-};
+}; // namespace pxt::core

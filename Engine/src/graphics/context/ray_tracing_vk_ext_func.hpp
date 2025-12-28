@@ -32,7 +32,6 @@ extern PFN_vkCmdTraceRaysKHR vkCmdTraceRaysKHR_;
 // extern PFN_vkGetRayTracingShaderGroupStackSizeKHR vkGetRayTracingShaderGroupStackSizeKHR_;
 // extern PFN_vkCmdSetRayTracingPipelineStackSizeKHR vkCmdSetRayTracingPipelineStackSizeKHR_;
 
-
 // Use #define to map the standard Vulkan function names to our global pointers
 // This allows you to call them like regular Vulkan functions
 
@@ -59,7 +58,6 @@ extern PFN_vkCmdTraceRaysKHR vkCmdTraceRaysKHR_;
 // Add #defines for other functions declared above
 // #define vkGetRayTracingShaderGroupStackSizeKHR vkGetRayTracingShaderGroupStackSizeKHR_
 // #define vkCmdSetRayTracingPipelineStackSizeKHR vkCmdSetRayTracingPipelineStackSizeKHR_
-
 
 // Function to load all required ray tracing and BDA function pointers
 void g_loadRayTracingFunctions(VkDevice device);

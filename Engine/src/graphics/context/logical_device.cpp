@@ -1,18 +1,16 @@
 #include "graphics/context/logical_device.hpp"
 
-namespace PXTEngine {
+namespace pxt {
 
     LogicalDevice::LogicalDevice(Window& window, Instance& instance, Surface& surface, PhysicalDevice& physicalDevice)
-		: m_window{ window }, m_instance{ instance }, m_surface(surface), m_physicalDevice(physicalDevice) {
+        : m_window{window}, m_instance{instance}, m_surface(surface), m_physicalDevice(physicalDevice) {
         createLogicalDevice();
 
         // Load ray tracing function pointers after the device is created -- global
         g_loadRayTracingFunctions(m_device);
     }
 
-    LogicalDevice::~LogicalDevice() {
-        vkDestroyDevice(m_device, nullptr);
-    }
+    LogicalDevice::~LogicalDevice() { vkDestroyDevice(m_device, nullptr); }
 
     void LogicalDevice::createLogicalDevice() {
         QueueFamilyIndices indices = m_physicalDevice.findQueueFamilies();
@@ -37,20 +35,20 @@ namespace PXTEngine {
         bufferDeviceAddressFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES;
         bufferDeviceAddressFeatures.bufferDeviceAddress = VK_TRUE;
 
-		// Descriptor Indexing Features
+        // Descriptor Indexing Features
         VkPhysicalDeviceDescriptorIndexingFeaturesEXT indexingFeatures{};
         indexingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT;
 
         // This enables the ability to use non-uniform indexing for sampled image arrays within shaders.
-        // Non-uniform indexing means that the index used to access an array can be dynamically calculated within 
-        // the shader, rather than being a constant. 
+        // Non-uniform indexing means that the index used to access an array can be dynamically calculated within
+        // the shader, rather than being a constant.
         indexingFeatures.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
 
         // This allows descriptor sets to have some bindings that are not bound to any resources.
         // This is useful for situations where you don't need to bind all resources in a descriptor set.
         indexingFeatures.descriptorBindingPartiallyBound = VK_TRUE;
 
-        // This enables runtime-sized descriptor arrays, 
+        // This enables runtime-sized descriptor arrays,
         // which means that the size of descriptor arrays can be determined dynamically at runtime.
         indexingFeatures.runtimeDescriptorArray = VK_TRUE;
 
@@ -66,15 +64,15 @@ namespace PXTEngine {
 
         // Validation layer for raytracing by Nvidia
         VkPhysicalDeviceRayTracingValidationFeaturesNV rayTracingValidationFeatures{};
-		rayTracingValidationFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_VALIDATION_FEATURES_NV;
+        rayTracingValidationFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_VALIDATION_FEATURES_NV;
 
-		// 2d view of 3d images
-		VkPhysicalDeviceImage2DViewOf3DFeaturesEXT image2DViewOf3DFeatures{};
-		image2DViewOf3DFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_2D_VIEW_OF_3D_FEATURES_EXT;
-		image2DViewOf3DFeatures.image2DViewOf3D = VK_TRUE;
+        // 2d view of 3d images
+        VkPhysicalDeviceImage2DViewOf3DFeaturesEXT image2DViewOf3DFeatures{};
+        image2DViewOf3DFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_2D_VIEW_OF_3D_FEATURES_EXT;
+        image2DViewOf3DFeatures.image2DViewOf3D = VK_TRUE;
 
         // --- Feature Chaining ---
-        // Chain the features in this order 
+        // Chain the features in this order
         // BDA -> Descriptor Indexing -> Accel Struct -> RT Pipeline
         bufferDeviceAddressFeatures.pNext = &indexingFeatures;
         indexingFeatures.pNext = &accelStructFeatures;
@@ -91,9 +89,9 @@ namespace PXTEngine {
         // A texture filtering technique that improves the quality of textures when viewed at oblique angles.
         deviceFeatures2.features.samplerAnisotropy = VK_TRUE;
 
-		// Enable fill mode non solid for wireframe support
-		deviceFeatures2.features.fillModeNonSolid = VK_TRUE;
-  
+        // Enable fill mode non solid for wireframe support
+        deviceFeatures2.features.fillModeNonSolid = VK_TRUE;
+
         // Enable the descriptor indexing features
         deviceFeatures2.pNext = &bufferDeviceAddressFeatures;
 
@@ -102,17 +100,15 @@ namespace PXTEngine {
 
         // Check if the required features are supported
         if (!indexingFeatures.shaderSampledImageArrayNonUniformIndexing ||
-            !indexingFeatures.descriptorBindingPartiallyBound ||
-            !indexingFeatures.runtimeDescriptorArray) {
+            !indexingFeatures.descriptorBindingPartiallyBound || !indexingFeatures.runtimeDescriptorArray) {
 
             throw std::runtime_error("Required descriptor indexing features are not supported!");
         }
 
-		// Check if the required features are supported
-		if (!deviceFeatures2.features.samplerAnisotropy ||
-            !deviceFeatures2.features.fillModeNonSolid) {
-			throw std::runtime_error("Required features are not supported!");
-		}
+        // Check if the required features are supported
+        if (!deviceFeatures2.features.samplerAnisotropy || !deviceFeatures2.features.fillModeNonSolid) {
+            throw std::runtime_error("Required features are not supported!");
+        }
 
         if (!accelStructFeatures.accelerationStructure) {
             throw std::runtime_error("Required accelerationStructure feature is not supported!");
@@ -121,32 +117,31 @@ namespace PXTEngine {
             throw std::runtime_error("Required rayTracingPipeline feature is not supported!");
         }
 
-		// Check if 2d view of 3d images is supported
-		if (!image2DViewOf3DFeatures.image2DViewOf3D ||
-			!image2DViewOf3DFeatures.sampler2DViewOf3D) {
-			throw std::runtime_error("Required image2DViewOf3D feature is not supported!");
-		}
+        // Check if 2d view of 3d images is supported
+        if (!image2DViewOf3DFeatures.image2DViewOf3D || !image2DViewOf3DFeatures.sampler2DViewOf3D) {
+            throw std::runtime_error("Required image2DViewOf3D feature is not supported!");
+        }
 
-		// finally check if the validation layer for raytracing is supported
+        // finally check if the validation layer for raytracing is supported
         if (!rayTracingValidationFeatures.rayTracingValidation) {
             // end the chain before and create the device
-			PXT_WARN("Ray tracing validation layer not supported, disabling it.");
+            PXT_WARN("Ray tracing validation layer not supported, disabling it.");
             image2DViewOf3DFeatures.pNext = nullptr;
         }
 
         VkDeviceCreateInfo createInfo = {};
         createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 
-        // These structures define the queues that the logical device will create. 
+        // These structures define the queues that the logical device will create.
         // Queues are used for submitting work to the device, such as graphics commands or compute operations.
         createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
         createInfo.pQueueCreateInfos = queueCreateInfos.data();
 
-        // This field is a pointer to an extension structure. 
-        // It allows to chain additional information, enabling the use of Vulkan extensions. 
+        // This field is a pointer to an extension structure.
+        // It allows to chain additional information, enabling the use of Vulkan extensions.
         // This is where you would place structures that enable newer Vulkan features.
-        createInfo.pNext = &deviceFeatures2; 
-        
+        createInfo.pNext = &deviceFeatures2;
+
         // pEnabledFeatures is the older, legacy way of specifying core Vulkan 1.0 features,
         // when using VkPhysicalDeviceFeatures2 set it to nullptr
         createInfo.pEnabledFeatures = nullptr;
@@ -155,12 +150,11 @@ namespace PXTEngine {
         createInfo.enabledExtensionCount = static_cast<uint32_t>(m_physicalDevice.deviceExtensions.size());
         createInfo.ppEnabledExtensionNames = m_physicalDevice.deviceExtensions.data();
 
-        
-        if (vkCreateDevice(m_physicalDevice.getDevice(), &createInfo, nullptr,&m_device) != VK_SUCCESS) {
+        if (vkCreateDevice(m_physicalDevice.getDevice(), &createInfo, nullptr, &m_device) != VK_SUCCESS) {
             throw std::runtime_error("failed to create logical device!");
         }
 
         vkGetDeviceQueue(m_device, indices.graphicsFamily, 0, &m_graphicsQueue);
         vkGetDeviceQueue(m_device, indices.presentFamily, 0, &m_presentQueue);
     }
-}
+} // namespace pxt

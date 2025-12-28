@@ -1,2 +1,8 @@
+*.glsl linguist-language=GLSL
 *.frag linguist-language=GLSL
 *.vert linguist-language=GLSL
+*.geom linguist-language=GLSL
+*.comp linguist-language=GLSL
+*.rchit linguist-language=GLSL
+*.rmiss linguist-language=GLSL
+*.rgen linguist-language=GLSL

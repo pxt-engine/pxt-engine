@@ -1,19 +1,21 @@
 #pragma once
 
 #include "core/pch.hpp"
-#include "graphics/pipeline.hpp"
-#include "graphics/swap_chain.hpp"
 #include "graphics/context/context.hpp"
-#include "graphics/frame_info.hpp"
 #include "graphics/descriptors/descriptors.hpp"
+#include "graphics/frame_info.hpp"
+#include "graphics/pipeline.hpp"
 #include "graphics/resources/texture_registry.hpp"
+#include "graphics/swap_chain.hpp"
 #include "scene/scene.hpp"
 
-namespace PXTEngine {
+namespace pxt {
 
     class MaterialRenderSystem {
     public:
-        MaterialRenderSystem(Context& context, Shared<DescriptorAllocatorGrowable> descriptorAllocator, TextureRegistry& textureRegistry, DescriptorSetLayout& globalSetLayout, VkRenderPass renderPass, VkDescriptorImageInfo shadowMapImageInfo);
+        MaterialRenderSystem(Context& context, DescriptorAllocatorGrowable& descriptorAllocator,
+                             TextureRegistry& textureRegistry, DescriptorSetLayout& globalSetLayout,
+                             VkRenderPass renderPass, VkDescriptorImageInfo shadowMapImageInfo);
         ~MaterialRenderSystem();
 
         MaterialRenderSystem(const MaterialRenderSystem&) = delete;
@@ -26,22 +28,19 @@ namespace PXTEngine {
         void createDescriptorSets(VkDescriptorImageInfo shadowMapImageInfo);
         void createPipelineLayout(DescriptorSetLayout& globalSetLayout);
         void createPipeline(bool useCompiledSpirvFiles = true);
-        
+
         Context& m_context;
         TextureRegistry& m_textureRegistry;
 
-		VkRenderPass m_renderPassHandle;
+        VkRenderPass m_renderPassHandle;
         Unique<Pipeline> m_pipeline;
         VkPipelineLayout m_pipelineLayout;
 
-		Shared<DescriptorAllocatorGrowable> m_descriptorAllocator;
+        DescriptorAllocatorGrowable& m_descriptorAllocator;
 
         Unique<DescriptorSetLayout> m_shadowMapDescriptorSetLayout{};
         VkDescriptorSet m_shadowMapDescriptorSet{};
 
-        std::array<const std::string, 2> m_shaderFilePaths = {
-            "material_shader.vert",
-            "material_shader.frag"
-        };
+        std::array<const std::string, 2> m_shaderFilePaths = {"material_shader.vert", "material_shader.frag"};
     };
-}
+} // namespace pxt

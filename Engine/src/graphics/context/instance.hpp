@@ -2,18 +2,17 @@
 
 #include "core/pch.hpp"
 
-namespace PXTEngine {
+namespace pxt {
     /**
      * @class Instance
-     * 
+     *
      * @brief Manages the Vulkan instance and its associated resources.
-     * 
+     *
      * This class is responsible for creating and managing the Vulkan instance, setting up validation layers,
      * and handling debug messages. It also provides methods to retrieve the Vulkan instance and required extensions.
      */
     class Instance {
     public:
-
         const bool enableValidationLayers = ENABLE_VALIDATION_LAYERS == 1;
 
         Instance(const std::string& appName);
@@ -42,7 +41,7 @@ namespace PXTEngine {
          *
          * This function creates a Vulkan instance, which is the entry point for all Vulkan commands.
          * It also sets up the validation layers if they are enabled.
-         * 
+         *
          * @param appName The name of the application.
          */
         void createInstance(const std::string& appName);
@@ -61,7 +60,7 @@ namespace PXTEngine {
          *
          * @param createInfo The debug messenger create info structure.
          */
-        void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT &createInfo);
+        void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
 
         /**
          * @brief Checks if the validation layers are supported.
@@ -79,9 +78,8 @@ namespace PXTEngine {
          */
         void setupDebugMessenger();
 
-
         VkDebugUtilsMessengerEXT m_debugMessenger;
 
         VkInstance m_instance;
     };
-}
+} // namespace pxt

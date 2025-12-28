@@ -2,9 +2,9 @@
 
 #include "graphics/resources/vk_skybox.hpp"
 
-namespace PXTEngine {
+namespace pxt {
 
-	void Environment::setSkybox(const std::array<std::string, 6>& skyboxTextures) {
-		m_skybox = VulkanSkybox::create(skyboxTextures);
-	}
-}
+    void Environment::setSkybox(const std::array<std::string, 6>& skyboxTextures) {
+        m_skybox = VulkanSkybox::create(skyboxTextures);
+    }
+} // namespace pxt

@@ -19,6 +19,8 @@ layout(push_constant) uniform Push {
 	mat4 modelMatrix;
 	mat4 normalMatrix;
     vec4 color;
+    vec4 objPickingColor;
+    int enableObjectPicking;
 	int enableWireframe;
 	int enableNormalsColor;
 	int textureIndex;
@@ -41,6 +43,11 @@ void applyAmbientOcclusion(inout vec3 color, vec2 texCoords) {
 void main() {
     if (push.enableWireframe == 1) {
         outColor = vec4(0.0, 1.0, 0.0, 1.0);
+        return;
+    }
+
+    if (push.enableObjectPicking == 1) {
+        outColor = push.objPickingColor;
         return;
     }
 

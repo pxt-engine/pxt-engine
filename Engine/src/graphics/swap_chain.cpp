@@ -4,15 +4,12 @@
 
 #define USE_IMMEDIATE_PRESENT_MODE 0
 
-namespace PXTEngine {
+namespace pxt {
 
-    SwapChain::SwapChain(Context& context, VkExtent2D extent) : m_context{ context }, m_windowExtent{extent} {
-        init();
-    }
+    SwapChain::SwapChain(Context& context, VkExtent2D extent) : m_context{context}, m_windowExtent{extent} { init(); }
 
     SwapChain::SwapChain(Context& context, VkExtent2D extent, Shared<SwapChain> previous)
-                : m_context{ context }, m_windowExtent{extent}, m_oldSwapChain{std::move(previous)}
-            {
+        : m_context{context}, m_windowExtent{extent}, m_oldSwapChain{std::move(previous)} {
         init();
 
         m_oldSwapChain = nullptr;
@@ -84,20 +81,20 @@ namespace PXTEngine {
         return m_renderFinishedSemaphores[imageIndex];
     }
 
-    VkResult SwapChain::acquireNextImage(uint32_t *imageIndex) {
+    VkResult SwapChain::acquireNextImage(uint32_t* imageIndex) {
         vkWaitForFences(m_context.getDevice(), 1, &m_inFlightFences[m_currentFrame], VK_TRUE,
                         std::numeric_limits<uint64_t>::max());
 
-        VkResult result = vkAcquireNextImageKHR(
-            m_context.getDevice(), m_swapChain, std::numeric_limits<uint64_t>::max(),
-            m_imageAvailableSemaphores[m_currentFrame],  // must be a not
-                                                         // signaled semaphore
-            VK_NULL_HANDLE, imageIndex);
+        VkResult result =
+            vkAcquireNextImageKHR(m_context.getDevice(), m_swapChain, std::numeric_limits<uint64_t>::max(),
+                                  m_imageAvailableSemaphores[m_currentFrame], // must be a not
+                                                                              // signaled semaphore
+                                  VK_NULL_HANDLE, imageIndex);
 
         return result;
     }
 
-    VkResult SwapChain::submitCommandBuffers(const VkCommandBuffer *buffers, uint32_t *imageIndex) {
+    VkResult SwapChain::submitCommandBuffers(const VkCommandBuffer* buffers, uint32_t* imageIndex) {
         vkWaitForFences(m_context.getDevice(), 1, &m_inFlightFences[m_currentFrame], VK_TRUE, UINT64_MAX);
 
         VkSubmitInfo submitInfo = {};
@@ -118,11 +115,11 @@ namespace PXTEngine {
 
         vkResetFences(m_context.getDevice(), 1, &m_inFlightFences[m_currentFrame]);
 
-        VkResult vkResult = vkQueueSubmit(m_context.getGraphicsQueue(), 1, &submitInfo,
-            m_inFlightFences[m_currentFrame]);
+        VkResult vkResult =
+            vkQueueSubmit(m_context.getGraphicsQueue(), 1, &submitInfo, m_inFlightFences[m_currentFrame]);
 
         if (vkResult != VK_SUCCESS) {
-			PXT_ERROR("Failed to submit draw command buffer: {}", STR_VK_RESULT(vkResult));
+            PXT_ERROR("Failed to submit draw command buffer: {}", STR_VK_RESULT(vkResult));
             throw std::runtime_error("");
         }
 
@@ -178,8 +175,8 @@ namespace PXTEngine {
             createInfo.pQueueFamilyIndices = queueFamilyIndices;
         } else {
             createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-            createInfo.queueFamilyIndexCount = 0;      // Optional
-            createInfo.pQueueFamilyIndices = nullptr;  // Optional
+            createInfo.queueFamilyIndexCount = 0;     // Optional
+            createInfo.pQueueFamilyIndices = nullptr; // Optional
         }
 
         createInfo.preTransform = swapChainSupport.capabilities.currentTransform;
@@ -190,8 +187,7 @@ namespace PXTEngine {
 
         createInfo.oldSwapchain = m_oldSwapChain == nullptr ? VK_NULL_HANDLE : m_oldSwapChain->m_swapChain;
 
-        if (vkCreateSwapchainKHR(m_context.getDevice(), &createInfo, nullptr, &m_swapChain) !=
-            VK_SUCCESS) {
+        if (vkCreateSwapchainKHR(m_context.getDevice(), &createInfo, nullptr, &m_swapChain) != VK_SUCCESS) {
             throw std::runtime_error("failed to create swap chain!");
         }
 
@@ -202,31 +198,30 @@ namespace PXTEngine {
         // it again to retrieve the handles.
         vkGetSwapchainImagesKHR(m_context.getDevice(), m_swapChain, &imageCount, nullptr);
         m_swapChainImages.resize(imageCount);
-        vkGetSwapchainImagesKHR(m_context.getDevice(), m_swapChain, &imageCount,
-                                m_swapChainImages.data());
+        vkGetSwapchainImagesKHR(m_context.getDevice(), m_swapChain, &imageCount, m_swapChainImages.data());
 
         m_swapChainImageFormat = surfaceFormat.format;
         m_swapChainExtent = extent;
     }
 
-	void SwapChain::createImageViews() {
-		m_swapChainImageViews.resize(m_swapChainImages.size());
+    void SwapChain::createImageViews() {
+        m_swapChainImageViews.resize(m_swapChainImages.size());
 
-		for (uint32_t i = 0; i < m_swapChainImages.size(); i++) {
-			VkImageViewCreateInfo viewInfo{};
-			viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-			viewInfo.image = m_swapChainImages[i];
-			viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-			viewInfo.format = m_swapChainImageFormat;
-			viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-			viewInfo.subresourceRange.baseMipLevel = 0;
-			viewInfo.subresourceRange.levelCount = 1;
-			viewInfo.subresourceRange.baseArrayLayer = 0;
-			viewInfo.subresourceRange.layerCount = 1;
+        for (uint32_t i = 0; i < m_swapChainImages.size(); i++) {
+            VkImageViewCreateInfo viewInfo{};
+            viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+            viewInfo.image = m_swapChainImages[i];
+            viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+            viewInfo.format = m_swapChainImageFormat;
+            viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            viewInfo.subresourceRange.baseMipLevel = 0;
+            viewInfo.subresourceRange.levelCount = 1;
+            viewInfo.subresourceRange.baseArrayLayer = 0;
+            viewInfo.subresourceRange.layerCount = 1;
 
-			m_swapChainImageViews[i] = m_context.createImageView(viewInfo);
-		}
-	}
+            m_swapChainImageViews[i] = m_context.createImageView(viewInfo);
+        }
+    }
 
     void SwapChain::createRenderPass() {
         VkAttachmentDescription depthAttachment{};
@@ -266,10 +261,12 @@ namespace PXTEngine {
         VkSubpassDependency dependency = {};
         dependency.dstSubpass = 0;
         dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-        dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+        dependency.dstStageMask =
+            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
         dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
         dependency.srcAccessMask = 0;
-        dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+        dependency.srcStageMask =
+            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
 
         std::array<VkAttachmentDescription, 2> attachments = {colorAttachment, depthAttachment};
         VkRenderPassCreateInfo renderPassInfo = {};
@@ -281,8 +278,7 @@ namespace PXTEngine {
         renderPassInfo.dependencyCount = 1;
         renderPassInfo.pDependencies = &dependency;
 
-        if (vkCreateRenderPass(m_context.getDevice(), &renderPassInfo, nullptr, &m_renderPass) !=
-            VK_SUCCESS) {
+        if (vkCreateRenderPass(m_context.getDevice(), &renderPassInfo, nullptr, &m_renderPass) != VK_SUCCESS) {
             throw std::runtime_error("failed to create render pass!");
         }
     }
@@ -290,8 +286,7 @@ namespace PXTEngine {
     void SwapChain::createFramebuffers() {
         m_swapChainFramebuffers.resize(imageCount());
         for (size_t i = 0; i < imageCount(); i++) {
-            std::array<VkImageView, 2> attachments = {m_swapChainImageViews[i],
-                                                      m_depthImageViews[i]};
+            std::array<VkImageView, 2> attachments = {m_swapChainImageViews[i], m_depthImageViews[i]};
 
             VkExtent2D swapChainExtent = getSwapChainExtent();
             VkFramebufferCreateInfo framebufferInfo = {};
@@ -303,8 +298,8 @@ namespace PXTEngine {
             framebufferInfo.height = swapChainExtent.height;
             framebufferInfo.layers = 1;
 
-            if (vkCreateFramebuffer(m_context.getDevice(), &framebufferInfo, nullptr,
-                                    &m_swapChainFramebuffers[i]) != VK_SUCCESS) {
+            if (vkCreateFramebuffer(m_context.getDevice(), &framebufferInfo, nullptr, &m_swapChainFramebuffers[i]) !=
+                VK_SUCCESS) {
                 throw std::runtime_error("failed to create framebuffer!");
             }
         }
@@ -336,8 +331,8 @@ namespace PXTEngine {
             imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
             imageInfo.flags = 0;
 
-            m_context.createImageWithInfo(imageInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                                         m_depthImages[i], m_depthImageMemorys[i]);
+            m_context.createImageWithInfo(imageInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_depthImages[i],
+                                          m_depthImageMemorys[i]);
 
             VkImageViewCreateInfo viewInfo{};
             viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -350,8 +345,7 @@ namespace PXTEngine {
             viewInfo.subresourceRange.baseArrayLayer = 0;
             viewInfo.subresourceRange.layerCount = 1;
 
-            if (vkCreateImageView(m_context.getDevice(), &viewInfo, nullptr, &m_depthImageViews[i]) !=
-                VK_SUCCESS) {
+            if (vkCreateImageView(m_context.getDevice(), &viewInfo, nullptr, &m_depthImageViews[i]) != VK_SUCCESS) {
                 throw std::runtime_error("failed to create texture image view!");
             }
         }
@@ -371,69 +365,74 @@ namespace PXTEngine {
         fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-            if (vkCreateSemaphore(m_context.getDevice(), &semaphoreInfo, nullptr,
-                                  &m_imageAvailableSemaphores[i]) != VK_SUCCESS ||
-                vkCreateFence(m_context.getDevice(), &fenceInfo, nullptr, &m_inFlightFences[i]) !=
-                    VK_SUCCESS) {
-                throw std::runtime_error("failed to create m_imageAvailableSemaphores or m_inFlightFences objects for a frame!");
+            if (vkCreateSemaphore(m_context.getDevice(), &semaphoreInfo, nullptr, &m_imageAvailableSemaphores[i]) !=
+                    VK_SUCCESS ||
+                vkCreateFence(m_context.getDevice(), &fenceInfo, nullptr, &m_inFlightFences[i]) != VK_SUCCESS) {
+                throw std::runtime_error(
+                    "failed to create m_imageAvailableSemaphores or m_inFlightFences objects for a frame!");
             }
         }
 
         for (size_t i = 0; i < imageCount(); i++) {
-            if (vkCreateSemaphore(m_context.getDevice(), &semaphoreInfo, nullptr,
-                    &m_renderFinishedSemaphores[i]) != VK_SUCCESS) {
+            if (vkCreateSemaphore(m_context.getDevice(), &semaphoreInfo, nullptr, &m_renderFinishedSemaphores[i]) !=
+                VK_SUCCESS) {
                 throw std::runtime_error("failed to create m_renderFinishedSemaphores objects for a frame!");
             }
         }
     }
 
-    VkSurfaceFormatKHR SwapChain::chooseSwapSurfaceFormat(
-        const std::vector<VkSurfaceFormatKHR> &availableFormats) {
+    VkSurfaceFormatKHR SwapChain::chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats) {
         // Common & Desirable: sRGB 8-bit per channel (B8G8R8A8_SRGB or R8G8B8A8_SRGB).
         // This is usually the preferred format for standard monitors, providing correct
         // sRGB gamma correction for visually accurate output. B8G8R8A8 is more common
         // on Windows, R8G8B8A8 on other platforms, but both are widely supported.
-        
+
         for (const auto& availableFormat : availableFormats) {
             if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB &&
                 availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
-                PXT_INFO("Selected {} with {}.", STR_VK_FORMAT(availableFormat.format), STR_VK_COLOR_SPACE_KHR(availableFormat.colorSpace));
+                PXT_INFO("Selected {} with {}.", STR_VK_FORMAT(availableFormat.format),
+                         STR_VK_COLOR_SPACE_KHR(availableFormat.colorSpace));
                 return availableFormat;
             }
         }
         for (const auto& availableFormat : availableFormats) {
             if (availableFormat.format == VK_FORMAT_R8G8B8A8_SRGB &&
                 availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
-                PXT_INFO("Selected {} with {}.", STR_VK_FORMAT(availableFormat.format), STR_VK_COLOR_SPACE_KHR(availableFormat.colorSpace));
+                PXT_INFO("Selected {} with {}.", STR_VK_FORMAT(availableFormat.format),
+                         STR_VK_COLOR_SPACE_KHR(availableFormat.colorSpace));
                 return availableFormat;
             }
         }
-        
+
         // Good Fallback: Linear 8-bit per channel (B8G8R8A8_UNORM or R8G8B8A8_UNORM).
         // If sRGB isn't available, UNORM is a common fallback. It doesn't apply sRGB
         // gamma correction automatically, so your rendering might appear too dark.
         // However, it's widely supported.
         for (const auto& availableFormat : availableFormats) {
             if (availableFormat.format == VK_FORMAT_B8G8R8A8_UNORM &&
-                availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) { // Still prefer sRGB color space if possible
-                PXT_INFO("Selected {} with {}.", STR_VK_FORMAT(availableFormat.format), STR_VK_COLOR_SPACE_KHR(availableFormat.colorSpace));
+                availableFormat.colorSpace ==
+                    VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) { // Still prefer sRGB color space if possible
+                PXT_INFO("Selected {} with {}.", STR_VK_FORMAT(availableFormat.format),
+                         STR_VK_COLOR_SPACE_KHR(availableFormat.colorSpace));
                 return availableFormat;
             }
         }
         for (const auto& availableFormat : availableFormats) {
             if (availableFormat.format == VK_FORMAT_R8G8B8A8_UNORM &&
-                availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) { // Still prefer sRGB color space if possible
-                PXT_INFO("Selected {} with {}.", STR_VK_FORMAT(availableFormat.format), STR_VK_COLOR_SPACE_KHR(availableFormat.colorSpace));
+                availableFormat.colorSpace ==
+                    VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) { // Still prefer sRGB color space if possible
+                PXT_INFO("Selected {} with {}.", STR_VK_FORMAT(availableFormat.format),
+                         STR_VK_COLOR_SPACE_KHR(availableFormat.colorSpace));
                 return availableFormat;
             }
         }
 
-        PXT_INFO("Selected first format available (only one supported): {} with {}.", STR_VK_FORMAT(availableFormats[0].format), STR_VK_COLOR_SPACE_KHR(availableFormats[0].colorSpace));
+        PXT_INFO("Selected first format available (only one supported): {} with {}.",
+                 STR_VK_FORMAT(availableFormats[0].format), STR_VK_COLOR_SPACE_KHR(availableFormats[0].colorSpace));
         return availableFormats[0];
     }
 
-    VkPresentModeKHR SwapChain::chooseSwapPresentMode(
-        const std::vector<VkPresentModeKHR>& availablePresentModes) {
+    VkPresentModeKHR SwapChain::chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes) {
         for (const auto& availablePresentMode : availablePresentModes) {
             if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
                 PXT_INFO("Present mode: Mailbox");
@@ -442,12 +441,12 @@ namespace PXTEngine {
         }
 
 #ifdef USE_IMMEDIATE_PRESENT_MODE
-		for (const auto& availablePresentMode : availablePresentModes) {
-			if (availablePresentMode == VK_PRESENT_MODE_IMMEDIATE_KHR) {
+        for (const auto& availablePresentMode : availablePresentModes) {
+            if (availablePresentMode == VK_PRESENT_MODE_IMMEDIATE_KHR) {
                 PXT_INFO("Present mode: Immediate");
-				return availablePresentMode;
-			}
-		}
+                return availablePresentMode;
+            }
+        }
 #endif
 
         PXT_INFO("Present mode: V-Sync (FIFO)");
@@ -459,14 +458,12 @@ namespace PXTEngine {
             return capabilities.currentExtent;
         } else {
             VkExtent2D actualExtent = m_windowExtent;
-            actualExtent.width =
-                std::max(capabilities.minImageExtent.width,
-                         std::min(capabilities.maxImageExtent.width, actualExtent.width));
-            actualExtent.height =
-                std::max(capabilities.minImageExtent.height,
-                         std::min(capabilities.maxImageExtent.height, actualExtent.height));
+            actualExtent.width = std::max(capabilities.minImageExtent.width,
+                                          std::min(capabilities.maxImageExtent.width, actualExtent.width));
+            actualExtent.height = std::max(capabilities.minImageExtent.height,
+                                           std::min(capabilities.maxImageExtent.height, actualExtent.height));
 
             return actualExtent;
         }
     }
-}
+} // namespace pxt

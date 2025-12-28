@@ -3,53 +3,52 @@
 #include "core/pch.hpp"
 #include "graphics/resources/vk_image.hpp"
 
+namespace pxt {
 
-namespace PXTEngine {
+    /**
+     * @class Texture2D
+     * @brief Represents a Vulkan Texture and its associated resources.
+     *
+     * This class encapsulates the creation and management of a Vulkan texture, including its view and sampler.
+     * It extends the Image class to provide specific functionality for 2D textures.
+     */
+    class Texture2D : public VulkanImage {
+    public:
+        static Unique<Texture2D> create(const ImageInfo& info, const std::span<uint8_t> buffer);
 
-	/**
-	 * @class Texture2D
-	 * @brief Represents a Vulkan Texture and its associated resources.
-	 *
-	 * This class encapsulates the creation and management of a Vulkan texture, including its view and sampler.
-	 * It extends the Image class to provide specific functionality for 2D textures.
-	 */
-	class Texture2D : public VulkanImage {
-	public:
-		static Unique<Texture2D> create(const ImageInfo& info, const Buffer& buffer);
+        Texture2D(Context& context, const ImageInfo& info, const std::span<uint8_t> buffer);
 
-		Texture2D(Context& context, const ImageInfo& info, const Buffer& buffer);
+    private:
+        /**
+         * @brief Creates a texture image.
+         *
+         * This function creates a Vulkan image and copies the pixel data from the provided buffer to the image.
+         * It also transitions the image layout to be used as a texture.
+         *
+         * @param info The texture information, including width, height, channels
+         * @param buffer The buffer containing the pixel data
+         */
+        void createTextureImage(const std::span<uint8_t> buffer);
 
-	private:
+        /**
+         * @brief Creates a Vulkan image.
+         */
+        void createImage(uint32_t width, uint32_t height, VkImageTiling tiling, VkImageUsageFlags usage,
+                         VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
 
-		/**
-		 * @brief Creates a texture image.
-		 *
-		 * This function creates a Vulkan image and copies the pixel data from the provided buffer to the image.
-		 * It also transitions the image layout to be used as a texture.
-		 *
-		 * @param info The texture information, including width, height, channels
-		 * @param buffer The buffer containing the pixel data
-		 */
-		void createTextureImage(const Buffer& buffer);
+        /**
+         * @brief Creates an image view.
+         *
+         * An image view is a way to interpret the image data.
+         * It describes how to access the image and which part of the image to access.
+         */
+        void createTextureImageView();
 
-		/**
-		 * @brief Creates a Vulkan image.
-		 */
-		void createImage(uint32_t width, uint32_t height, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
-
-		/**
-		 * @brief Creates an image view.
-		 *
-		 * An image view is a way to interpret the image data.
-		 * It describes how to access the image and which part of the image to access.
-		 */
-		void createTextureImageView();
-
-		/**
-		 * @brief Creates a texture sampler.
-		 *
-		 * A texture sampler is a set of parameters that control how textures are read and sampled by the GPU.
-		 */
-		void createTextureSampler();
-	};
-}
+        /**
+         * @brief Creates a texture sampler.
+         *
+         * A texture sampler is a set of parameters that control how textures are read and sampled by the GPU.
+         */
+        void createTextureSampler();
+    };
+} // namespace pxt

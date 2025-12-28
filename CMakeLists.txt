@@ -5,6 +5,14 @@ cmake_minimum_required(VERSION 3.17.0)
 
 set(NAME PXT_Engine)
 
+# Set number of parallel build jobs
+# Optional: detect number of CPU cores
+include(ProcessorCount)
+ProcessorCount(NCPU)
+if(NOT DEFINED ENV{CMAKE_BUILD_PARALLEL_LEVEL})
+    set(ENV{CMAKE_BUILD_PARALLEL_LEVEL} ${NCPU})
+endif()
+
 # MinGW
 message(STATUS "using ${CMAKE_GENERATOR}")
 if (CMAKE_GENERATOR STREQUAL "MinGW Makefiles")
@@ -39,7 +47,7 @@ endif()
 # Vendor libraries
 add_subdirectory(Engine/vendor/glfw)         
 add_subdirectory(Engine/vendor/glm)          
-add_subdirectory(Engine/vendor/tinyobjloader)  
+add_subdirectory(Engine/vendor/tinyobjloader)
 add_subdirectory(Engine/vendor/entt)
 add_subdirectory(Engine/vendor/spdlog)
 
@@ -55,6 +63,15 @@ add_subdirectory(Engine/vendor/tracy) # target : TracyClient or alias Tracy::Tra
 # STB IMAGE library
 add_library(stb INTERFACE)
 target_include_directories(stb INTERFACE ${CMAKE_SOURCE_DIR}/Engine/vendor/stb)
+
+# tinyfiledialog static library
+add_library(tinyfiledialogs STATIC
+    Engine/vendor/tinyfiledialogs/tinyfiledialogs.c
+)
+
+target_include_directories(tinyfiledialogs PUBLIC
+    ${CMAKE_SOURCE_DIR}/Engine/vendor/tinyfiledialogs
+)
 
 # YAML-CPP library
 add_subdirectory(Engine/vendor/yaml-cpp) 
@@ -81,9 +98,26 @@ target_include_directories(imgui PUBLIC ${Vulkan_INCLUDE_DIRS})
 # Link dependencies to ImGui
 target_link_libraries(imgui PUBLIC glfw Vulkan::Vulkan)
 
+# IMGUIZMO Library
+set(IMGUIZMO_DIR ${PROJECT_SOURCE_DIR}/Engine/vendor/imguizmo)
+
+# Create ImGuizmo library
+add_library(imguizmo STATIC
+    ${IMGUIZMO_DIR}/ImGuizmo.cpp
+)
+
+# Include directories for ImGuizmo
+target_include_directories(imguizmo PUBLIC ${IMGUIZMO_DIR})
+
+# Link ImGuizmo to ImGui (it needs imgui.h)
+target_link_libraries(imguizmo PUBLIC imgui)
+
 ####
 
-file(GLOB_RECURSE SOURCES ${PROJECT_SOURCE_DIR}/Application/src/*.cpp ${PROJECT_SOURCE_DIR}/Engine/src/*.cpp)
+file(GLOB_RECURSE SOURCES 
+        ${PROJECT_SOURCE_DIR}/Application/src/*.cpp
+        ${PROJECT_SOURCE_DIR}/Engine/src/*.cpp
+        ${PROJECT_SOURCE_DIR}/Editor/src/*.cpp)
 
 add_executable(${PROJECT_NAME} ${SOURCES})
 
@@ -113,6 +147,7 @@ if (WIN32)
   target_include_directories(${PROJECT_NAME} PUBLIC
     ${PROJECT_SOURCE_DIR}/Engine/src
     ${PROJECT_SOURCE_DIR}/Application/src
+    ${PROJECT_SOURCE_DIR}/Editor/src
     ${Vulkan_INCLUDE_DIRS}
     ${PROJECT_SOURCE_DIR}/Engine/vendor/entt/single_include
   )
@@ -142,10 +177,12 @@ if (WIN32)
     stb
     Vulkan::Vulkan
     imgui
+    imguizmo
     Tracy::TracyClient
     spdlog::spdlog_header_only
     Vulkan::shaderc_combined
     yaml-cpp
+    tinyfiledialogs
   )
 
 

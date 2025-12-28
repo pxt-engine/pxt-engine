@@ -1,76 +1,38 @@
 #pragma once
 
-#include "core/pch.hpp"
+#include "core/events/event.hpp"
 #include "core/layer/layer.hpp"
-#include "graphics/swap_chain.hpp"
-#include "graphics/renderer.hpp"
+#include "core/pch.hpp"
 #include "graphics/context/context.hpp"
-#include "graphics/frame_info.hpp"
 #include "graphics/descriptors/descriptors.hpp"
+#include "graphics/frame_info.hpp"
+#include "graphics/renderer.hpp"
+#include "graphics/swap_chain.hpp"
 #include "scene/ecs/entity.hpp"
+#include "ui/widgets/space.hpp"
 
-namespace PXTEngine {
+namespace pxt {
+    class UiRenderLayer : public core::Layer {
+    public:
+        UiRenderLayer(Context& context, VkRenderPass renderPass);
+        ~UiRenderLayer();
 
-	struct ComponentUiInfo {
-		std::string name;
-		// the function that will draw the ImGui component
-		std::function<void(Entity)> drawer;
-	};
+        UiRenderLayer(const UiRenderLayer&) = delete;
+        UiRenderLayer& operator=(const UiRenderLayer&) = delete;
 
-	class UiRenderLayer : public Layer {
-	public:
-		UiRenderLayer(Context& context, VkRenderPass renderPass);
-		~UiRenderLayer();
+        void onEvent(core::Event& event) override;
+        void beginFrame(Scene& scene, Renderer& renderer, FrameInfo& frameInfo);
+        void render(FrameInfo& frameInfo, Renderer& renderer);
 
-		UiRenderLayer(const UiRenderLayer&) = delete;
-		UiRenderLayer& operator=(const UiRenderLayer&) = delete;
+    private:
+        void initImGui(VkRenderPass& renderPass);
 
-		void beginFrame(Scene& scene, Renderer& renderer, FrameInfo& frameInfo);
-		void render(FrameInfo& frameInfo, Renderer& renderer);
+        void saveSceneUi(Scene& scene);
+        void buildUi(Scene& scene);
 
-	private:
-		void initImGui(VkRenderPass& renderPass);
-		void registerComponents();
+        Context& m_context;
+        Unique<DescriptorPool> m_imGuiPool{};
 
-		VkDescriptorSet addImGuiTexture(VkSampler sampler, VkImageView imageView, VkImageLayout layout);
-
-		void saveSceneUi(Scene& scene);
-		void drawSceneEntityList(Scene& scene);
-		void drawEntityInspector(Scene& scene);
-		void buildUi(Scene& scene);
-
-		Context& m_context;
-
-		Unique<DescriptorAllocatorGrowable> m_imguiDescriptorAllocator;
-		Unique<DescriptorPool> m_imGuiPool{};
-
-		std::vector<ComponentUiInfo> m_componentUiRegistry;
-		UUID m_selectedEntityID; // currently selected entity in the inspector
-		bool m_isAnEntitySelected = false;
-		bool m_openSaveSceneDialog = false;
-
-		/*
-		 *@brief Registers a component of type T into the m_componentUiRegistry.
-		 *		 Each element has a name and a function that dictates how it is
-		 *		 drawn into the entity inspector drawer.
-		 *
-		*/
-		template<typename T>
-		void RegisterComponent(const std::string& name, std::function<void(T&)> uiFunction) {
-			m_componentUiRegistry.push_back({
-				name,
-				[=](PXTEngine::Entity entity) {
-					if (entity.has<T>()) {
-						T& component = entity.get<T>();
-						if (ImGui::TreeNodeEx(name.c_str(), ImGuiTreeNodeFlags_DefaultOpen)) {
-							uiFunction(component);
-
-							ImGui::TreePop();
-						}
-						ImGui::Dummy({ 0.0f, 5.0f }); // spacing
-					}
-				}
-			});
-		}
-	};
-}
+        bool m_openSaveSceneDialog = false;
+    };
+} // namespace pxt

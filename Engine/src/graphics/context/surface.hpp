@@ -1,10 +1,10 @@
 #pragma once
 
 #include "core/pch.hpp"
-#include "graphics/window.hpp"
 #include "graphics/context/instance.hpp"
+#include "graphics/window.hpp"
 
-namespace PXTEngine {
+namespace pxt {
 
     /**
      * @class Surface
@@ -28,4 +28,4 @@ namespace PXTEngine {
         VkSurfaceKHR m_surface;
     };
 
-}
+} // namespace pxt
