@@ -1,6 +1,7 @@
 #include "editor_layer.hpp"
 #include "core/events/editor_events.hpp"
 #include "core/events/imgui_events.hpp"
+#include "ui/widgets/mode_selector_image_button.hpp"
 
 #include <glm/gtx/matrix_decompose.hpp> // will use it in the future for gizmos
 
@@ -27,8 +28,9 @@ namespace pxt::editor {
         }
 
         dispatcher.dispatch<core::MouseButtonPressEvent>([this](core::MouseButtonPressEvent& e) {
-            // we dont care about mouse clicks outside of the viewport (for now)
-            if (!m_isViewportHovered)
+            // we dont care about mouse clicks outside of the viewport for object picking
+            // and we do not want to interfere with other ui elements
+            if (!m_isViewportHovered || m_isAnyButtonHovered)
                 return false;
 
             return onMouseButtonPress(e);
@@ -66,12 +68,11 @@ namespace pxt::editor {
             m_currentGizmoOperation = ImGuizmo::TRANSLATE;
             break;
         case core::KeyCode::Number2:
-            m_currentGizmoOperation = ImGuizmo::SCALE;
-            break;
-        case core::KeyCode::Number3:
             m_currentGizmoOperation = ImGuizmo::ROTATE;
             break;
-        // TODO: this has to be a menu bar ui thing, not a key toggle
+        case core::KeyCode::Number3:
+            m_currentGizmoOperation = ImGuizmo::SCALE;
+            break;
         case core::KeyCode::Number4:
             if (m_currentGizmoMode == ImGuizmo::WORLD) {
                 m_currentGizmoMode = ImGuizmo::LOCAL;
@@ -108,6 +109,8 @@ namespace pxt::editor {
     }
 
     void EditorLayer::updateSceneUi(FrameInfo& frameInfo) {
+        m_isAnyButtonHovered = false;
+
         ImTextureID scene = (ImTextureID)frameInfo.sceneDescriptorSet;
 
         // we push a style var to remove the viewpoer window padding
@@ -189,8 +192,8 @@ namespace pxt::editor {
         }
     }
 
-    void EditorLayer::updateViewportOverlayButtons(FrameInfo& frameInfo, float buttonsSize) {
-        const float buttonSize = 90.0f * buttonsSize;
+    void EditorLayer::updateViewportOverlayButtons(FrameInfo& frameInfo, float buttonsScale) {
+        const ImVec2 buttonSize = ImVec2(90.0f * buttonsScale, 90.0f * buttonsScale);
         const float padding = 10.0f;
 
         ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize |
@@ -204,41 +207,29 @@ namespace pxt::editor {
         ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always, ImVec2(1.0f, 0.0f));
         ImGui::Begin("ViewportOverlayButtons", nullptr, windowFlags);
 
-        auto DrawImageToggleButton = [&](ImTextureID texture, const char* tooltip, const char* strId,
-                                         ImGuizmo::OPERATION op) {
-            const bool isActive = (m_currentGizmoOperation == op);
+        // check for viewport focus/hover
+        m_isViewportFocused |= ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
+        m_isViewportHovered |= ImGui::IsWindowHovered(ImGuiHoveredFlags_None);
+        m_isAnyButtonHovered |= ImGui::IsWindowHovered(ImGuiHoveredFlags_None);
 
-            if (isActive) {
-                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.25f, 0.45f, 0.85f, 0.90f));
-                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.30f, 0.50f, 0.90f, 1.00f));
-                ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.20f, 0.40f, 0.80f, 1.00f));
-            } else {
-                // Neutral background for inactive state
-                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.15f, 0.15f, 0.15f, 0.60f));
-                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.25f, 0.25f, 0.25f, 0.80f));
-                ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.20f, 0.20f, 0.20f, 0.90f));
-            }
+        ImTextureID translateIcon = (ImTextureID)m_editorTextureRegistry->get("translation_gizmo.png");
+        ImTextureID scaleIcon = (ImTextureID)m_editorTextureRegistry->get("scale_gizmo.png");
+        ImTextureID rotateIcon = (ImTextureID)m_editorTextureRegistry->get("rotation_gizmo.png");
+        ImTextureID worldIcon = (ImTextureID)m_editorTextureRegistry->get("world_mode_gizmo.png");
 
-            if (ImGui::ImageButton(strId, texture, ImVec2(buttonSize, buttonSize), ImVec2(0, 0), ImVec2(1, 1))) {
-                m_currentGizmoOperation = op;
-            }
+        ui::ModeSelectorImageButton::render(translateIcon, "##translate-gizmo", "Translate (1)", ImGuizmo::TRANSLATE,
+                                            m_currentGizmoOperation, buttonSize);
 
-            if (ImGui::IsItemHovered(ImGuiHoveredFlags_ForTooltip)) {
-                ImGui::SetTooltip("%s", tooltip);
-            }
+        ImGui::SameLine(0.f, 0.f);
+        ui::ModeSelectorImageButton::render(rotateIcon, "##rotate-gizmo", "Rotate (2)", ImGuizmo::ROTATE,
+                                            m_currentGizmoOperation, buttonSize);
+        ImGui::SameLine(0.f, 0.f);
+        ui::ModeSelectorImageButton::render(scaleIcon, "##scale-gizmo", "Scale (3)", ImGuizmo::SCALE,
+                                            m_currentGizmoOperation, buttonSize);
 
-            ImGui::PopStyleColor(3);
-        };
-
-        ImTextureID m_translateIcon = (ImTextureID)m_editorTextureRegistry->get("translation_gizmo.png");
-        ImTextureID m_scaleIcon = (ImTextureID)m_editorTextureRegistry->get("scale_gizmo.png");
-        ImTextureID m_rotateIcon = (ImTextureID)m_editorTextureRegistry->get("rotation_gizmo.png");
-
-        DrawImageToggleButton(m_translateIcon, "Translate (1)", "##translate-gizmo", ImGuizmo::TRANSLATE);
-        ImGui::SameLine();
-        DrawImageToggleButton(m_scaleIcon, "Scale (2)", "##scale-gizmo", ImGuizmo::SCALE);
-        ImGui::SameLine();
-        DrawImageToggleButton(m_rotateIcon, "Rotate (3)", "##rotate-gizmo", ImGuizmo::ROTATE);
+        ImGui::SameLine(0.f, 10.f);
+        ui::ModeSelectorImageButton::render(worldIcon, "##world-mode-gizmo", "World Mode (4)", ImGuizmo::WORLD,
+                                            m_currentGizmoMode, buttonSize);
 
         ImGui::End();
     }

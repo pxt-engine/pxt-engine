@@ -19,7 +19,7 @@ namespace pxt::editor {
     private:
         void updateSceneUi(FrameInfo& frameInfo);
         void updateGizmos(FrameInfo& frameInfo);
-        void updateViewportOverlayButtons(FrameInfo& frameInfo, float buttonsSize = 0.6f);
+        void updateViewportOverlayButtons(FrameInfo& frameInfo, float buttonsScale = 0.6f);
 
         ImVec2 getImageSizeWithAspectRatioForImGuiWindow(ImVec2 windowSize, float aspectRatio);
         bool onMouseButtonPress(core::MouseButtonPressEvent& event);
@@ -29,6 +29,9 @@ namespace pxt::editor {
 
         bool m_isViewportFocused = false;
         bool m_isViewportHovered = false;
+
+        // we need this to block certain events when interacting with buttons
+        bool m_isAnyButtonHovered = false;
 
         glm::vec2 m_lastClickMousePosImGui = {0.0f, 0.0f};
 
