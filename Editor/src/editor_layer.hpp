@@ -19,7 +19,7 @@ namespace pxt::editor {
     private:
         void updateSceneUi(FrameInfo& frameInfo);
         void updateGizmos(FrameInfo& frameInfo);
-        void updateViewportOverlayButtons(FrameInfo& frameInfo, float buttonsScale = 0.6f);
+        void updateViewportOverlayButtons(FrameInfo& frameInfo, float buttonsScale = 0.1f);
 
         ImVec2 getImageSizeWithAspectRatioForImGuiWindow(ImVec2 windowSize, float aspectRatio);
         bool onMouseButtonPress(core::MouseButtonPressEvent& event);

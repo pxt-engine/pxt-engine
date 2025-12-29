@@ -81,6 +81,9 @@ namespace pxt::editor {
                 m_currentGizmoMode = ImGuizmo::WORLD;
             }
             break;
+        case core::KeyCode::R:
+            m_currentGizmoOperation = ImGuizmo::BOUNDS; // selection tool
+            break;
         default:
             // propagate event if key not handled
             return true;
@@ -137,20 +140,21 @@ namespace pxt::editor {
 
         ImGui::Image(scene, m_sceneImageExtent);
 
-        // this has to be called inside the window where ImGuizmo is used
-        updateGizmos(frameInfo);
+        // if nothing selected or selection tool is active, do not show gizmos
+        // we currently use ImGuizmo::BOUNDS as "selection tool" placeholder
+        if (m_selectedEntityUUID != core::UUID::s_invalidId &&
+            m_currentGizmoOperation != ImGuizmo::BOUNDS) {
+            // this has to be called inside the window where ImGuizmo is used
+            updateGizmos(frameInfo);
+        }
 
-        updateViewportOverlayButtons(frameInfo, 0.8);
+        updateViewportOverlayButtons(frameInfo, 0.065f);
 
         ImGui::End();
         ImGui::PopStyleVar();
     }
 
     void EditorLayer::updateGizmos(FrameInfo& frameInfo) {
-        // nothing selected
-        if (m_selectedEntityUUID == core::UUID::s_invalidId)
-            return;
-
         // ImGuizmo::BeginFrame() is called right after ImGui::NewFrame() in UiRenderLayer
 
         ImGuizmo::SetDrawlist();
@@ -194,7 +198,11 @@ namespace pxt::editor {
     }
 
     void EditorLayer::updateViewportOverlayButtons(FrameInfo& frameInfo, float buttonsScale) {
-        const ImVec2 buttonSize = ImVec2(90.0f * buttonsScale, 90.0f * buttonsScale);
+        const float minButtonSize = 24.0f;
+        const float minViewportExtent = std::min(m_sceneImageExtent.x, m_sceneImageExtent.y);
+        ImVec2 buttonSize = ImVec2(minViewportExtent * buttonsScale, minViewportExtent * buttonsScale);
+        buttonSize.x = std::max(buttonSize.x, minButtonSize);
+        buttonSize.y = std::max(buttonSize.y, minButtonSize);
         const float padding = 10.0f;
 
         ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize |
@@ -213,10 +221,19 @@ namespace pxt::editor {
         m_isViewportHovered |= ImGui::IsWindowHovered(ImGuiHoveredFlags_None);
         m_isAnyButtonHovered |= ImGui::IsWindowHovered(ImGuiHoveredFlags_None);
 
+        ImTextureID selectIcon = (ImTextureID)m_editorTextureRegistry->get("selection_tool.png");
+
         ImTextureID translateIcon = (ImTextureID)m_editorTextureRegistry->get("translation_gizmo.png");
         ImTextureID scaleIcon = (ImTextureID)m_editorTextureRegistry->get("scale_gizmo.png");
         ImTextureID rotateIcon = (ImTextureID)m_editorTextureRegistry->get("rotation_gizmo.png");
+        
         ImTextureID worldIcon = (ImTextureID)m_editorTextureRegistry->get("world_mode_gizmo.png");
+
+        // TODO: Replace ImGuizmo::BOUNDS with a custom enum when new tools are added
+        ui::ModeSelectorImageButton::render(selectIcon, "##selection-tool", "Selection Tool (R)", ImGuizmo::BOUNDS,
+                                            m_currentGizmoOperation, buttonSize);
+
+        ImGui::SameLine(0.f, 10.f);
 
         ui::ModeSelectorImageButton::render(translateIcon, "##translate-gizmo", "Translate (1)", ImGuizmo::TRANSLATE,
                                             m_currentGizmoOperation, buttonSize);
