@@ -9,41 +9,6 @@ namespace pxt::concurrency {
 
     static constexpr size_t MAX_JOB_DEPENDENCIES = 9;
 
-    template <typename F>
-    concept RangeCallable = std::invocable<F, size_t, size_t>;
-
-    struct JobParallelForFunction {
-        void (*invoke)(const void*, size_t, size_t) = nullptr;
-        alignas(std::max_align_t) std::byte buffer[24];
-
-        JobParallelForFunction() = default;
-
-        template <typename Func>
-        requires(!std::is_same_v<std::decay_t<Func>, JobParallelForFunction> && RangeCallable<Func>)
-        JobParallelForFunction(Func&& f) {
-            using DecayedFunc = std::decay_t<Func>;
-
-            static_assert(sizeof(DecayedFunc) <= sizeof(buffer), "Lambda too large for buffer");
-            static_assert(std::is_trivially_copyable_v<DecayedFunc>, "Captures must be trivially copyable");
-
-            // Construct the lambda into the buffer
-            new (buffer) DecayedFunc(std::forward<Func>(f));
-
-            // Map the invoker
-            invoke = [](const void* ptr, size_t start, size_t end) {
-                (*reinterpret_cast<const DecayedFunc*>(ptr))(start, end);
-            };
-        }
-
-        void operator()(size_t start, size_t end) const {
-            if (invoke) {
-                invoke(buffer, start, end);
-            }
-        }
-
-        explicit operator bool() const { return invoke != nullptr; }
-    };
-
     struct JobDescription {
         JobFunction function;
         JobPriority priority = JobPriority::Normal;

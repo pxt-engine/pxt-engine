@@ -5,41 +5,63 @@
 namespace pxt::concurrency {
 
     /**
-     * @brief A JobFunction encapsulates a callable job function.
+     * @brief A SmallFunction is a lightweight, non-allocating function wrapper for callable objects.
      *
      * It uses a fixed-size buffer to store the callable object (e.g., lambda or function object)
-     * and a function pointer to invoke it. The buffer size is set to 48 bytes, which should
+     * and a function pointer to invoke it. The buffer size is set to 'BufferSize' bytes, which should
      * accommodate most small callable objects.
      */
-    struct JobFunction {
-        void (*invoke)(const void*) = nullptr;
-        alignas(std::max_align_t) std::byte buffer[48];
+    template <typename Signature, size_t BufferSize>
+    struct SmallFunction;
 
-        JobFunction() = default;
+    // Specialization for function signatures
+    template <size_t BufferSize, typename Ret, typename... Args>
+    struct SmallFunction<Ret(Args...), BufferSize> {
+
+        SmallFunction() = default;
 
         template <typename Func>
-        requires(!std::is_same_v<std::decay_t<Func>, JobFunction>)
-        JobFunction(Func&& f) {
+        requires(!std::is_same_v<std::decay_t<Func>, SmallFunction> && std::invocable<Func, Args...>)
+        SmallFunction(Func&& f) {
             using DecayedFunc = std::decay_t<Func>;
 
-            static_assert(sizeof(DecayedFunc) <= sizeof(buffer), "Lambda too large for buffer");
-            static_assert(std::is_trivially_copyable_v<DecayedFunc>, "Captures must be trivially copyable");
+            PXT_STATIC_ASSERT(sizeof(DecayedFunc) <= BufferSize, "Lambda too large for buffer");
+            PXT_STATIC_ASSERT(std::is_trivially_copyable_v<DecayedFunc>, "Captures must be trivially copyable");
 
-            // Construct the lambda into the buffer
-            new (buffer) DecayedFunc(std::forward<Func>(f));
+            // Construct the lambda into the buffer (there is no heap allocation)
+            new (m_buffer) DecayedFunc(std::forward<Func>(f));
 
-            // Map the invoker
-            invoke = [](const void* ptr) { (*reinterpret_cast<const DecayedFunc*>(ptr))(); };
+            // Create the invoker wrapper
+            m_invoke = [](const void* ptr, Args... args) -> Ret {
+                return (*reinterpret_cast<const DecayedFunc*>(ptr))(std::forward<Args>(args)...);
+            };
         }
 
-        void operator()() const {
-            if (invoke) {
-                invoke(buffer);
-            }
+        Ret operator()(Args... args) const {
+            PXT_ASSERT(m_invoke);
+
+            return m_invoke(m_buffer, std::forward<Args>(args)...);
         }
 
-        explicit operator bool() const { return invoke != nullptr; }
+        bool isValid() const { return m_invoke != nullptr; }
+
+    private:
+        Ret (*m_invoke)(const void*, Args...) = nullptr;
+        alignas(std::max_align_t) std::byte m_buffer[BufferSize];
     };
+
+    // Fits 3 pointers (Standard for most tasks)
+    static constexpr size_t ParallelBufferSize = sizeof(void*) * 3;
+
+    using JobParallelForFunction = SmallFunction<void(size_t, size_t), ParallelBufferSize>;
+
+    // The generic job function must fit:
+    // - A parallel job function
+    // - Two size_t parameters (for range start and end)
+    // So we can wrap a ParallelFor function inside a generic job.
+    static constexpr size_t GenericBufferSize = sizeof(JobParallelForFunction) + (sizeof(size_t) * 2);
+
+    using JobFunction = SmallFunction<void(), GenericBufferSize>;
 
     /**
      * @brief A JobHandle is an identifier for a submitted job or batch of jobs.
