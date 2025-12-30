@@ -28,18 +28,37 @@ namespace pxt::concurrency {
         m_condition.notify_all();
     }
 
+    void MultiThreadedJobSystem::pushJobsToWorker(uint32_t firstJobIdx, uint32_t numberOfJobs) {
+        // Increment pending job counter by number of jobs pushed
+        // Use relaxed ordering - this is just a heuristic, exact ordering not critical
+        m_pendingJobCount.fetch_add(numberOfJobs, std::memory_order_relaxed);
+
+        for (uint32_t i = 0; i < numberOfJobs; ++i) {
+            size_t idx = m_nextWorker.fetch_add(1, std::memory_order_relaxed) % m_workers.size();
+
+            Job& job = m_jobBuffer[firstJobIdx + i];
+            m_jobBuffer.updateJobState(firstJobIdx + i, JobState::Ready);
+
+            m_workers[idx]->deque.push(job);
+
+            m_condition.notify_one();
+        }
+    }
+
     JobHandle MultiThreadedJobSystem::submit(const JobDescription& desc) {
         JobHandle handle = acquireSlot(1);
-        auto& slotColdData = m_jobRegistry.getColdDataAt(handle.index());
+        uint32_t jobIdx = m_jobBuffer.reserve(1);
 
-        slotColdData.job.function = desc.function;
-        slotColdData.job.priority = desc.priority;
-        slotColdData.job.slotIndex = handle.index();
+        auto& slot = m_jobRegistry[handle.index()];
+        slot.firstJobIndex = jobIdx;
+
+        Job& job = m_jobBuffer[jobIdx];
+        job.function = desc.function;
+        job.priority = desc.priority;
+        job.slotIndex = handle.index();
 
         if (desc.dependencies.size() == 0) {
-            slotColdData.job.state = JobState::Ready;
-
-            pushJob(std::move(slotColdData.job));
+            pushJobsToWorker(slot.firstJobIndex, slot.numJobs);
         } else {
             linkDependencies(handle, std::move(desc.dependencies));
         }
@@ -53,23 +72,26 @@ namespace pxt::concurrency {
         deps.erase(std::remove_if(deps.begin(), deps.end(), [](const JobHandle& h) { return !h.isValid(); }),
                    deps.end());
 
-        auto& coldData = m_jobRegistry.getColdDataAt(handle.index());
+        auto& slot = m_jobRegistry[handle.index()];
 
         // If there are no dependencies, submit as a normal job
         if (deps.empty()) {
-            coldData.job.state = JobState::Ready;
-
-            pushJob(std::move(coldData.job));
+            pushJobsToWorker(slot.firstJobIndex, slot.numJobs);
         }
 
-        coldData.job.state = JobState::Pending;
-        coldData.pendingInfo.unresolvedDepsCount.store(static_cast<uint32_t>(deps.size()), std::memory_order_release);
+        // Set all jobs in this slot to Pending state initially
+        for (uint32_t i = 1; i < slot.numJobs; ++i) {
+            uint32_t jobBufferIdx = slot.firstJobIndex + i;
+
+            Job& job = m_jobBuffer[jobBufferIdx];
+            m_jobBuffer.updateJobState(jobBufferIdx, JobState::Pending);
+        }
 
         //? Initialize unresolvedDepsCount BEFORE registering with any dependency.
         //? We start with the total count and will adjust downward for already-completed deps
         //? This prevents the race where a dependency completes and tries to decrement
         //? before we've initialized the counter
-        coldData.pendingInfo.unresolvedDepsCount.store(static_cast<uint32_t>(deps.size()), std::memory_order_release);
+        slot.unresolvedDepsCount.store(static_cast<uint32_t>(deps.size()), std::memory_order_release);
 
         uint32_t completedDeps = 0;
 
@@ -118,7 +140,7 @@ namespace pxt::concurrency {
                     // Still not complete - safe to register now
                     // At this point, unresolvedDepsCount is already initialized,
                     // so if this dependency completes, it can safely decrement it
-                    depSlot.dependents.push_back(coldData.job.slotIndex);
+                    depSlot.dependents.push_back(handle.index());
                 }
             } // End scoped block for locking
         }
@@ -127,13 +149,11 @@ namespace pxt::concurrency {
         // We initialized with dependencies.size(), now subtract the completed ones
         if (completedDeps > 0) {
             uint32_t remaining =
-                coldData.pendingInfo.unresolvedDepsCount.fetch_sub(completedDeps, std::memory_order_acq_rel) -
-                completedDeps;
+                slot.unresolvedDepsCount.fetch_sub(completedDeps, std::memory_order_acq_rel) - completedDeps;
 
             // If all dependencies were already completed, submit immediately as ready
             if (remaining == 0) {
-                coldData.job.state = JobState::Ready;
-                pushJob(std::move(coldData.job));
+                pushJobsToWorker(slot.firstJobIndex, slot.numJobs);
             }
         }
     }
@@ -168,18 +188,6 @@ namespace pxt::concurrency {
         // One final acquire fence to ensure we see all side effects
         // from the completed job(s) before returning to the caller
         std::atomic_thread_fence(std::memory_order_acquire);
-    }
-
-    void MultiThreadedJobSystem::pushJob(Job&& job) {
-        size_t idx = m_nextWorker.fetch_add(1, std::memory_order_relaxed) % m_workers.size();
-
-        m_workers[idx]->deque.push(std::move(job));
-
-        // Increment pending job counter
-        // Use relaxed ordering - this is just a heuristic, exact ordering not critical
-        m_pendingJobCount.fetch_add(1, std::memory_order_relaxed);
-
-        m_condition.notify_one();
     }
 
     bool MultiThreadedJobSystem::executeOneJob(size_t index) {
@@ -254,18 +262,23 @@ namespace pxt::concurrency {
                 // Process all jobs that were waiting (Pending state)
                 for (uint32_t dependentIdx : slot.dependents) {
                     auto& dependentSlot = m_jobRegistry[dependentIdx];
-                    auto& dependentColdData = m_jobRegistry.getColdDataAt(dependentIdx);
 
                     //? Use std::memory_order_acq_rel ordering for the final decrement
                     //? - Release: Our completion is visible to the dependent
                     //? - Acquire: We see all writes from other dependencies of this job
                     uint32_t unresolvedRemaining =
-                        dependentColdData.pendingInfo.unresolvedDepsCount.fetch_sub(1, std::memory_order_acq_rel) - 1;
+                        dependentSlot.unresolvedDepsCount.fetch_sub(1, std::memory_order_acq_rel) - 1;
 
                     if (unresolvedRemaining == 0) {
                         // All dependencies resolved, transition to Ready
-                        dependentColdData.job.state = JobState::Ready;
-                        readyJobs.push_back(std::move(dependentColdData.job));
+                        for (uint32_t i = 0; i < dependentSlot.numJobs; ++i) {
+                            uint32_t jobBufferIdx = dependentSlot.firstJobIndex + i;
+
+                            Job& dependentJob = m_jobBuffer[jobBufferIdx];
+                            m_jobBuffer.updateJobState(jobBufferIdx, JobState::Ready);
+
+                            readyJobs.push_back(std::move(dependentJob));
+                        }
                     }
                 }
 
@@ -274,7 +287,7 @@ namespace pxt::concurrency {
 
             // Schedule all newly ready jobs
             for (auto& ready : readyJobs) {
-                pushJob(std::move(ready));
+                pushJobsToWorker(ready.slotIndex, 1);
             }
 
             // Increment generation with release semantics to make it visible to wait()
@@ -407,6 +420,10 @@ namespace pxt::concurrency {
 
         // Initialize the counter with the number of jobs
         slot.value.store(jobsCount, std::memory_order_release);
+
+        // Prepare the slot data
+        slot.dependents.clear();
+        slot.numJobs = jobsCount;
 
         const bool isBatch = jobsCount > 1;
 

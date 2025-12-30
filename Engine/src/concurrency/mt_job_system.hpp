@@ -10,6 +10,59 @@
 
 namespace pxt::concurrency {
 
+    enum class JobState : uint8_t {
+        Ready,     //< Job is ready to execute
+        Pending,   //< Job is pending execution (waiting for dependencies)
+        Executing, //< Job is currently executing
+        Empty,     //< Job is empty/completed
+    };
+
+    /**
+     * @brief A Job represents a single unit of work to be executed by the JobSystem.
+     */
+    struct Job {
+        JobFunction function;                       //< Function to execute
+        JobPriority priority = JobPriority::Normal; //<
+        uint32_t slotIndex = 0;                     //< Index into the slot registry for tracking completion
+
+        template <typename Func>
+        static Job create(Func&& f, uint32_t cIdx, JobState state = JobState::Ready) {
+            Job job;
+            job.slotIndex = cIdx;
+            job.function = f;
+            job.m_state = state;
+
+            return job;
+        }
+
+        void execute() { function(); }
+
+        /**
+         * @brief Checks if this job is valid and ready to execute.
+         * @return true if the function is non-null
+         */
+        bool isValid() const { return function.invoke != nullptr && m_state != JobState::Empty; }
+
+        /**
+         * @brief Checks if this job is in the Ready state.
+         * @return true if state is Ready
+         */
+        bool isReady() const { return m_state == JobState::Ready; }
+
+        /**
+         * @brief Checks if this job is in the Pending state.
+         * @return true if state is Pending
+         */
+        bool isPending() const { return m_state == JobState::Pending; }
+
+        bool isExecuting() const { return m_state == JobState::Executing; };
+
+    private:
+        JobState m_state = JobState::Empty; //< Current state of the job
+
+        friend class JobRingBuffer;
+    };
+
     template <typename F>
     concept VoidCallable = std::invocable<F> && std::same_as<std::invoke_result_t<F>, void>;
 
@@ -38,6 +91,50 @@ namespace pxt::concurrency {
     template <typename C>
     concept CallableContainer = IterableContainer<C> && VoidCallable<std::ranges::range_value_t<C>>;
 
+    class JobRingBuffer {
+    public:
+        explicit JobRingBuffer(size_t capacity) : m_buffer(capacity), m_mask(capacity - 1) {
+            PXT_ASSERT((capacity & (capacity - 1)) == 0 && "Capacity must be a power of 2");
+        }
+
+        size_t reserve(size_t count) {
+            // Claim our range in the buffer
+            size_t startIdx = m_head.fetch_add(count, std::memory_order_relaxed);
+
+            // We only need to check the last index of our reserved block.
+            // If the last one is Empty, everything before it is almost certainly Empty.
+            Job& lastJob = m_buffer[(startIdx + count - 1) & m_mask];
+            std::atomic_ref<JobState> stateRef(lastJob.m_state);
+
+            // The capacity must be big enough to hold all in-flight jobs.
+            // If we reach here and the last job is not yet Empty, we have lapped the buffer.
+            // This should be very unlikely in practice if the buffer is sized correctly.
+            if (stateRef.load(std::memory_order_acquire) != JobState::Empty) [[unlikely]] {
+                // We must wait for the slowest worker to finish the old job at this memory location.
+                while (stateRef.load(std::memory_order_acquire) != JobState::Empty) {
+                    cpuRelax();
+                }
+            }
+
+            return startIdx;
+        }
+
+        void updateJobState(size_t index, JobState newState) {
+            std::atomic_ref<JobState> stateRef(m_buffer[index & m_mask].m_state);
+            stateRef.store(newState, std::memory_order_release);
+        }
+
+        Job& operator[](size_t index) {
+            // wrap around using mask (index % capacity)
+            return m_buffer[index & m_mask];
+        }
+
+    private:
+        const size_t m_mask;
+        std::vector<Job> m_buffer;
+        alignas(std::hardware_destructive_interference_size) std::atomic<size_t> m_head{0};
+    };
+
     /**
      * @brief Padded atomic counter with generation tracking to avoid false sharing between threads.
      *
@@ -59,14 +156,33 @@ namespace pxt::concurrency {
      * to query the cache line size at compile time.
      */
     struct alignas(std::hardware_destructive_interference_size) JobSlot {
+
         // -- Synchronization (8 bytes) --
-        std::atomic<uint32_t> value{0};      //< Current job count (4 bytes)
+
+        /**
+         * @brief Atomic counter value for tracking job completion.
+         *
+         * When a job or batch of jobs is submitted, this counter is initialized
+         * to the number of jobs. Each time a job completes, the counter is decremented.
+         * When the counter reaches zero, it indicates that all jobs have completed.
+         */
+        std::atomic<uint32_t> value{0}; //< Current job count (4 bytes)
+
+        /**
+         * @brief Generation number for tracking counter recycling.
+         *
+         * Each time the counter reaches zero and is recycled for a new job or batch,
+         * the generation number is incremented. This allows handles to detect if
+         * they are stale by comparing their stored generation with the current generation.
+         */
         std::atomic<uint32_t> generation{0}; //< Generation number, incremented on recycle (4 bytes)
 
-        // -- Cold data index (4 bytes) --
-        uint32_t coldDataIndex; //< Index into cold data array (4 bytes)
+        // -- Global job buffer info (8 bytes) --
 
-        // -- Dependency management (52 bytes) --
+        uint32_t firstJobIndex; //< Index of the first job in the global job buffer (4 bytes)
+        uint32_t numJobs;       //< Number of jobs in the batch (1 for single jobs) (4 bytes)
+
+        // -- Dependency management (44 bytes) --
 
         /**
          * @brief Lock for protecting dependents list.
@@ -78,34 +194,32 @@ namespace pxt::concurrency {
         std::atomic_flag dependentsLock = ATOMIC_FLAG_INIT; //< Lock for protecting dependents list (1-4 byte)
 
         /**
-         * @brief A fixed-size vector that holds up to 11 unsigned 32-bit integers.
+         * @brief Count of unfinished dependencies for this job.
+         *
+         * This atomic counter tracks how many dependencies are still unresolved.
+         * for this job. When a dependency completes, it decrements this counter.
+         * When the counter reaches zero, it indicates that all dependencies have
+         * been resolved and the job can be executed.
+         */
+        std::atomic<uint32_t> unresolvedDepsCount{0}; //< Count of unfinished dependencies (4 bytes)
+
+        /**
+         * @brief A fixed-size vector that holds up to MAX_JOB_DEPENDENCIES unsigned 32-bit integers.
          *
          * This structure is designed to store a small number of dependent job indices
          * efficiently, minimizing dynamic memory allocations. It uses a static array
          * to hold the elements and keeps track of the current size.
          *
          * Memory Layout:
-         * * data: Array of MAX_JOB_DEPENDENCIES uint32_t elements (44 bytes)
+         * * data: Array of MAX_JOB_DEPENDENCIES (9) uint32_t elements (36 bytes)
          * * size: Current number of elements in the vector (1-4 bytes)
-         * * Total Size: 48 bytes
+         * * Total Size: 40 bytes
          */
         core::FixedVector<uint32_t, MAX_JOB_DEPENDENCIES> dependents;
 
-        // 8 + 4 + 52 = 64 bytes total (cache line size)
+        // 8 + 8 + 48 = 64 bytes total (cache line size)
         // With max 64 bytes in total the JobSlot fits perfectly into one cache line
         // preventing false sharing between threads accessing different slots.
-    };
-
-    struct PendingJobInfo {
-        std::atomic<uint32_t> unresolvedDepsCount{0}; //< Count of unfinished dependencies
-    };
-
-    struct JobSlotColdData {
-        // The job that uses this slot
-        Job job;
-
-        // Used only for Jobs with dependencies
-        PendingJobInfo pendingInfo;
     };
 
     /**
@@ -131,6 +245,8 @@ namespace pxt::concurrency {
      * - Total size: 4096 * 64 = 256 KB
      */
     struct JobRegistry {
+        static constexpr size_t MAX_SLOTS = 4096;
+
         /**
          * @brief Accesses a counter by index.
          * @param index The counter index (must be < MAX_SLOTS)
@@ -140,14 +256,10 @@ namespace pxt::concurrency {
 
         const JobSlot& operator[](size_t index) const { return m_slots[index]; }
 
-        JobSlotColdData& getColdDataAt(size_t index) { return m_coldData[index]; }
-
         size_t maxSlots() const { return MAX_SLOTS; }
 
     private:
-        static constexpr size_t MAX_SLOTS = 4096;
         std::array<JobSlot, MAX_SLOTS> m_slots{};
-        std::array<JobSlotColdData, MAX_SLOTS> m_coldData{};
     };
 
     /**
@@ -228,7 +340,7 @@ namespace pxt::concurrency {
          * Selects a worker in round-robin fashion and pushes the job to its deque.
          * Then wakes one sleeping worker to process it.
          */
-        void pushJob(Job&& job);
+        void pushJobsToWorker(uint32_t firstJobIdx, uint32_t numberOfJobs);
 
         /**
          * @brief Links dependencies for a job handle.
@@ -313,6 +425,10 @@ namespace pxt::concurrency {
 
     private:
         JobRegistry m_jobRegistry{};
+
+        static constexpr size_t JOB_BUFFER_CAPACITY = JobRegistry::MAX_SLOTS * 8;
+
+        JobRingBuffer m_jobBuffer{JOB_BUFFER_CAPACITY}; //< Global ring buffer for storing jobs
 
         // Atomic counter for allocating counter indices (circular allocation)
         std::atomic<uint32_t> m_counterAllocIdx{0};

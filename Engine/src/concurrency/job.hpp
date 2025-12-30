@@ -97,58 +97,6 @@ namespace pxt::concurrency {
         static constexpr JobHandle invalid() { return JobHandle{0}; }
     };
 
-    enum class JobState : uint8_t {
-        Ready,   //< Job is ready to execute
-        Pending, //< Job is pending execution (waiting for dependencies)
-    };
-
     enum class JobPriority : uint8_t { Low, Normal, High };
-
-    /**
-     * @brief A Job represents a single unit of work to be executed by the JobSystem.
-     */
-    struct Job {
-        JobFunction function;                       //< Function to execute
-        JobState state = JobState::Ready;           //< Current state of the job
-        JobPriority priority = JobPriority::Normal; //<
-        uint32_t slotIndex = 0;                     //< Index into the slot registry for tracking completion
-
-        template <typename Func>
-        static Job create(Func&& f, uint32_t cIdx, JobState state = JobState::Ready) {
-            Job job;
-            job.slotIndex = cIdx;
-            job.state = state;
-
-            using DecayedFunc = std::decay_t<Func>;
-
-            PXT_STATIC_ASSERT(sizeof(DecayedFunc) <= sizeof(job.function.buffer), "Lambda too large");
-            PXT_STATIC_ASSERT(std::is_trivially_copyable_v<DecayedFunc>, "Lambda must be trivially copyable");
-
-            new (job.function.buffer) DecayedFunc(std::forward<Func>(f));
-            job.function.invoke = [](const void* ptr) { (*reinterpret_cast<const DecayedFunc*>(ptr))(); };
-
-            return job;
-        }
-
-        void execute() { function(); }
-
-        /**
-         * @brief Checks if this job is valid and ready to execute.
-         * @return true if the function is non-null
-         */
-        bool isValid() const { return function.invoke != nullptr; }
-
-        /**
-         * @brief Checks if this job is in the Ready state.
-         * @return true if state is Ready
-         */
-        bool isReady() const { return state == JobState::Ready; }
-
-        /**
-         * @brief Checks if this job is in the Pending state.
-         * @return true if state is Pending
-         */
-        bool isPending() const { return state == JobState::Pending; }
-    };
 
 } // namespace pxt::concurrency

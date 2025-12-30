@@ -7,7 +7,7 @@
 
 namespace pxt::concurrency {
 
-    static constexpr size_t MAX_JOB_DEPENDENCIES = 11;
+    static constexpr size_t MAX_JOB_DEPENDENCIES = 9;
 
     struct JobDescription {
         JobFunction function;

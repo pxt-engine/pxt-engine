@@ -51,7 +51,7 @@ public:
      * @note This function must only be called by the owner thread.
      * @note No bounds checking is performed - ensure capacity is not exceeded.
      */
-    void push(T item) {
+    void push(T& item) {
         size_t t = m_top.load(std::memory_order_relaxed);
 
         m_buffer[t & m_mask] = std::move(item);
