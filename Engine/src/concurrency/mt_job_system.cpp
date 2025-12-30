@@ -94,6 +94,44 @@ namespace pxt::concurrency {
         return handle;
     }
 
+    JobHandle MultiThreadedJobSystem::parallelFor(const JobParallelForDescription& desc) {
+        if (desc.start >= desc.end) {
+            return JobHandle::invalid();
+        }
+
+        size_t totalItems = desc.end - desc.start;
+        uint32_t batchSize = static_cast<uint32_t>((totalItems + desc.grainSize - 1) / desc.grainSize);
+
+        JobHandle handle = acquireSlot(batchSize);
+        uint32_t jobIdx = m_jobBuffer.reserve(batchSize);
+
+        auto& slot = m_jobRegistry[handle.index()];
+        slot.firstJobIndex = jobIdx;
+
+        for (uint32_t i = 0; i < batchSize; ++i) {
+            size_t itemStart = desc.start + i * desc.grainSize;
+            size_t itemEnd = std::min(itemStart + desc.grainSize, desc.end);
+
+            Job& job = m_jobBuffer[jobIdx + i];
+
+            // We need to capture the function by value to avoid dangling references.
+            // The parallelFor function buffer is smaller than the job function buffer
+            // so we have enough space to store the function object.
+            job.function = [itemStart, itemEnd, func = desc.function]() { func(itemStart, itemEnd); };
+
+            job.priority = desc.priority;
+            job.slotIndex = handle.index();
+        }
+
+        if (desc.dependencies.size() == 0) {
+            pushJobsToWorker(slot.firstJobIndex, slot.numJobs);
+        } else {
+            linkDependencies(handle, std::move(desc.dependencies));
+        }
+
+        return handle;
+    }
+
     void MultiThreadedJobSystem::linkDependencies(JobHandle handle,
                                                   core::FixedVector<JobHandle, MAX_JOB_DEPENDENCIES> deps) {
         // Remove invalid dependencies

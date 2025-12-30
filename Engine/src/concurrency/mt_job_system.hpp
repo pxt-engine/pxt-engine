@@ -64,34 +64,6 @@ namespace pxt::concurrency {
         friend class JobRingBuffer;
     };
 
-    template <typename F>
-    concept VoidCallable = std::invocable<F> && std::same_as<std::invoke_result_t<F>, void>;
-
-    template <typename F, typename T>
-    concept CallableWith = std::invocable<F, T> && std::same_as<std::invoke_result_t<F, T>, void>;
-
-    template <typename F>
-    concept IndexCallable = std::invocable<F, size_t> && std::same_as<std::invoke_result_t<F, size_t>, void>;
-
-    template <typename C>
-    concept IterableContainer = std::ranges::range<C> && requires(C c) {
-        { c.begin() } -> std::input_or_output_iterator;
-        { c.end() } -> std::sentinel_for<decltype(c.begin())>;
-    };
-
-    template <typename C>
-    concept SizedContainer = IterableContainer<C> && requires(C c) {
-        { c.size() } -> std::convertible_to<size_t>;
-    };
-
-    template <typename C>
-    concept EmptyCheckable = requires(C c) {
-        { c.empty() } -> std::convertible_to<bool>;
-    };
-
-    template <typename C>
-    concept CallableContainer = IterableContainer<C> && VoidCallable<std::ranges::range_value_t<C>>;
-
     template <size_t Capacity>
     class JobRingBuffer {
         PXT_STATIC_ASSERT((Capacity & (Capacity - 1)) == 0, "Capacity must be a power of 2");
@@ -310,6 +282,8 @@ namespace pxt::concurrency {
         JobHandle submit(const JobDescription& desc) override;
 
         JobHandle submit(const JobBatchDescription& desc) override;
+
+        JobHandle parallelFor(const JobParallelForDescription& desc) override;
 
         /**
          * @brief Waits for a job or batch of jobs to complete.
