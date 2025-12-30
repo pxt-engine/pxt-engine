@@ -66,6 +66,34 @@ namespace pxt::concurrency {
         return handle;
     }
 
+    JobHandle MultiThreadedJobSystem::submit(const JobBatchDescription& desc) {
+        const uint32_t batchSize = static_cast<uint32_t>(desc.functions.size());
+
+        if (batchSize == 0) {
+            return JobHandle::invalid();
+        }
+
+        JobHandle handle = acquireSlot(batchSize);
+        uint32_t jobIdx = m_jobBuffer.reserve(batchSize);
+
+        auto& slot = m_jobRegistry[handle.index()];
+        slot.firstJobIndex = jobIdx;
+
+        for (uint32_t i = 0; i < batchSize; ++i) {
+            Job& job = m_jobBuffer[jobIdx + i];
+            job.function = desc.functions[i];
+            job.priority = desc.priority;
+            job.slotIndex = handle.index();
+        }
+
+        if (desc.dependencies.size() == 0) {
+            pushJobsToWorker(slot.firstJobIndex, slot.numJobs);
+        } else {
+            linkDependencies(handle, std::move(desc.dependencies));
+        }
+        return handle;
+    }
+
     void MultiThreadedJobSystem::linkDependencies(JobHandle handle,
                                                   core::FixedVector<JobHandle, MAX_JOB_DEPENDENCIES> deps) {
         // Remove invalid dependencies
@@ -289,7 +317,6 @@ namespace pxt::concurrency {
             for (auto& ready : readyJobs) {
                 pushJobsToWorker(ready.slotIndex, 1);
             }
-
             // Increment generation with release semantics to make it visible to wait()
             // This invalidates handles that were created during this generation
             slot.generation.fetch_add(1, std::memory_order_release);

@@ -16,7 +16,7 @@ namespace pxt::concurrency {
     };
 
     struct JobBatchDescription {
-        std::span<const JobFunction> functions;
+        std::vector<JobFunction> functions;
         JobPriority priority = JobPriority::Normal;
         core::FixedVector<JobHandle, MAX_JOB_DEPENDENCIES> dependencies;
     };
@@ -25,6 +25,7 @@ namespace pxt::concurrency {
     public:
         virtual ~JobSystemBackend() = default;
         virtual JobHandle submit(const JobDescription& desc) = 0;
+        virtual JobHandle submit(const JobBatchDescription& desc) = 0;
         virtual void wait(JobHandle handle) = 0;
     };
 
@@ -37,6 +38,12 @@ namespace pxt::concurrency {
         }
 
         static JobHandle submit(const JobDescription& desc) {
+            PXT_ASSERT(s_backend && "JobSystem not initialized");
+
+            return s_backend->submit(desc);
+        }
+
+        static JobHandle submit(const JobBatchDescription& desc) {
             PXT_ASSERT(s_backend && "JobSystem not initialized");
 
             return s_backend->submit(desc);

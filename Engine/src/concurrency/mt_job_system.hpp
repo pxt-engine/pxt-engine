@@ -60,6 +60,7 @@ namespace pxt::concurrency {
     private:
         JobState m_state = JobState::Empty; //< Current state of the job
 
+        template <size_t Capacity>
         friend class JobRingBuffer;
     };
 
@@ -91,11 +92,12 @@ namespace pxt::concurrency {
     template <typename C>
     concept CallableContainer = IterableContainer<C> && VoidCallable<std::ranges::range_value_t<C>>;
 
+    template <size_t Capacity>
     class JobRingBuffer {
+        PXT_STATIC_ASSERT((Capacity & (Capacity - 1)) == 0, "Capacity must be a power of 2");
+
     public:
-        explicit JobRingBuffer(size_t capacity) : m_buffer(capacity), m_mask(capacity - 1) {
-            PXT_ASSERT((capacity & (capacity - 1)) == 0 && "Capacity must be a power of 2");
-        }
+        explicit JobRingBuffer() = default;
 
         size_t reserve(size_t count) {
             // Claim our range in the buffer
@@ -130,8 +132,8 @@ namespace pxt::concurrency {
         }
 
     private:
-        const size_t m_mask;
-        std::vector<Job> m_buffer;
+        const size_t m_mask = Capacity - 1;
+        std::array<Job, Capacity> m_buffer;
         alignas(std::hardware_destructive_interference_size) std::atomic<size_t> m_head{0};
     };
 
@@ -244,9 +246,8 @@ namespace pxt::concurrency {
      * - Each counter includes both value and generation
      * - Total size: 4096 * 64 = 256 KB
      */
+    template <size_t MAX_SLOTS>
     struct JobRegistry {
-        static constexpr size_t MAX_SLOTS = 4096;
-
         /**
          * @brief Accesses a counter by index.
          * @param index The counter index (must be < MAX_SLOTS)
@@ -307,6 +308,8 @@ namespace pxt::concurrency {
         ~MultiThreadedJobSystem() override;
 
         JobHandle submit(const JobDescription& desc) override;
+
+        JobHandle submit(const JobBatchDescription& desc) override;
 
         /**
          * @brief Waits for a job or batch of jobs to complete.
@@ -424,11 +427,12 @@ namespace pxt::concurrency {
         JobHandle acquireSlot(uint32_t jobsCount);
 
     private:
-        JobRegistry m_jobRegistry{};
+        static constexpr size_t JOB_REGISTRY_MAX_SLOTS = 4096;
+        static constexpr size_t JOB_BUFFER_SIZE = JOB_REGISTRY_MAX_SLOTS * 8;
 
-        static constexpr size_t JOB_BUFFER_CAPACITY = JobRegistry::MAX_SLOTS * 8;
+        JobRegistry<JOB_REGISTRY_MAX_SLOTS> m_jobRegistry{};
 
-        JobRingBuffer m_jobBuffer{JOB_BUFFER_CAPACITY}; //< Global ring buffer for storing jobs
+        JobRingBuffer<JOB_BUFFER_SIZE> m_jobBuffer; //< Global ring buffer for storing jobs
 
         // Atomic counter for allocating counter indices (circular allocation)
         std::atomic<uint32_t> m_counterAllocIdx{0};
