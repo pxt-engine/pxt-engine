@@ -28,6 +28,116 @@ namespace pxt::concurrency {
         m_condition.notify_all();
     }
 
+    JobHandle MultiThreadedJobSystem::submit(const JobDescription& desc) {
+        JobHandle handle = acquireSlot(1);
+        auto& slotColdData = m_jobRegistry.getColdDataAt(handle.index());
+
+        slotColdData.job.function = desc.function;
+        slotColdData.job.priority = desc.priority;
+        slotColdData.job.slotIndex = handle.index();
+
+        if (desc.dependencies.size() == 0) {
+            slotColdData.job.state = JobState::Ready;
+
+            pushJob(std::move(slotColdData.job));
+        } else {
+            linkDependencies(handle, std::move(desc.dependencies));
+        }
+
+        return handle;
+    }
+
+    void MultiThreadedJobSystem::linkDependencies(JobHandle handle,
+                                                  core::FixedVector<JobHandle, MAX_JOB_DEPENDENCIES> deps) {
+        // Remove invalid dependencies
+        deps.erase(std::remove_if(deps.begin(), deps.end(), [](const JobHandle& h) { return !h.isValid(); }),
+                   deps.end());
+
+        auto& coldData = m_jobRegistry.getColdDataAt(handle.index());
+
+        // If there are no dependencies, submit as a normal job
+        if (deps.empty()) {
+            coldData.job.state = JobState::Ready;
+
+            pushJob(std::move(coldData.job));
+        }
+
+        coldData.job.state = JobState::Pending;
+        coldData.pendingInfo.unresolvedDepsCount.store(static_cast<uint32_t>(deps.size()), std::memory_order_release);
+
+        //? Initialize unresolvedDepsCount BEFORE registering with any dependency.
+        //? We start with the total count and will adjust downward for already-completed deps
+        //? This prevents the race where a dependency completes and tries to decrement
+        //? before we've initialized the counter
+        coldData.pendingInfo.unresolvedDepsCount.store(static_cast<uint32_t>(deps.size()), std::memory_order_release);
+
+        uint32_t completedDeps = 0;
+
+        //? Check completion status BEFORE registering as dependent
+        //? This prevents the race where:
+        //? 1. We register as dependent
+        //? 2. Dependency completes and scans dependents (we're there but shouldn't be)
+        //? 3. We check and see it's complete, try to remove ourselves (already processed)
+        for (const auto& dep : deps) {
+            // Skip invalid dependencies
+            if (!dep.isValid() || dep.index() >= m_jobRegistry.maxSlots()) {
+                ++completedDeps;
+                continue;
+            }
+
+            auto& depSlot = m_jobRegistry[dep.index()];
+
+            //? Check if dependency is already completed before registering
+            //? Use acquire to ensure we see all writes from the completing job
+            uint32_t depGen = depSlot.generation.load(std::memory_order_acquire);
+            uint32_t depVal = depSlot.value.load(std::memory_order_acquire);
+
+            const bool isAlreadyCompleted = (depGen != dep.generation()) || (depVal == 0);
+
+            if (isAlreadyCompleted) {
+                // Already completed - don't register at all
+                ++completedDeps;
+                continue;
+            }
+
+            //? Register as dependent only if not completed
+            { // Scoped block for locking
+                SpinLockGuard lock(depSlot.dependentsLock);
+
+                // Double-check completion status while holding lock
+                // The dependency could have completed between our check and acquiring the lock
+                depGen = depSlot.generation.load(std::memory_order_acquire);
+                depVal = depSlot.value.load(std::memory_order_acquire);
+
+                const bool completedWhileLocking = (depGen != dep.generation()) || (depVal == 0);
+
+                if (completedWhileLocking) {
+                    // Completed while we were acquiring the lock - don't register
+                    ++completedDeps;
+                } else {
+                    // Still not complete - safe to register now
+                    // At this point, unresolvedDepsCount is already initialized,
+                    // so if this dependency completes, it can safely decrement it
+                    depSlot.dependents.push_back(coldData.job.slotIndex);
+                }
+            } // End scoped block for locking
+        }
+
+        // Adjust for dependencies that were already completed
+        // We initialized with dependencies.size(), now subtract the completed ones
+        if (completedDeps > 0) {
+            uint32_t remaining =
+                coldData.pendingInfo.unresolvedDepsCount.fetch_sub(completedDeps, std::memory_order_acq_rel) -
+                completedDeps;
+
+            // If all dependencies were already completed, submit immediately as ready
+            if (remaining == 0) {
+                coldData.job.state = JobState::Ready;
+                pushJob(std::move(coldData.job));
+            }
+        }
+    }
+
     void MultiThreadedJobSystem::wait(const JobHandle handle) {
         if (!handle.isValid() || handle.index() >= m_jobRegistry.maxSlots()) {
             return;
