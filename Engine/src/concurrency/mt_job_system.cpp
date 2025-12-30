@@ -269,6 +269,9 @@ namespace pxt::concurrency {
         // Use relaxed ordering - this is just a heuristic
         m_pendingJobCount.fetch_sub(1, std::memory_order_relaxed);
 
+        // TODO is it useful to have an Executing state?
+        // m_jobBuffer.updateJobState(job.slotIndex, JobState::Executing);
+
         // Execute the job
         job.execute();
 
@@ -282,7 +285,12 @@ namespace pxt::concurrency {
 
         if (remaining == 0) {
             // Job batch complete - check for dependent jobs
-            std::vector<Job> readyJobs;
+            struct ReadyJobsInfo {
+                uint32_t firstJobIndex;
+                uint32_t numJobs;
+            };
+
+            std::vector<ReadyJobsInfo> readyInfos;
 
             { // Scoped block for locking
                 SpinLockGuard lock(slot.dependentsLock);
@@ -299,14 +307,7 @@ namespace pxt::concurrency {
 
                     if (unresolvedRemaining == 0) {
                         // All dependencies resolved, transition to Ready
-                        for (uint32_t i = 0; i < dependentSlot.numJobs; ++i) {
-                            uint32_t jobBufferIdx = dependentSlot.firstJobIndex + i;
-
-                            Job& dependentJob = m_jobBuffer[jobBufferIdx];
-                            m_jobBuffer.updateJobState(jobBufferIdx, JobState::Ready);
-
-                            readyJobs.push_back(std::move(dependentJob));
-                        }
+                        readyInfos.push_back({dependentSlot.firstJobIndex, dependentSlot.numJobs});
                     }
                 }
 
@@ -314,9 +315,13 @@ namespace pxt::concurrency {
             } // End of scoped block for locking
 
             // Schedule all newly ready jobs
-            for (auto& ready : readyJobs) {
-                pushJobsToWorker(ready.slotIndex, 1);
+            for (auto& readyInfo : readyInfos) {
+                pushJobsToWorker(readyInfo.firstJobIndex, readyInfo.numJobs);
             }
+
+            // Mark this job as Empty/Completed
+            m_jobBuffer.updateJobState(job.slotIndex, JobState::Empty);
+
             // Increment generation with release semantics to make it visible to wait()
             // This invalidates handles that were created during this generation
             slot.generation.fetch_add(1, std::memory_order_release);
