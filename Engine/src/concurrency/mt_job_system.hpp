@@ -22,8 +22,8 @@ namespace pxt::concurrency {
      */
     struct Job {
         JobFunction function;                       //< Function to execute
-        JobPriority priority = JobPriority::Normal; //<
         uint32_t slotIndex = 0;                     //< Index into the slot registry for tracking completion
+        JobPriority priority = JobPriority::Normal; //<
 
         template <typename Func>
         static Job create(Func&& f, uint32_t cIdx, JobState state = JobState::Ready) {
@@ -41,7 +41,7 @@ namespace pxt::concurrency {
          * @brief Checks if this job is valid and ready to execute.
          * @return true if the function is non-null
          */
-        bool isValid() const { return function.invoke != nullptr && m_state != JobState::Empty; }
+        bool isValid() const { return function.isValid() && m_state != JobState::Empty; }
 
         /**
          * @brief Checks if this job is in the Ready state.
@@ -404,7 +404,7 @@ namespace pxt::concurrency {
         static constexpr size_t JOB_REGISTRY_MAX_SLOTS = 4096;
         static constexpr size_t JOB_BUFFER_SIZE = JOB_REGISTRY_MAX_SLOTS * 8;
 
-        JobRegistry<JOB_REGISTRY_MAX_SLOTS> m_jobRegistry{};
+        JobRegistry<JOB_REGISTRY_MAX_SLOTS> m_jobRegistry;
 
         JobRingBuffer<JOB_BUFFER_SIZE> m_jobBuffer; //< Global ring buffer for storing jobs
 
