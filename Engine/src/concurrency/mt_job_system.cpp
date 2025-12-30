@@ -60,7 +60,7 @@ namespace pxt::concurrency {
         if (desc.dependencies.size() == 0) {
             pushJobsToWorker(slot.firstJobIndex, slot.numJobs);
         } else {
-            linkDependencies(handle, std::move(desc.dependencies));
+            linkDependencies(handle, desc.dependencies);
         }
 
         return handle;
@@ -89,7 +89,7 @@ namespace pxt::concurrency {
         if (desc.dependencies.size() == 0) {
             pushJobsToWorker(slot.firstJobIndex, slot.numJobs);
         } else {
-            linkDependencies(handle, std::move(desc.dependencies));
+            linkDependencies(handle, desc.dependencies);
         }
         return handle;
     }
@@ -126,7 +126,7 @@ namespace pxt::concurrency {
         if (desc.dependencies.size() == 0) {
             pushJobsToWorker(slot.firstJobIndex, slot.numJobs);
         } else {
-            linkDependencies(handle, std::move(desc.dependencies));
+            linkDependencies(handle, desc.dependencies);
         }
 
         return handle;
