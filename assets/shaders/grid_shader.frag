@@ -8,7 +8,6 @@
 
 layout(location = 0) in vec3 fragPosWorld;
 layout(location = 1) in vec3 fragPosView;
-layout(location = 2) in vec2 gridCoord;
 
 layout(location = 0) out vec4 outColor;
 
@@ -37,12 +36,7 @@ float scaledFade(float nearFog, float farFog, float value, vec2 fogScale)
 	return 1 - smoothstep(fogDistScaled.x, fogDistScaled.y, value);
 }
 
-void main() {
-    // figure out our fogging values
-	float viewDist = length(fragPosView);
-	float majorFog = fade(push.nearFog, push.farFog, viewDist);
-	float minorFog = scaledFade(push.nearFog, push.farFog, viewDist, vec2(0.5, 0.85));
-
+vec4 evalGridColor(vec2 gridCoord, float majorFog, float minorFog) {
 	// find the index of the closest grid line to this pixel
 	ivec2 lineIndex = ivec2(floor(gridCoord));
 
@@ -92,9 +86,43 @@ void main() {
 	vec2 blendFactors = lineMask * lineFog;
 	for (uint i = 0; i < 2; i++)
 		if (lineIndex[1 - i] == 0 && lineIndex[i] != 0)
-			blendFactors[i] *= smoothstep(0, 0.5, lineDist[1 - i]);
+			blendFactors[i] *= smoothstep(0, 0.05, lineDist[1 - i]);
 
-	vec4 finalColor = max(lineColor[0] * blendFactors.x, lineColor[1] * blendFactors.y);
+	return max(lineColor[0] * blendFactors.x, lineColor[1] * blendFactors.y);
+}
+
+
+void main() {
+    // figure out our fogging values
+	const float viewDist = length(fragPosView);
+
+	// we scale the fog distances based on the camera's height
+	const float cameraHeight = abs(ubo.inverseViewMatrix[3].y);
+	const float fogCameraScale = max(1.0, cameraHeight / 10.0);
+	const float nearFogScaled = push.nearFog * fogCameraScale;
+	const float farFogScaled = push.farFog * fogCameraScale;
+
+	const float majorFog = fade(nearFogScaled, farFogScaled, viewDist);
+	const float minorFog = scaledFade(nearFogScaled, farFogScaled, viewDist, vec2(0.5, 0.85));
+
+	// render two grid at a time and blend them together based on camera height - tune this to get desired sas
+	float gridLod = log(max(cameraHeight, 0.001) * 0.7) / log(float(push.gridMinorsPerMajor));
+	gridLod = max(gridLod, 0.0);
+
+	float lod0 = floor(gridLod);
+	float lod1 = lod0 + 1.0;
+	float lodBlend = smoothstep(0.0, 1.0, fract(gridLod));
+
+	float unit0 = push.gridUnitSize * pow(float(push.gridMinorsPerMajor), lod0);
+	float unit1 = push.gridUnitSize * pow(float(push.gridMinorsPerMajor), lod1);
+
+	vec2 gridCoord0 = fragPosWorld.xz / unit0 + 0.5;
+	vec2 gridCoord1 = fragPosWorld.xz / unit1 + 0.5;
+
+	vec4 gridColor0 = evalGridColor(gridCoord0, majorFog, minorFog);
+	vec4 gridColor1 = evalGridColor(gridCoord1, majorFog, minorFog);
+
+	vec4 finalColor = mix(gridColor0, gridColor1, lodBlend);
 
 	outColor = finalColor;
 }

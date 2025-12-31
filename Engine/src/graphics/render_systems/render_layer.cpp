@@ -460,7 +460,7 @@ namespace pxt {
             }
 
             m_skyboxRenderSystem->render(frameInfo);
-            
+
             m_editorGridRenderSystem->render(frameInfo);
 
             m_pointLightSystem->render(frameInfo);
@@ -586,20 +586,22 @@ namespace pxt {
 
         ImGui::End();
 
-        ImGui::Begin("Debug Renderer");
+        ImGui::Begin("Debug");
 
         m_isReloadShadersButtonPressed = (ImGui::Button("Reload Shaders", ImVec2(150, 0)));
 
         ImGui::Checkbox("Enable Debug", &m_isDebugEnabled);
 
         if (m_isDebugEnabled) {
-            ImGui::Text("Debug Renderer is enabled");
+            ImGui::Text("Debug is enabled");
             m_debugRenderSystem->updateUi();
             m_densityTextureSystem->updateUi();
         } else {
-            ImGui::Text("Debug Renderer is disabled");
+            ImGui::Text("Debug is disabled");
         }
         ImGui::End();
+
+        m_editorGridRenderSystem->updateUi();
 
         if (!m_isRaytracingEnabled) {
             m_shadowMapRenderSystem->updateUi();

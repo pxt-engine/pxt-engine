@@ -7,8 +7,8 @@ namespace pxt {
         float gridUnitSize = 0.5f;
         // how many grid squares run along a grid group edge
         uint32_t gridMinorsPerMajor = 1;
-        float nearFog = 50.f;
-        float farFog = 100.f;
+        float nearFog = 30.f;
+        float farFog = 50.f;
     };
 
     EditorGridRenderSystem::EditorGridRenderSystem(Context& context, DescriptorSetLayout& globalSetLayout,
@@ -85,10 +85,10 @@ namespace pxt {
         EditorGridPushConstantData push{};
         push.xAxisColor = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
         push.zAxisColor = glm::vec4(0.0f, 0.0f, 1.0f, 1.0f);
-        push.gridUnitSize = 0.5f;
-        push.gridMinorsPerMajor = 4;
-        push.nearFog = 50.f;
-        push.farFog = 100.f;
+        push.gridUnitSize = m_gridUnitSize;
+        push.gridMinorsPerMajor = m_gridMinorsPerMajor;
+        push.nearFog = m_nearFog;
+        push.farFog = m_farFog;
 
         vkCmdPushConstants(frameInfo.commandBuffer, m_pipelineLayout,
                            VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0,
@@ -100,5 +100,25 @@ namespace pxt {
     void EditorGridRenderSystem::reloadShaders() {
         PXT_INFO("Reloading shaders...");
         createPipeline(false);
+    }
+
+    void EditorGridRenderSystem::updateUi() {
+        ImGui::Begin("Editor Grid");
+        ImGui::SeparatorText("Grid Settings");
+        if (ImGui::SliderFloat("Grid unit size", &m_gridUnitSize, 0.5f, 10.0f, "%.1f")) {
+            m_gridUnitSize = roundf(m_gridUnitSize * 2.0f) / 2.0f; // snap to 0.5 steps
+        }
+        ImGui::SliderInt("Number of little squares per group edge", reinterpret_cast<int*>(&m_gridMinorsPerMajor), 1,
+                         10);
+        ImGui::SeparatorText("Fog Settings");
+        ImGui::SliderFloat("Near fog distance", &m_nearFog, 0.0f, 100.f);
+        ImGui::SliderFloat("Far fog distance", &m_farFog, 0.0f, 200.f);
+
+        // if near fog is greater than far fog, undefined behavior in the shader
+        if (m_nearFog > m_farFog) {
+            m_farFog = m_nearFog + 1.0f;
+        }
+
+        ImGui::End();
     }
 } // namespace pxt

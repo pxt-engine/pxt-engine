@@ -7,7 +7,6 @@
 
 layout(location = 0) out vec3 fragPosWorld;
 layout(location = 1) out vec3 fragPosView;
-layout(location = 2) out vec2 outGridCoord;
 
 layout(push_constant) uniform GridPush {
     vec4 xAxisColor;
@@ -36,15 +35,19 @@ void main() {
 
     // scale to get unit cube centered at the origin
     mPos = mPos * 2.0 - 1.0;
-    // scale to far fog distance
-    mPos = mPos * push.farFog;
     
-    mPos = mPos + vec2(ubo.inverseViewMatrix[3][0], ubo.inverseViewMatrix[3][2]);
+    // we scale the fog far distance based on the camera's height
+	const float cameraHeight = abs(ubo.inverseViewMatrix[3].y);
+	const float fogCameraScale = max(1.0, cameraHeight / 10.0);
+    const float scaledFarFog = push.farFog * fogCameraScale;
+    mPos = mPos * scaledFarFog;
+    
+    mPos = mPos + vec2(ubo.inverseViewMatrix[3].x, ubo.inverseViewMatrix[3].z);
 
     vec3 wPos = vec3(mPos.x, 0.0, mPos.y);
 
     gl_Position = ubo.projectionMatrix * ubo.viewMatrix * vec4(wPos, 1.0);
 
-    outGridCoord = wPos.xz / push.gridUnitSize + 0.5;
+    fragPosWorld = wPos;
     fragPosView = vec3(ubo.viewMatrix * vec4(wPos, 1.0));
 }
