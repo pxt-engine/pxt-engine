@@ -13,4 +13,5 @@ private:
     glm::vec2 m_lastMousePos{0.f, 0.f};
     bool m_firstMouse = true;
     float m_mouseSensitivity = 0.0025f; // Adjust to taste
+    float m_zoomSpeed = 2.0f;
 };

@@ -76,6 +76,13 @@ void CameraController::onUpdate(float deltaTime) {
         transform.translation += m_moveSpeed * deltaTime * glm::normalize(moveDir);
     }
 
+    // --- Mouse Scroll Zoom (Dolly) ---
+    float scrollDeltaY = Input::getState().getScrollDelta().y; // Assuming .y is the vertical wheel
+    if (std::abs(scrollDeltaY) > 0.0f) {
+        // We move the camera translation along the forward vector
+        transform.translation += forward * scrollDeltaY * m_zoomSpeed;
+    }
+
     // update camera view matrix
     auto& camera = get<CameraComponent>().camera;
     camera.setViewDirection(transform.translation, forward, worldUp);
