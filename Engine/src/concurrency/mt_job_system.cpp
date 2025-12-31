@@ -143,6 +143,7 @@ namespace pxt::concurrency {
         // If there are no dependencies, submit as a normal job
         if (deps.empty()) {
             pushJobsToWorker(slot.firstJobIndex, slot.numJobs);
+            return;
         }
 
         // Set all jobs in this slot to Pending state initially
