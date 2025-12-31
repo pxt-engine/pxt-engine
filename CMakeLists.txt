@@ -148,15 +148,9 @@ if (WIN32)
     ${PROJECT_SOURCE_DIR}/Engine/src
     ${PROJECT_SOURCE_DIR}/Application/src
     ${PROJECT_SOURCE_DIR}/Editor/src
-    ${Vulkan_INCLUDE_DIRS}
     ${PROJECT_SOURCE_DIR}/Engine/vendor/entt/single_include
   )
   
-  # Ensure you add the Vulkan SDK library directory for MinGW
-  target_link_directories(${PROJECT_NAME} PUBLIC
-    ${Vulkan_LIBRARIES}
-  )
-
   # To enable correct logging
   add_compile_definitions(SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
 
