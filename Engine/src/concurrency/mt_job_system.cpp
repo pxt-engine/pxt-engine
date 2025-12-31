@@ -117,7 +117,10 @@ namespace pxt::concurrency {
             // We need to capture the function by value to avoid dangling references.
             // The parallelFor function buffer is smaller than the job function buffer
             // so we have enough space to store the function object.
-            job.function = [itemStart, itemEnd, func = desc.function]() { func(itemStart, itemEnd); };
+            job.function = [itemStart, itemEnd, func = desc.function]() {
+                for (size_t i = itemStart; i < itemEnd; i++)
+                    func(i, itemEnd);
+            };
 
             job.priority = desc.priority;
             job.slotIndex = handle.index();
