@@ -48,25 +48,25 @@ namespace pxt::concurrency {
         }
 
         static JobHandle submit(JobDescription desc) {
-            PXT_ASSERT(s_backend && "JobSystem not initialized");
+            PXT_ASSERT(s_backend, "JobSystem not initialized");
 
             return s_backend->submit(std::move(desc));
         }
 
         static JobHandle submit(JobBatchDescription desc) {
-            PXT_ASSERT(s_backend && "JobSystem not initialized");
+            PXT_ASSERT(s_backend, "JobSystem not initialized");
 
             return s_backend->submit(std::move(desc));
         }
 
         static JobHandle parallelFor(JobParallelForDescription desc) {
-            PXT_ASSERT(s_backend && "JobSystem not initialized");
+            PXT_ASSERT(s_backend, "JobSystem not initialized");
 
             return s_backend->parallelFor(std::move(desc));
         }
 
         static void wait(const JobHandle handle) {
-            PXT_ASSERT(s_backend && "JobSystem not initialized");
+            PXT_ASSERT(s_backend, "JobSystem not initialized");
 
             s_backend->wait(handle);
         }

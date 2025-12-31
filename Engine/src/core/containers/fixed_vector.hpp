@@ -36,7 +36,7 @@ namespace pxt::core {
         FixedVector() = default;
 
         constexpr FixedVector(std::initializer_list<T> init) noexcept {
-            PXT_ASSERT(init.size() <= Capacity && "Initializer list exceeds FixedVector capacity");
+            PXT_ASSERT(init.size() <= Capacity, "Initializer list exceeds FixedVector capacity");
 
             for (const auto& item : init) {
                 push_back(item);
