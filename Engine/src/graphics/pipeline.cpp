@@ -66,7 +66,7 @@ namespace pxt {
         std::vector<Unique<VulkanShader>> shaders{shaderFilePaths.size()};
 
         // Loop through each provided shader stage.
-        for (int i = 0; i < shaderFilePaths.size(); i++) {
+        for (size_t i = 0; i < shaderFilePaths.size(); i++) {
             const auto& filepath = shaderFilePaths[i];
             // to handle memory stuff atomatically
             shaders[i] = createUnique<VulkanShader>(m_context, filepath);
