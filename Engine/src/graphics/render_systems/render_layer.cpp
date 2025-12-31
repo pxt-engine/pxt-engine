@@ -76,7 +76,7 @@ namespace pxt {
         VkAttachmentDescription colorAttachment = {};
         colorAttachment.format = m_offscreenColorFormat;
         colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-        colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+        colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
         colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
         colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
         colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -435,13 +435,19 @@ namespace pxt {
                     frameInfo, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
             }
 
-            // begin offscreen render pass for point light billboards
-            /*m_renderer.beginRenderPass(frameInfo.commandBuffer, m_offscreenRenderPass->getVkRenderPass(),
-                    m_offscreenFb, m_renderer.getSwapChainExtent());
+            // TODO: here to make it look good we need to enable depth somehow, or use a selection mask for objects
+            // because otherwise raytracing does not have depth. Furthermore, we do not have to clear the color
+            // attachment or we'll lose rt info.
+            /*// begin offscreen render pass for point light billboards
+            m_renderer.beginRenderPass(frameInfo.commandBuffer, *m_offscreenRenderPass, *m_offscreenFb,
+                                       m_viewportExtent, {0.23f, 0.23f, 0.23f, 1.0f});
 
-            //m_pointLightSystem->render(frameInfo);
+            m_editorGridRenderSystem->render(frameInfo);
+            m_pointLightSystem->render(frameInfo);
 
-            m_renderer.endRenderPass(frameInfo.commandBuffer);*/
+            m_renderer.endRenderPass(frameInfo.commandBuffer, *m_offscreenRenderPass, *m_offscreenFb);
+            */
+
         } else {
             // render shadow cube map
             // the render function of the shadow map render system will
@@ -450,7 +456,7 @@ namespace pxt {
 
             // begin offscreen render pass
             m_renderer.beginRenderPass(frameInfo.commandBuffer, *m_offscreenRenderPass, *m_offscreenFb,
-                                       m_viewportExtent);
+                                       m_viewportExtent, {0.23f, 0.23f, 0.23f, 1.0f});
 
             // choose if debug view or not
             if (m_isDebugEnabled) {
