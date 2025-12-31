@@ -70,6 +70,10 @@ namespace pxt::concurrency {
         static JobHandle parallelFor(JobParallelForDescription desc) {
             PXT_ASSERT(s_backend, "JobSystem not initialized");
 
+            if (desc.grainSize > desc.end) [[unlikely]] {
+                PXT_WARN("Grain size ({}) is bigger than the total number of items ({}).", desc.grainSize, desc.end);
+            }
+
             return s_backend->parallelFor(std::move(desc));
         }
 
