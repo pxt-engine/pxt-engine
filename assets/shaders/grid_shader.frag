@@ -22,11 +22,26 @@ layout(push_constant) uniform GridPush {
     float farFog;
 } push;
 
+float fade(float nearFog, float farFog, float value)
+{
+	return 1 - smoothstep(nearFog, farFog, value);
+}
+
+// scales the near and far fog distances by fogScale.x and .y, respectively
+// and then applies the regular fade equation
+// undefined if fogScale.x > fogScale.y
+float scaledFade(float nearFog, float farFog, float value, vec2 fogScale)
+{
+	vec2 fogDistances = vec2(nearFog, farFog);
+	vec2 fogDistScaled = fogDistances * fogScale;
+	return 1 - smoothstep(fogDistScaled.x, fogDistScaled.y, value);
+}
+
 void main() {
     // figure out our fogging values
 	float viewDist = length(fragPosView);
-	//var majorFog = Fog.Fade(viewDist);
-	//var minorFog = Fog.ScaledFade(viewDist, vec2(0.5, 0.85));
+	float majorFog = fade(push.nearFog, push.farFog, viewDist);
+	float minorFog = scaledFade(push.nearFog, push.farFog, viewDist, vec2(0.5, 0.85));
 
 	// find the index of the closest grid line to this pixel
 	ivec2 lineIndex = ivec2(floor(gridCoord));
@@ -34,7 +49,7 @@ void main() {
 	// pick an appropriate width and color for the closest line (in *each* of X and Y!)
 	vec2 lineWidth;
 	vec4 lineColor[2];
-	//vec2 lineFog;
+	vec2 lineFog;
 
 	mat2x4 axesColors;
 	axesColors[0] = push.xAxisColor;
@@ -44,37 +59,37 @@ void main() {
 	{
 		float width;
 		vec4 color;
-		//float fog;
+		float fog;
 
 		if (lineIndex[i] == 0)
 		{
 			width = 5.0;
 			color = axesColors[1 - i];
-			//fog = majorFog;
+			fog = majorFog;
 		}
 		else if (lineIndex[i] % push.gridMinorsPerMajor == 0)
 		{
 			width = 3.0;
 			color = vec4(0.5, 0.5, 0.5, 1.0);
-			//fog = majorFog;
+			fog = majorFog;
 		}
 		else
 		{
 			width = 2.0;
 			color = vec4(0.25, 0.25, 0.25, 1.0);
-			//fog = minorFog;
+			fog = minorFog;
 		}
 
 		lineWidth[i] = width;
 		lineColor[i] = color;
-		//lineFog[i] = fog;
+		lineFog[i] = fog;
 	}
 
 	vec2 lineDist = abs(0.5 - fract(gridCoord)) * 2;
 	vec2 lineMask = 1 - saturate(lineDist /
 		(fwidth(gridCoord) * lineWidth));
 
-	vec2 blendFactors = lineMask;// * lineFog;
+	vec2 blendFactors = lineMask * lineFog;
 	for (uint i = 0; i < 2; i++)
 		if (lineIndex[1 - i] == 0 && lineIndex[i] != 0)
 			blendFactors[i] *= smoothstep(0, 0.5, lineDist[1 - i]);
