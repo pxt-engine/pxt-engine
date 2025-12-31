@@ -60,6 +60,8 @@ namespace pxt {
         const glm::mat4& getProjectionMatrix() const { return m_projectionMatrix; }
         glm::mat4& getProjectionMatrix() { return m_projectionMatrix; }
 
+        const glm::mat4& getInverseProjMatrix() const { return m_inverseProjectionMatrix; }
+
         /**
          * @brief Retrieves the view matrix.
          *
@@ -104,6 +106,7 @@ namespace pxt {
         glm::mat4 m_projectionMatrix{1.f};
         glm::mat4 m_viewMatrix{1.f};
         glm::mat4 m_inverseViewMatrix{1.f};
+        glm::mat4 m_inverseProjectionMatrix{1.f};
 
         float m_fovYDegrees{50.f};
         float m_zNear{0.1f};

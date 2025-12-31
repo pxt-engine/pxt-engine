@@ -34,6 +34,8 @@ namespace pxt {
 
         // Vulkan Y-axis points down, but we want Y-Up in world space
         m_projectionMatrix[1][1] *= -1.0f;
+
+        m_inverseProjectionMatrix = glm::inverse(m_projectionMatrix);
     }
 
     void Camera::setViewDirection(glm::vec3 position, glm::vec3 direction, glm::vec3 up) {
