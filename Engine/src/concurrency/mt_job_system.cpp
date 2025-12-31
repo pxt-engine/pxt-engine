@@ -45,7 +45,7 @@ namespace pxt::concurrency {
         }
     }
 
-    JobHandle MultiThreadedJobSystem::submit(const JobDescription& desc) {
+    JobHandle MultiThreadedJobSystem::submit(JobDescription desc) {
         JobHandle handle = acquireSlot(1);
         uint32_t jobIdx = m_jobBuffer.reserve(1);
 
@@ -60,13 +60,13 @@ namespace pxt::concurrency {
         if (desc.dependencies.size() == 0) {
             pushJobsToWorker(slot.firstJobIndex, slot.numJobs);
         } else {
-            linkDependencies(handle, desc.dependencies);
+            linkDependencies(handle, std::move(desc.dependencies));
         }
 
         return handle;
     }
 
-    JobHandle MultiThreadedJobSystem::submit(const JobBatchDescription& desc) {
+    JobHandle MultiThreadedJobSystem::submit(JobBatchDescription desc) {
         const uint32_t batchSize = static_cast<uint32_t>(desc.functions.size());
 
         if (batchSize == 0) {
@@ -89,12 +89,12 @@ namespace pxt::concurrency {
         if (desc.dependencies.size() == 0) {
             pushJobsToWorker(slot.firstJobIndex, slot.numJobs);
         } else {
-            linkDependencies(handle, desc.dependencies);
+            linkDependencies(handle, std::move(desc.dependencies));
         }
         return handle;
     }
 
-    JobHandle MultiThreadedJobSystem::parallelFor(const JobParallelForDescription& desc) {
+    JobHandle MultiThreadedJobSystem::parallelFor(JobParallelForDescription desc) {
         if (desc.start >= desc.end) {
             return JobHandle::invalid();
         }
@@ -126,7 +126,7 @@ namespace pxt::concurrency {
         if (desc.dependencies.size() == 0) {
             pushJobsToWorker(slot.firstJobIndex, slot.numJobs);
         } else {
-            linkDependencies(handle, desc.dependencies);
+            linkDependencies(handle, std::move(desc.dependencies));
         }
 
         return handle;

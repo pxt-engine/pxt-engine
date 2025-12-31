@@ -279,11 +279,11 @@ namespace pxt::concurrency {
 
         ~MultiThreadedJobSystem() override;
 
-        JobHandle submit(const JobDescription& desc) override;
+        JobHandle submit(JobDescription desc) override;
 
-        JobHandle submit(const JobBatchDescription& desc) override;
+        JobHandle submit(JobBatchDescription desc) override;
 
-        JobHandle parallelFor(const JobParallelForDescription& desc) override;
+        JobHandle parallelFor(JobParallelForDescription desc) override;
 
         /**
          * @brief Waits for a job or batch of jobs to complete.
