@@ -344,6 +344,8 @@ namespace pxt {
 
         m_selectionMaskRenderSystem = createUnique<SelectionMaskRenderSystem>(m_context, m_descriptorAllocator,
                                                                               m_globalSetLayout, m_viewportExtent);
+        m_editorGridRenderSystem =
+            createUnique<EditorGridRenderSystem>(m_context, m_globalSetLayout, m_offscreenRenderPass->getHandle());
     }
 
     void RenderLayer::reloadShaders() {
@@ -368,6 +370,7 @@ namespace pxt {
         m_objectPickingSystem->reloadShaders();
         m_compositionRenderSystem->reloadShaders();
         m_selectionMaskRenderSystem->reloadShaders();
+        m_editorGridRenderSystem->reloadShaders();
 
         PXT_INFO("Shaders reloaded successfully.");
     }
@@ -384,6 +387,7 @@ namespace pxt {
         ubo.projection = frameInfo.camera.getProjectionMatrix();
         ubo.view = frameInfo.camera.getViewMatrix();
         ubo.inverseView = frameInfo.camera.getInverseViewMatrix();
+        ubo.inverseProjection = frameInfo.camera.getInverseProjMatrix();
 
         // update light values into ubo
         m_pointLightSystem->update(frameInfo, ubo);
@@ -448,14 +452,16 @@ namespace pxt {
             m_renderer.beginRenderPass(frameInfo.commandBuffer, *m_offscreenRenderPass, *m_offscreenFb,
                                        m_viewportExtent);
 
-            m_skyboxRenderSystem->render(frameInfo);
-
             // choose if debug view or not
             if (m_isDebugEnabled) {
                 m_debugRenderSystem->render(frameInfo);
             } else {
                 m_materialRenderSystem->render(frameInfo);
             }
+
+            m_skyboxRenderSystem->render(frameInfo);
+            
+            m_editorGridRenderSystem->render(frameInfo);
 
             m_pointLightSystem->render(frameInfo);
 
