@@ -30,6 +30,14 @@ namespace pxt::concurrency {
         core::FixedVector<JobHandle, MAX_JOB_DEPENDENCIES> dependencies;
     };
 
+    template <typename Container, typename Func>
+    JobParallelForFunction forEachFunction(Container& container, Func&& func) {
+        auto* itemsPtr = container.data();
+
+        return JobParallelForFunction(
+            [itemsPtr, fn = std::forward<Func>(func)](size_t s, size_t e) { fn(itemsPtr[s]); });
+    }
+
     class JobSystemBackend {
     public:
         virtual ~JobSystemBackend() = default;
