@@ -122,7 +122,9 @@ namespace pxt {
 
             core::MouseButton button = core::mapGLFWMouseButton(glfwButton);
 
-            bool imguiBlocksInput = ImGuizmo::IsUsing() || ImGuizmo::IsOver();
+            // we block the mouse left button if ImGuizmo is using or hovering, because that is what ImGuizmo uses in
+            // his gizmos
+            bool imguiBlocksInput = (ImGuizmo::IsUsing() || ImGuizmo::IsOver()) && button == core::MouseButton::Button0;
 
             switch (action) {
             case GLFW_PRESS: {
