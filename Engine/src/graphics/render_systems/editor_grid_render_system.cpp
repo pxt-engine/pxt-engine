@@ -7,6 +7,8 @@ namespace pxt {
         float gridUnitSize = 0.5f;
         // how many grid squares run along a grid group edge
         uint32_t gridMinorsPerMajor = 1;
+        float nearFog = 50.f;
+        float farFog = 100.f;
     };
 
     EditorGridRenderSystem::EditorGridRenderSystem(Context& context, DescriptorSetLayout& globalSetLayout,
@@ -26,9 +28,7 @@ namespace pxt {
         pushConstantRange.offset = 0;
         pushConstantRange.size = sizeof(EditorGridPushConstantData);
 
-        std::vector<VkDescriptorSetLayout> descriptorSetLayouts{
-            globalSetLayout.getDescriptorSetLayout()
-        };
+        std::vector<VkDescriptorSetLayout> descriptorSetLayouts{globalSetLayout.getDescriptorSetLayout()};
 
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -59,7 +59,7 @@ namespace pxt {
         // we can change this but it aligns with current shader logic
         pipelineConfig.inputAssemblyInfo.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN;
 
-        // we disable depth write for the grid, we dont need it
+        // we disable depth write for the grid, we dont need it.
         // it is still occluded by opaque geometry
         pipelineConfig.depthStencilInfo.depthWriteEnable = VK_FALSE;
 
@@ -77,9 +77,7 @@ namespace pxt {
     void EditorGridRenderSystem::render(FrameInfo& frameInfo) {
         m_pipeline->bind(frameInfo.commandBuffer);
 
-        std::array<VkDescriptorSet, 1> descriptorSets = {
-            frameInfo.globalDescriptorSet
-        };
+        std::array<VkDescriptorSet, 1> descriptorSets = {frameInfo.globalDescriptorSet};
 
         vkCmdBindDescriptorSets(frameInfo.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0,
                                 static_cast<uint32_t>(descriptorSets.size()), descriptorSets.data(), 0, nullptr);
@@ -89,10 +87,12 @@ namespace pxt {
         push.zAxisColor = glm::vec4(0.0f, 0.0f, 1.0f, 1.0f);
         push.gridUnitSize = 0.5f;
         push.gridMinorsPerMajor = 4;
+        push.nearFog = 50.f;
+        push.farFog = 100.f;
 
         vkCmdPushConstants(frameInfo.commandBuffer, m_pipelineLayout,
-                               VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0,
-                               sizeof(EditorGridPushConstantData), &push);
+                           VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0,
+                           sizeof(EditorGridPushConstantData), &push);
 
         vkCmdDraw(frameInfo.commandBuffer, 4, 1, 0, 0);
     }

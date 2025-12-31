@@ -18,6 +18,8 @@ layout(push_constant) uniform GridPush {
     float gridUnitSize;
     // how many grid squares run along a grid group edge
     uint gridMinorsPerMajor;
+	float nearFog;
+    float farFog;
 } push;
 
 void main() {
@@ -31,7 +33,7 @@ void main() {
 
 	// pick an appropriate width and color for the closest line (in *each* of X and Y!)
 	vec2 lineWidth;
-	vec3 lineColor[2];
+	vec4 lineColor[2];
 	//vec2 lineFog;
 
 	mat2x4 axesColors;
@@ -41,25 +43,25 @@ void main() {
 	for (uint i = 0; i < 2; i++)
 	{
 		float width;
-		vec3 color;
+		vec4 color;
 		//float fog;
 
 		if (lineIndex[i] == 0)
 		{
 			width = 5.0;
-			color = axesColors[i].rbg;
+			color = axesColors[1 - i];
 			//fog = majorFog;
 		}
 		else if (lineIndex[i] % push.gridMinorsPerMajor == 0)
 		{
 			width = 3.0;
-			color = vec3(0.5);
+			color = vec4(0.5, 0.5, 0.5, 1.0);
 			//fog = majorFog;
 		}
 		else
 		{
 			width = 2.0;
-			color = vec3(0.25);
+			color = vec4(0.25, 0.25, 0.25, 1.0);
 			//fog = minorFog;
 		}
 
@@ -77,7 +79,7 @@ void main() {
 		if (lineIndex[1 - i] == 0 && lineIndex[i] != 0)
 			blendFactors[i] *= smoothstep(0, 0.5, lineDist[1 - i]);
 
-	vec3 finalColor = max(lineColor[0] * blendFactors.x, lineColor[1] * blendFactors.y);
+	vec4 finalColor = max(lineColor[0] * blendFactors.x, lineColor[1] * blendFactors.y);
 
-	outColor = vec4(finalColor, 1.0);
+	outColor = finalColor;
 }

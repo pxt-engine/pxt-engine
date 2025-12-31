@@ -15,6 +15,8 @@ layout(push_constant) uniform GridPush {
     float gridUnitSize;
     // how many grid squares run along a grid group edge
     uint gridMinorsPerMajor;
+    float nearFog;
+    float farFog;
 } push;
 
 void main() {
@@ -34,7 +36,8 @@ void main() {
 
     // scale to get unit cube centered at the origin
     mPos = mPos * 2.0 - 1.0;
-    //mPos = mPos * Fog.FarDistance;
+    // scale to far fog distance
+    mPos = mPos * push.farFog;
     
     mPos = mPos + vec2(ubo.inverseViewMatrix[3][0], ubo.inverseViewMatrix[3][2]);
 
