@@ -21,8 +21,8 @@ namespace pxt::editor {
 
         // I/O Events
 
-        // here we have to decide which events to forward (not handled) if
-        // the viewport is not focused (for now everything regarding inputs is blocked)
+        //! here we have to decide which events to forward (not handled) if
+        //! the viewport is not focused (for now everything regarding inputs is blocked)
         if (!m_isViewportFocused) {
             core::Input::getState().reset();
             return;
@@ -99,8 +99,8 @@ namespace pxt::editor {
         uint32_t px = static_cast<uint32_t>(std::clamp(x, 0.0f, (float)(m_sceneImageExtent.x - 1)));
         uint32_t py = static_cast<uint32_t>(std::clamp(y, 0.0f, (float)(m_sceneImageExtent.y - 1)));
 
-        // PXT_INFO("Mouse Button Pressed at position: ({}, {}) (Realtive to upper-left corner of viewport)",
-        //	px, py);
+        // x PXT_INFO("Mouse Button Pressed at position: ({}, {}) (Realtive to upper-left corner of viewport)",
+        // x	px, py);
 
         Application::get().queueEvent(core::PickObjectAtEvent(px, py));
 
@@ -153,7 +153,7 @@ namespace pxt::editor {
         // main menu bar
         m_mainMenuBar.onUpdateUi(frameInfo);
 
-        // maybe viewport class in the future?
+        //? maybe viewport class in the future?
         updateSceneUi(frameInfo);
     }
 
