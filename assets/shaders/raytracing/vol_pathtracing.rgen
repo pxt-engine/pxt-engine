@@ -47,7 +47,7 @@ Ray getCameraRay(vec2 samplingNoise) {
     // Ray origin and direction in camera/view space
     // Assuming perspective projection
     const vec4 rayOriginView = vec4(0.0, 0.0, 0.0, 1.0);
-    const vec4 rayTargetView = /*ubo.inverseProjectionMatrix*/ inverse(ubo.projectionMatrix) * vec4(ndc.x, ndc.y, 1.0, 1.0); 
+    const vec4 rayTargetView = ubo.inverseProjectionMatrix * vec4(ndc.x, ndc.y, 1.0, 1.0); 
 
     // Transform ray to world space
     Ray worldRay;

@@ -62,5 +62,7 @@ namespace pxt::core {
         }
 
         glm::vec2 getMouseDelta() const { return mouseDelta; }
+
+        glm::vec2 getScrollDelta() const { return scrollDelta; }
     };
 } // namespace pxt::core

@@ -14,6 +14,7 @@ namespace pxt {
         glm::mat4 projection{1.f};
         glm::mat4 view{1.f};
         glm::mat4 inverseView{1.f};
+        glm::mat4 inverseProjection{1.f};
         glm::vec4 ambientLightColor{0.67f, 0.85f, 0.9f, .02f};
         PointLight pointLights[MAX_LIGHTS];
         int numLights;

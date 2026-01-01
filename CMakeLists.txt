@@ -5,14 +5,6 @@ cmake_minimum_required(VERSION 3.17.0)
 
 set(NAME PXT_Engine)
 
-# Set number of parallel build jobs
-# Optional: detect number of CPU cores
-include(ProcessorCount)
-ProcessorCount(NCPU)
-if(NOT DEFINED ENV{CMAKE_BUILD_PARALLEL_LEVEL})
-    set(ENV{CMAKE_BUILD_PARALLEL_LEVEL} ${NCPU})
-endif()
-
 # MinGW
 message(STATUS "using ${CMAKE_GENERATOR}")
 if (CMAKE_GENERATOR STREQUAL "MinGW Makefiles")

@@ -30,21 +30,53 @@ namespace pxt::editor {
 
         dispatcher.dispatch<core::MouseButtonPressEvent>([this](core::MouseButtonPressEvent& e) {
             // we dont care about mouse clicks outside of the viewport for object picking
-            // and we do not want to interfere with other ui elements
-            if (!m_isViewportHovered || m_isAnyButtonHovered)
+            if (!m_isViewportHovered)
                 return false;
 
             return onMouseButtonPress(e);
         });
 
+        dispatcher.dispatch<core::MouseButtonReleaseEvent>([this](core::MouseButtonReleaseEvent& e) {
+            if (e.getMouseButton() == core::MouseButton::Button1) {
+                m_isFreeLookEnabled = false;
+                return false;
+            }
+
+            return false;
+        });
+
         dispatcher.dispatch<core::KeyPressEvent>([this](core::KeyPressEvent& e) {
-            if (!m_isViewportHovered)
+            // we return also if user is using free look mode
+            if (!m_isViewportHovered || m_isFreeLookEnabled)
                 return false;
             return onKeyPressEvent(e);
         });
     }
 
     bool EditorLayer::onMouseButtonPress(core::MouseButtonPressEvent& event) {
+        switch (event.getMouseButton()) {
+        case core::MouseButton::Button0:
+            return onLeftMouseButtonPress();
+        case core::MouseButton::Button1: // right mouse button enables free look
+            m_isFreeLookEnabled = true;
+            return false; // propagate event
+        default:
+            break;
+        }
+
+        return false;
+    }
+
+    bool EditorLayer::onLeftMouseButtonPress() {
+        // we do not want to interfere with other ui elements
+        if (!m_isAnyButtonHovered) {
+            return doMousePicking();
+        }
+
+        return false;
+    }
+
+    bool EditorLayer::doMousePicking() {
         // handle mouse button press events here
         m_lastClickMousePosImGui = core::Input::getState().getMousePositionImGui();
 
@@ -65,16 +97,19 @@ namespace pxt::editor {
     bool EditorLayer::onKeyPressEvent(core::KeyPressEvent& event) {
         // handle key press events here
         switch (event.getKeyCode()) {
-        case core::KeyCode::Number1:
+        case core::KeyCode::W:
             m_currentGizmoOperation = ImGuizmo::TRANSLATE;
             break;
-        case core::KeyCode::Number2:
+        case core::KeyCode::E:
             m_currentGizmoOperation = ImGuizmo::ROTATE;
             break;
-        case core::KeyCode::Number3:
+        case core::KeyCode::R:
             m_currentGizmoOperation = ImGuizmo::SCALE;
             break;
-        case core::KeyCode::Number4:
+        case core::KeyCode::Q:
+            m_currentGizmoOperation = ImGuizmo::BOUNDS; // selection tool
+            break;
+        case core::KeyCode::T:
             if (m_currentGizmoMode == ImGuizmo::WORLD) {
                 m_currentGizmoMode = ImGuizmo::LOCAL;
             } else {
@@ -83,7 +118,7 @@ namespace pxt::editor {
             break;
         default:
             // propagate event if key not handled
-            return true;
+            return false;
             break;
         }
         return false;
@@ -137,20 +172,20 @@ namespace pxt::editor {
 
         ImGui::Image(scene, m_sceneImageExtent);
 
-        // this has to be called inside the window where ImGuizmo is used
-        updateGizmos(frameInfo);
+        // if nothing selected or selection tool is active, do not show gizmos
+        // we currently use ImGuizmo::BOUNDS as "selection tool" placeholder
+        if (m_selectedEntityUUID != core::UUID::s_invalidId && m_currentGizmoOperation != ImGuizmo::BOUNDS) {
+            // this has to be called inside the window where ImGuizmo is used
+            updateGizmos(frameInfo);
+        }
 
-        updateViewportOverlayButtons(frameInfo, 0.8);
+        updateViewportOverlayButtons(frameInfo, 0.065f);
 
         ImGui::End();
         ImGui::PopStyleVar();
     }
 
     void EditorLayer::updateGizmos(FrameInfo& frameInfo) {
-        // nothing selected
-        if (m_selectedEntityUUID == core::UUID::s_invalidId)
-            return;
-
         // ImGuizmo::BeginFrame() is called right after ImGui::NewFrame() in UiRenderLayer
 
         ImGuizmo::SetDrawlist();
@@ -194,7 +229,11 @@ namespace pxt::editor {
     }
 
     void EditorLayer::updateViewportOverlayButtons(FrameInfo& frameInfo, float buttonsScale) {
-        const ImVec2 buttonSize = ImVec2(90.0f * buttonsScale, 90.0f * buttonsScale);
+        const float minButtonSize = 24.0f;
+        const float minViewportExtent = std::min(m_sceneImageExtent.x, m_sceneImageExtent.y);
+        ImVec2 buttonSize = ImVec2(minViewportExtent * buttonsScale, minViewportExtent * buttonsScale);
+        buttonSize.x = std::max(buttonSize.x, minButtonSize);
+        buttonSize.y = std::max(buttonSize.y, minButtonSize);
         const float padding = 10.0f;
 
         ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize |
@@ -213,10 +252,19 @@ namespace pxt::editor {
         m_isViewportHovered |= ImGui::IsWindowHovered(ImGuiHoveredFlags_None);
         m_isAnyButtonHovered |= ImGui::IsWindowHovered(ImGuiHoveredFlags_None);
 
+        ImTextureID selectIcon = (ImTextureID)m_editorTextureRegistry->get("selection_tool.png");
+
         ImTextureID translateIcon = (ImTextureID)m_editorTextureRegistry->get("translation_gizmo.png");
         ImTextureID scaleIcon = (ImTextureID)m_editorTextureRegistry->get("scale_gizmo.png");
         ImTextureID rotateIcon = (ImTextureID)m_editorTextureRegistry->get("rotation_gizmo.png");
+
         ImTextureID worldIcon = (ImTextureID)m_editorTextureRegistry->get("world_mode_gizmo.png");
+
+        // TODO: Replace ImGuizmo::BOUNDS with a custom enum when new tools are added
+        ui::ModeSelectorImageButton::render(selectIcon, "##selection-tool", "Selection Tool (R)", ImGuizmo::BOUNDS,
+                                            m_currentGizmoOperation, buttonSize);
+
+        ImGui::SameLine(0.f, 10.f);
 
         ui::ModeSelectorImageButton::render(translateIcon, "##translate-gizmo", "Translate (1)", ImGuizmo::TRANSLATE,
                                             m_currentGizmoOperation, buttonSize);
