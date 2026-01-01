@@ -28,6 +28,19 @@ namespace pxt::editor {
             return;
         }
 
+        // TODO: the camera zoom is controlled in a script outside the editor but it is
+        // basically the editor camera. we need to know when we are hovering the viewport
+        // to allow zooming. For now we reset the input state when not hovering the viewport
+        // and receiveng a scroll event
+        dispatcher.dispatch<core::MouseScrollEvent>([this](core::MouseScrollEvent& e) {
+            // we return also if user is using free look mode
+            if (!m_isViewportHovered) {
+                core::Input::getState().reset();
+                return false;
+            }
+            return false;
+        });
+
         dispatcher.dispatch<core::MouseButtonPressEvent>([this](core::MouseButtonPressEvent& e) {
             // we dont care about mouse clicks outside of the viewport for object picking
             if (!m_isViewportHovered)
