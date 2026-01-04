@@ -34,12 +34,13 @@ namespace pxt::concurrency {
         m_pendingJobCount.fetch_add(numberOfJobs, std::memory_order_relaxed);
 
         for (uint32_t i = 0; i < numberOfJobs; ++i) {
+            uint32_t bufferIdx = firstJobIdx + i;
             size_t idx = m_nextWorker.fetch_add(1, std::memory_order_relaxed) % m_workers.size();
 
-            Job& job = m_jobBuffer[firstJobIdx + i];
-            m_jobBuffer.updateJobState(firstJobIdx + i, JobState::Ready);
+            Job& job = m_jobBuffer[bufferIdx];
+            m_jobBuffer.updateJobState(bufferIdx, JobState::Ready);
 
-            m_workers[idx]->deque.push(job);
+            m_workers[idx]->deque.push(bufferIdx);
 
             m_condition.notify_one();
         }
@@ -261,11 +262,13 @@ namespace pxt::concurrency {
     }
 
     bool MultiThreadedJobSystem::executeOneJob(size_t index) {
+        uint32_t jobBufferIndex;
         Job job;
 
         // Try to take work from our own deque (LIFO)
         // This provides good cache locality as we work on recently added tasks
-        bool foundWork = m_workers[index]->deque.pop(job);
+        bool foundWork = m_workers[index]->deque.pop(jobBufferIndex);
+        job = m_jobBuffer[jobBufferIndex];
 
         if (foundWork && job.isValid() && job.isReady()) {
             process(job);
@@ -284,7 +287,8 @@ namespace pxt::concurrency {
             if (target == index)
                 continue;
 
-            foundWork = m_workers[target]->deque.steal(job);
+            foundWork = m_workers[target]->deque.steal(jobBufferIndex);
+            job = m_jobBuffer[jobBufferIndex];
 
             if (foundWork) {
                 break;

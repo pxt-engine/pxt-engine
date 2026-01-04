@@ -243,8 +243,9 @@ namespace pxt::concurrency {
      * - A dedicated thread that processes jobs from its deque
      */
     struct Worker {
-        WorkStealingDeque<Job> deque; //< Lock-free deque for storing jobs
-        std::jthread thread;          //< The worker thread (automatically joins on destruction)
+        // The uint32_t is the index of the job in the global job buffer
+        WorkStealingDeque<uint32_t> deque; //< Lock-free deque for storing jobs
+        std::jthread thread;               //< The worker thread (automatically joins on destruction)
     };
 
     /**
