@@ -311,9 +311,6 @@ namespace pxt::concurrency {
         // Use relaxed ordering - this is just a heuristic
         m_pendingJobCount.fetch_sub(1, std::memory_order_relaxed);
 
-        // TODO is it useful to have an Executing state?
-        // m_jobBuffer.updateJobState(job.slotIndex, JobState::Executing);
-
         // Execute the job
         job.execute();
 
@@ -362,7 +359,7 @@ namespace pxt::concurrency {
             }
 
             // Mark this job as Empty/Completed
-            m_jobBuffer.updateJobState(job.slotIndex, JobState::Empty);
+            m_jobBuffer.updateJobState(slot.firstJobIndex, JobState::Empty);
 
             // Increment generation with release semantics to make it visible to wait()
             // This invalidates handles that were created during this generation
