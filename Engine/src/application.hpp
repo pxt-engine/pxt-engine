@@ -102,7 +102,6 @@ namespace pxt {
 
         void onEvent(core::Event& event);
         bool isRunning();
-        void updateMainCamera();
 
         bool m_running = true;
 

@@ -4,6 +4,12 @@ namespace pxt::core {
     // TODO: maybe orderer destruction of layers here? see later
     LayerStack::~LayerStack() { m_layers.clear(); }
 
+    void core::LayerStack::onBeginFrame(float deltaTime) {
+        for (auto& layer : m_layers) {
+            layer->onBeginFrame(deltaTime);
+        }
+    }
+
     // we propagate the event from top to bottom
     void LayerStack::onEvent(Event& event) {
         for (auto it = m_layers.rbegin(); it != m_layers.rend(); ++it) {

@@ -246,11 +246,18 @@ namespace pxt {
 
     struct CameraComponent {
         Camera camera;
-        bool isMainCamera = true;
+        float aspectRatio = 1.f;
+        bool useViewportAspectRatio = true;
 
         CameraComponent();
 
-        CameraComponent(const Camera& camera) : camera(camera) {}
+        CameraComponent(float aspectRatio) : aspectRatio(aspectRatio), useViewportAspectRatio(false) {}
+
+        CameraComponent(const Camera& camera)
+            : camera(camera) {}
+
+        CameraComponent(const Camera& camera, const float aspectRatio)
+            : camera(camera), aspectRatio(aspectRatio), useViewportAspectRatio(false) {}
 
         CameraComponent(const CameraComponent&) = default;
     };

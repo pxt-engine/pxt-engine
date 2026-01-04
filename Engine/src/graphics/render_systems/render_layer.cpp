@@ -1,7 +1,6 @@
 #include "graphics/render_systems/render_layer.hpp"
 #include "core/events/editor_events.hpp"
 #include "core/events/event_dispatcher.hpp"
-#include "core/events/imgui_events.hpp"
 #include "ui/widgets/space.hpp"
 
 #include "utils/vk_enum_str.h"
@@ -504,7 +503,7 @@ namespace pxt {
     void RenderLayer::onEvent(core::Event& event) {
         core::EventDispatcher dispatcher(event);
 
-        dispatcher.dispatch<core::ImGuiViewportResizeEvent>([this](auto& event) {
+        dispatcher.dispatch<core::ViewportResizeEvent>([this](auto& event) {
             m_viewportExtent = {event.getWidth(), event.getHeight()};
             recreateViewportResources();
 
@@ -519,7 +518,7 @@ namespace pxt {
 
             m_selectionMaskRenderSystem->updateImage(m_viewportExtent);
 
-            return true;
+            return false; // propagate (scene needs it for cameras)
         });
 
         dispatcher.dispatch<core::PickObjectAtEvent>([this](auto& event) {

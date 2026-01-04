@@ -116,10 +116,6 @@ namespace pxt::editor {
 
         // CameraComponent
         RegisterComponent<CameraComponent>("CameraComponent", [](CameraComponent& c) {
-            ImGui::BeginDisabled(true); // TODO: remove when we can choose which camera to use
-            ImGui::Checkbox("Main Camera", &c.isMainCamera);
-            ImGui::EndDisabled();
-
             c.camera.drawCameraUi();
         });
 

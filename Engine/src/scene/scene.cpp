@@ -3,6 +3,8 @@
 #include "scene/ecs/component.hpp"
 #include "scene/ecs/entity.hpp"
 #include "scene/script/script.hpp"
+#include "core/events/event_dispatcher.hpp"
+#include "core/events/editor_events.hpp"
 
 namespace pxt {
     Scene::Scene() {
@@ -50,19 +52,6 @@ namespace pxt {
         m_registry.destroy(entity);
     }
 
-    Entity Scene::getMainCameraEntity() {
-        auto cameraEntities = m_registry.view<CameraComponent, TransformComponent>();
-
-        for (auto entity : cameraEntities) {
-            if (!cameraEntities.get<CameraComponent>(entity).isMainCamera)
-                continue;
-
-            return {entity, this};
-        }
-
-        return {};
-    }
-
     void Scene::onStart() {
         getEntitiesWith<ScriptComponent>().each([this](auto entity, auto& scriptComponent) {
             scriptComponent.script = scriptComponent.create();
@@ -74,6 +63,34 @@ namespace pxt {
     void Scene::onUpdate(float delta) {
         getEntitiesWith<ScriptComponent>().each([=](auto entity, auto& scriptComponent) {
             scriptComponent.script->onUpdate(delta);
+        });
+    }
+
+    Entity Scene::getMainCameraEntity() { return {m_mainCameraEntity, this}; }
+
+    void Scene::setMainCameraEntity(Entity newMainCamera) { m_mainCameraEntity = newMainCamera; }
+
+    void Scene::updateCamerasAspectRatio(float newAspect) {
+        getEntitiesWith<CameraComponent>().each([=](auto entity, auto& cameraComponent) {
+            if (cameraComponent.useViewportAspectRatio) {
+                cameraComponent.aspectRatio = newAspect;
+            }
+        });
+    }
+
+    void Scene::onEvent(core::Event& event) {
+        core::EventDispatcher dispatcher(event);
+
+        // if viewport changed we need to update cameras using its aspect ratio
+        dispatcher.dispatch<core::ViewportResizeEvent>([this](auto& event) {
+            float newAspect = event.getWidth() / event.getHeight();
+            updateCamerasAspectRatio(newAspect);
+
+            return false;
+        });
+
+        getEntitiesWith<ScriptComponent>().each(
+            [&](auto entity, auto& scriptComponent) { scriptComponent.script->onEvent(event); 
         });
     }
 } // namespace pxt

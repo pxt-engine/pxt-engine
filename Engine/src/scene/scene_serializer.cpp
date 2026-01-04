@@ -126,7 +126,10 @@ namespace pxt {
         {typeid(CameraComponent), makeSerializer<CameraComponent>([](auto& c, YAML::Emitter& out) {
              out << YAML::Key << "CameraComponent";
              out << YAML::BeginMap;
-             out << YAML::Key << "isMainCamera" << YAML::Value << c.isMainCamera;
+             out << YAML::Key << "useViewportAspectRatio" << YAML::Value << c.useViewportAspectRatio;
+             if (!c.useViewportAspectRatio) {
+                out << YAML::Key << "aspectRatio" << YAML::Value << c.aspectRatio;
+             }
              out << YAML::Key << "isPerspective" << YAML::Value << c.camera.isPerspective();
              out << YAML::Key << "nearPlane" << YAML::Value << c.camera.getNearPlane();
              out << YAML::Key << "farPlane" << YAML::Value << c.camera.getFarPlane();
@@ -174,6 +177,9 @@ namespace pxt {
 
         // Scene name
         out << YAML::Key << "scene" << YAML::Value << m_scene->getName();
+
+        // main camera
+        out << YAML::Key << "mainCameraEntity" << YAML::Value << m_scene->getMainCameraEntity().get<IDComponent>().uuid.toString();
 
         serializeEnvironment(m_scene, out);
 
@@ -224,6 +230,7 @@ namespace pxt {
         }
 
         std::string sceneName = data["scene"].as<std::string>();
+        core::UUID mainCameraUUID = core::UUID(data["mainCameraEntity"].as<std::string>());
 
         auto entities = data["entities"];
 
@@ -251,7 +258,7 @@ namespace pxt {
         // ----------------
 
         for (auto entityNode : entities) {
-            std::string uuid = entityNode["entity"].as<std::string>();
+            std::string uuidString = entityNode["entity"].as<std::string>();
 
             // Deserialize NameComponent
             std::string name = "Unnamed-Entity";
@@ -259,7 +266,11 @@ namespace pxt {
                 name = nameComponentNode.as<std::string>();
             }
 
-            Entity entity = m_scene->createEntity(name, core::UUID(uuid));
+            core::UUID uuid = core::UUID(uuidString);
+            Entity entity = m_scene->createEntity(name, uuid);
+
+            // check if its main camera
+            bool isMainCamera = uuid == mainCameraUUID;
 
             // Deserialize TransformComponent
             if (auto transformComponentNode = entityNode["TransformComponent"]) {
@@ -378,7 +389,7 @@ namespace pxt {
 
             // Deserialize CameraComponent
             if (auto cameraComponentNode = entityNode["CameraComponent"]) {
-                bool isMainCamera = cameraComponentNode["isMainCamera"].as<bool>();
+                bool useViewportAspectRatio = cameraComponentNode["useViewportAspectRatio"].as<bool>();
                 bool isPerspective = cameraComponentNode["isPerspective"].as<bool>();
                 float nearPlane = cameraComponentNode["nearPlane"].as<float>();
                 float farPlane = cameraComponentNode["farPlane"].as<float>();
@@ -389,7 +400,14 @@ namespace pxt {
                 camera.setOrthographicParams(orthoParams[0], orthoParams[1], orthoParams[2], orthoParams[3], nearPlane,
                                              farPlane);
                 camera.setIsPerspective(isPerspective);
-                entity.add<CameraComponent>(camera);
+
+                auto& cameraComp = entity.addAndGet<CameraComponent>(camera);
+                cameraComp.useViewportAspectRatio = useViewportAspectRatio;
+                cameraComp.aspectRatio = useViewportAspectRatio ? 1.f : cameraComponentNode["aspectRatio"].as<float>();
+
+                if (isMainCamera) {
+                    m_scene->setMainCameraEntity(entity);
+                }
             }
 
             // Deserialize PointLightComponent

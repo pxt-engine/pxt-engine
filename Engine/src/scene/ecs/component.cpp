@@ -40,6 +40,6 @@ namespace pxt {
     }
 
     // --- CameraComponent ---
-    CameraComponent::CameraComponent() : isMainCamera(true) { camera = Camera{}; }
+    CameraComponent::CameraComponent() { camera = Camera{}; }
 
 } // namespace pxt

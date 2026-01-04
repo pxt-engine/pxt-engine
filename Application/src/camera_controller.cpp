@@ -6,7 +6,7 @@ void CameraController::onUpdate(float deltaTime) {
     auto& transform = get<TransformComponent>();
 
     // can look with mouse when Space is Hold
-    bool isFreeLookModeEnabled = Input::isMouseButtonDown(MouseButton::Button1);
+    bool isFreeLookModeEnabled = Input::isMouseButtonDown(MouseButton::Button1) || Input::isKeyDown(KeyCode::Space);
 
     // --- Keyboard Rotation ---
     glm::vec3 rotate{0};
@@ -82,8 +82,15 @@ void CameraController::onUpdate(float deltaTime) {
         // We move the camera translation along the forward vector
         transform.translation += forward * scrollDeltaY * m_zoomSpeed;
     }
-
-    // update camera view matrix
-    auto& camera = get<CameraComponent>().camera;
+    
+    // update camera view matrix and perspective
+    auto& cameraComp = get<CameraComponent>();
+    auto& camera = cameraComp.camera;
     camera.setViewDirection(transform.translation, forward, worldUp);
+    
+    if (camera.isPerspective()) {
+        camera.setPerspective(cameraComp.aspectRatio);
+    } else {
+        camera.setOrthographic();
+    }
 }

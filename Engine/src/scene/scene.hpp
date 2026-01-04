@@ -3,6 +3,7 @@
 #include "core/obj_picking_id.hpp"
 #include "core/pch.hpp"
 #include "core/uuid.hpp"
+#include "core/events/event.hpp"
 
 #include "scene/environment.hpp"
 
@@ -75,6 +76,8 @@ namespace pxt {
          */
         void onUpdate(float delta);
 
+        void onEvent(core::Event& event);
+
         /**
          * @brief Retrieves all entities that have the specified components.
          * @tparam T Component types to filter entities.
@@ -90,6 +93,10 @@ namespace pxt {
          * @return The main camera entity or an empty entity if none exist.
          */
         Entity getMainCameraEntity();
+        
+        void setMainCameraEntity(Entity newMainCamera);
+
+        void updateCamerasAspectRatio(float newAspect);
 
         /**
          * @brief Retrieves the environment settings for the scene.
@@ -107,7 +114,8 @@ namespace pxt {
         entt::registry m_registry;
 
         Shared<Environment> m_environment = createShared<Environment>();
-
+        entt::entity m_mainCameraEntity;
+        
         friend class Entity;
     };
 } // namespace pxt

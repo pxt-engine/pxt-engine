@@ -23,6 +23,7 @@ namespace pxt {
         PXT_PROFILE_FN();
 
         m_resourceManagerPtr = pushLayer<ResourceManager>();
+        
 
         // load default and scene assets and register them in the resource registry
         createDefaultResources();
@@ -201,7 +202,7 @@ namespace pxt {
         auto currentTime = std::chrono::high_resolution_clock::now();
 
         m_scene.onStart();
-        // TODO: pay attention to reference
+
         Camera& mainCamera = m_scene.getMainCameraEntity().get<CameraComponent>().camera;
         
         uint32_t frameCount = 0;
@@ -216,12 +217,12 @@ namespace pxt {
             float elapsedTime = std::chrono::duration<float>(newTime - currentTime).count();
             currentTime = newTime;
 
-            m_scene.onUpdate(elapsedTime);
-
-            updateMainCamera();
+            m_layerStack.onBeginFrame(elapsedTime);
 
             if (auto commandBuffer = m_renderer.beginFrame()) {
                 int frameIndex = m_renderer.getFrameIndex();
+
+                m_scene.onUpdate(elapsedTime);
 
                 FrameInfo frameInfo = {
                     frameIndex,
@@ -282,17 +283,7 @@ namespace pxt {
         });
 
         m_layerStack.onEvent(event);
+
+        m_scene.onEvent(event);
     }
-
-    void Application::updateMainCamera() {
-        Entity mainCameraEntity = m_scene.getMainCameraEntity();
-        auto& cameraComponent = mainCameraEntity.get<CameraComponent>();
-
-        if (cameraComponent.camera.isPerspective()) {
-            cameraComponent.camera.setPerspective(m_renderLayerPtr->getSceneAspectRatio());
-        } else {
-            cameraComponent.camera.setOrthographic();
-        }
-    }
-
 } // namespace pxt

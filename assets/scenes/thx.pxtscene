@@ -1,4 +1,5 @@
 scene: thx
+mainCameraEntity: 019977fa-dd8d-7969-839e-ec32d324f972
 entities:
   - entity: 019977fa-dd8d-7969-839e-ec32d324f972
     NameComponent: camera
@@ -7,7 +8,8 @@ entities:
       scale: [0, 0, 0]
       rotation: [0, 0, 0]
     CameraComponent:
-      isMainCamera: true
+      useViewportAspectRatio: true
+      aspectRatio: 1.0
       isPerspective: true
       nearPlane: 0.1
       farPlane: 100

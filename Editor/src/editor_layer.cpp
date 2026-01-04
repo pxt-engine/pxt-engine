@@ -1,6 +1,5 @@
 #include "editor_layer.hpp"
 #include "core/events/editor_events.hpp"
-#include "core/events/imgui_events.hpp"
 #include "ui/widgets/mode_selector_image_button.hpp"
 #include "ui/widgets/toggle_image_button.hpp"
 
@@ -9,7 +8,34 @@
 namespace pxt::editor {
     EditorLayer::EditorLayer() : core::Layer("EditorLayer") {
         m_editorTextureRegistry = createUnique<EditorTextureRegistry>();
+        m_editorCamera = createUnique<EditorCamera>();
     }
+
+    void EditorLayer::onBeginFrame(float deltaTime) {
+        // reset state
+        m_navigationState = {};
+
+        if (!m_isViewportFocused || !m_isViewportHovered)
+            return;
+
+        const auto& input = core::Input::getState();
+        m_navigationState.freeLookEnabled = input.isMouseButtonDown(core::RightMouseButton) || input.isKeyDown(core::KeyCode::Space);
+
+        m_navigationState.mouseDelta = input.getMouseDelta();
+        m_navigationState.scrollDelta = input.getScrollDelta();
+
+        m_navigationState.move = {
+            (input.isKeyDown(core::KeyCode::D) ? 1.f : 0.f) - (input.isKeyDown(core::KeyCode::A) ? 1.f : 0.f),
+            (input.isKeyDown(core::KeyCode::E) ? 1.f : 0.f) - (input.isKeyDown(core::KeyCode::Q) ? 1.f : 0.f),
+            (input.isKeyDown(core::KeyCode::W) ? 1.f : 0.f) - (input.isKeyDown(core::KeyCode::S) ? 1.f : 0.f)};
+
+        m_navigationState.rotate = {
+            (input.isKeyDown(core::KeyCode::DownArrow) ? 1.f : 0.f) - (input.isKeyDown(core::KeyCode::UpArrow) ? 1.f : 0.f),
+            (input.isKeyDown(core::KeyCode::RightArrow) ? 1.f : 0.f) - (input.isKeyDown(core::KeyCode::LeftArrow) ? 1.f : 0.f)};
+
+        m_editorCamera->onUpdate(deltaTime, m_navigationState, getViewportAspectRatio());
+    }
+
 
     void EditorLayer::onEvent(core::Event& event) {
         core::EventDispatcher dispatcher(event);
@@ -21,46 +47,24 @@ namespace pxt::editor {
 
         // I/O Events
 
-        //! here we have to decide which events to forward (not handled) if
-        //! the viewport is not focused (for now everything regarding inputs is blocked)
+        //! here we block i/o events if
+        //! the viewport is not focused
         if (!m_isViewportFocused) {
-            core::Input::getState().reset();
             return;
         }
 
-        // TODO: the camera zoom is controlled in a script outside the editor but it is
-        // basically the editor camera. we need to know when we are hovering the viewport
-        // to allow zooming. For now we reset the input state when not hovering the viewport
-        // and receiveng a scroll event
-        dispatcher.dispatch<core::MouseScrollEvent>([this](core::MouseScrollEvent& e) {
-            // we return also if user is using free look mode
-            if (!m_isViewportHovered) {
-                core::Input::getState().reset();
-                return false;
-            }
-            return false;
-        });
-
         dispatcher.dispatch<core::MouseButtonPressEvent>([this](core::MouseButtonPressEvent& e) {
-            // we dont care about mouse clicks outside of the viewport for object picking
+            // we dont care about mouse clicks outside of the viewport
             if (!m_isViewportHovered)
                 return false;
 
             return onMouseButtonPress(e);
         });
 
-        dispatcher.dispatch<core::MouseButtonReleaseEvent>([this](core::MouseButtonReleaseEvent& e) {
-            if (e.getMouseButton() == core::MouseButton::Button1) {
-                m_isFreeLookEnabled = false;
-                return false;
-            }
-
-            return false;
-        });
 
         dispatcher.dispatch<core::KeyPressEvent>([this](core::KeyPressEvent& e) {
             // we return also if user is using free look mode
-            if (!m_isViewportHovered || m_isFreeLookEnabled)
+            if (!m_isViewportHovered || m_navigationState.freeLookEnabled)
                 return false;
             return onKeyPressEvent(e);
         });
@@ -70,9 +74,6 @@ namespace pxt::editor {
         switch (event.getMouseButton()) {
         case core::MouseButton::Button0:
             return onLeftMouseButtonPress();
-        case core::MouseButton::Button1: // right mouse button enables free look
-            m_isFreeLookEnabled = true;
-            return false; // propagate event
         default:
             break;
         }
@@ -180,7 +181,7 @@ namespace pxt::editor {
             m_sceneImageExtent = ImVec2(static_cast<float>(width), static_cast<float>(height));
 
             Application::get().queueEvent(
-                core::ImGuiViewportResizeEvent(static_cast<uint32_t>(width), static_cast<uint32_t>(height)));
+                core::ViewportResizeEvent(static_cast<uint32_t>(width), static_cast<uint32_t>(height)));
         }
 
         ImGui::Image(scene, m_sceneImageExtent);
