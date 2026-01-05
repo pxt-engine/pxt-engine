@@ -83,7 +83,7 @@ namespace pxt {
 
         // if viewport changed we need to update cameras using its aspect ratio
         dispatcher.dispatch<core::ViewportResizeEvent>([this](auto& event) {
-            float newAspect = event.getWidth() / event.getHeight();
+            float newAspect = static_cast<float>(event.getWidth()) / static_cast<float>(event.getHeight());
             updateCamerasAspectRatio(newAspect);
 
             return false;
