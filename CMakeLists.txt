@@ -1,241 +1,43 @@
-include(./Engine/.env OPTIONAL RESULT_VARIABLE LOCAL_ENV)
-message(STATUS "Local .env: ${LOCAL_ENV}")
+cmake_minimum_required(VERSION 3.20)
 
-cmake_minimum_required(VERSION 3.17.0)
+set(PROJECT_NAME "PXT")
+set(VERSION "0.0.1")
 
-set(NAME PXT_Engine)
+project(${PROJECT_NAME} VERSION ${VERSION} LANGUAGES CXX)
 
-# MinGW
-message(STATUS "using ${CMAKE_GENERATOR}")
-if (CMAKE_GENERATOR STREQUAL "MinGW Makefiles")
-  if (NOT MINGW_PATH) 
-    message(FATAL_ERROR "MINGW_PATH not set in .env")
-  endif()
-  set(USE_MINGW "True")
-  set(CMAKE_C_COMPILER ${MINGW_PATH}/bin/gcc.exe)
-  set(CMAKE_CXX_COMPILER  ${MINGW_PATH}/bin/g++.exe)
-endif()
+# Global C++ settings
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-project(${NAME} VERSION 0.0.1)
+# Output directories
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/out)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/out)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/out)
+set(SHADER_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/out/shaders")
 
-# Vulkan
-if (DEFINED VULKAN_SDK_PATH)
-  set(VULKAN_SDK "${VULKAN_SDK_PATH}" CACHE PATH "Path to the Vulkan SDK" FORCE)
-  message(STATUS "VULKAN_SDK_PATH defined, setting VULKAN_SDK to: ${VULKAN_SDK}")
-else()
-  message(STATUS "VULKAN_SDK_PATH not defined. find_package will use environment or system paths for Vulkan SDK.")
-endif()
+# Shader directory
+set(SHADER_DIRECTORY "${PROJECT_SOURCE_DIR}/assets/shaders")
 
+# CMake modules path
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+
+# Dependencies
 find_package(Vulkan REQUIRED COMPONENTS shaderc_combined)
 
-if (NOT Vulkan_FOUND)
-  message(FATAL_ERROR "Could not find Vulkan library and/or required components (shaderc_combined)!")
-else()
-  message(STATUS "Found Vulkan SDK at: ${Vulkan_SDK}")
-  message(STATUS "Found Vulkan include directories: ${Vulkan_INCLUDE_DIRS}")
-  message(STATUS "Found Vulkan libraries: ${Vulkan_LIBRARIES}")
-endif()
+# modules
+include(CompileShaders)
 
-# Vendor libraries
-add_subdirectory(Engine/vendor/glfw)         
-add_subdirectory(Engine/vendor/glm)          
-add_subdirectory(Engine/vendor/tinyobjloader)
-add_subdirectory(Engine/vendor/entt)
-add_subdirectory(Engine/vendor/spdlog)
+# Subprojects
+add_subdirectory(Engine)
+add_subdirectory(Editor)
+add_subdirectory(Application)
 
-# ShaderC
-#set(SHADERC_SKIP_TESTS ON CACHE BOOL "Skip ShaderC tests")
-#set(SHADERC_ENABLE_SHARED_CRT ON CACHE BOOL "Use static CRT for ShaderC")
+compile_shaders(${PROJECT_NAME} "${SHADER_DIRECTORY}" "${SHADER_OUTPUT_DIRECTORY}")
 
-
-# Tracy Profiler
-option(TRACY_ENABLE " " ON)
-add_subdirectory(Engine/vendor/tracy) # target : TracyClient or alias Tracy::TracyClient
-
-# STB IMAGE library
-add_library(stb INTERFACE)
-target_include_directories(stb INTERFACE ${CMAKE_SOURCE_DIR}/Engine/vendor/stb)
-
-# tinyfiledialog static library
-add_library(tinyfiledialogs STATIC
-    Engine/vendor/tinyfiledialogs/tinyfiledialogs.c
-)
-
-target_include_directories(tinyfiledialogs PUBLIC
-    ${CMAKE_SOURCE_DIR}/Engine/vendor/tinyfiledialogs
-)
-
-# YAML-CPP library
-add_subdirectory(Engine/vendor/yaml-cpp) 
-
-# IMGUI Library
-set(IMGUI_DIR ${PROJECT_SOURCE_DIR}/Engine/vendor/imgui)
-include_directories(${IMGUI_DIR} ${IMGUI_DIR}/backends)
-
-# Add ImGui source files
-set(IMGUI_SOURCES
-    ${IMGUI_DIR}/imgui.cpp
-    ${IMGUI_DIR}/imgui_draw.cpp
-    ${IMGUI_DIR}/imgui_widgets.cpp
-    ${IMGUI_DIR}/imgui_tables.cpp
-    ${IMGUI_DIR}/imgui_demo.cpp
-    ${IMGUI_DIR}/backends/imgui_impl_glfw.cpp
-    ${IMGUI_DIR}/backends/imgui_impl_vulkan.cpp
-)
-
-# Create ImGui library and add Vulkan include directory for its sources
-add_library(imgui STATIC ${IMGUI_SOURCES})
-target_include_directories(imgui PUBLIC ${Vulkan_INCLUDE_DIRS})
-
-# Link dependencies to ImGui
-target_link_libraries(imgui PUBLIC glfw Vulkan::Vulkan)
-
-# IMGUIZMO Library
-set(IMGUIZMO_DIR ${PROJECT_SOURCE_DIR}/Engine/vendor/imguizmo)
-
-# Create ImGuizmo library
-add_library(imguizmo STATIC
-    ${IMGUIZMO_DIR}/ImGuizmo.cpp
-)
-
-# Include directories for ImGuizmo
-target_include_directories(imguizmo PUBLIC ${IMGUIZMO_DIR})
-
-# Link ImGuizmo to ImGui (it needs imgui.h)
-target_link_libraries(imguizmo PUBLIC imgui)
-
-####
-
-file(GLOB_RECURSE SOURCES 
-        ${PROJECT_SOURCE_DIR}/Application/src/*.cpp
-        ${PROJECT_SOURCE_DIR}/Engine/src/*.cpp
-        ${PROJECT_SOURCE_DIR}/Editor/src/*.cpp)
-
-add_executable(${PROJECT_NAME} ${SOURCES})
-
-# If compiling with MSVC, we ignore warning 4099 which is about debug information for PDB files.
-# This is because the shaderc library does not provide pdb files, and MSVC will complain about it.
+# MSVC specific settings
 if (MSVC)
+    # If compiling with MSVC, we ignore warning 4099 which is about debug information for PDB files.
+    # This is because the shaderc library does not provide pdb files, and MSVC will complain about it.
     target_link_options(${PROJECT_NAME} PRIVATE /IGNORE:4099)
 endif()
 
-target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_20)
-
-set_property(TARGET ${PROJECT_NAME} PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/out")
-
-if (WIN32)
-  message(STATUS "CREATING BUILD FOR WINDOWS")
-
-  if (USE_MINGW)
-    target_include_directories(${PROJECT_NAME} PUBLIC
-      ${MINGW_PATH}/include
-    )
-    target_link_directories(${PROJECT_NAME} PUBLIC
-      ${MINGW_PATH}/lib
-    )
-  endif()
-
-  # Include and link Vulkan and other submodule libraries
-  target_include_directories(${PROJECT_NAME} PUBLIC
-    ${PROJECT_SOURCE_DIR}/Engine/src
-    ${PROJECT_SOURCE_DIR}/Application/src
-    ${PROJECT_SOURCE_DIR}/Editor/src
-    ${PROJECT_SOURCE_DIR}/Engine/vendor/entt/single_include
-  )
-  
-  # To enable correct logging
-  add_compile_definitions(SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
-
-  # Enable validation layers in Debug mode
-  target_compile_definitions(${PROJECT_NAME} PRIVATE
-    $<IF:$<CONFIG:Debug>,ENABLE_VALIDATION_LAYERS=1,ENABLE_VALIDATION_LAYERS=0>)
-  message(STATUS "Validation layers enabled for Debug builds, disabled for other builds")
-
-  target_precompile_headers(${PROJECT_NAME} PRIVATE
-    ${PROJECT_SOURCE_DIR}/Engine/src/core/pch.hpp
-  )
-
-  # Link everything to the target executable
-  target_link_libraries(${PROJECT_NAME} PRIVATE
-    glfw                     
-    glm                      
-    tinyobjloader
-    stb
-    Vulkan::Vulkan
-    imgui
-    imguizmo
-    Tracy::TracyClient
-    spdlog::spdlog_header_only
-    Vulkan::shaderc_combined
-    yaml-cpp
-    tinyfiledialogs
-  )
-
-
-elseif (UNIX)
-  message(STATUS "CREATING BUILD FOR UNIX")
-  target_include_directories(${PROJECT_NAME} PUBLIC
-    ${PROJECT_SOURCE_DIR}/Engine/src
-    ${PROJECT_SOURCE_DIR}/Application/src
-  )
-  target_link_libraries(${PROJECT_NAME} PRIVATE
-    glfw 
-    ${Vulkan_LIBRARIES}
-    imgui
-    stb
-  )
-endif()
-
-############## SHADERS ##############
-
-message(STATUS "Using Vulkan SDK Path: ${VULKAN_SDK_PATH}")
-message(STATUS "Using Vulkan SDK: $ENV{VULKAN_SDK} , ${Vulkan_GLSLANG_VALIDATOR_EXECUTABLE} ")
-
-# Find all vertex and fragment sources within shaders directory
-find_program(GLSL_VALIDATOR glslangValidator HINTS 
-  ${Vulkan_GLSLANG_VALIDATOR_EXECUTABLE} 
-  /usr/bin 
-  /usr/local/bin 
-  ${VULKAN_SDK_PATH}/Bin
-  ${VULKAN_SDK_PATH}/Bin32
-  $ENV{VULKAN_SDK}/Bin/ 
-  $ENV{VULKAN_SDK}/Bin32/
-)
-
-message(STATUS "Found glslangValidator at: ${GLSL_VALIDATOR}")
-
-# get all .vert and .frag files in shaders directory
-file(GLOB_RECURSE GLSL_SOURCE_FILES
-  "${PROJECT_SOURCE_DIR}/assets/shaders/*.frag"
-  "${PROJECT_SOURCE_DIR}/assets/shaders/*.vert"
-  "${PROJECT_SOURCE_DIR}/assets/shaders/*.comp"
-  "${PROJECT_SOURCE_DIR}/assets/shaders/*.geom"
-  "${PROJECT_SOURCE_DIR}/assets/shaders/*.tesc"
-  "${PROJECT_SOURCE_DIR}/assets/shaders/*.tese"
-  "${PROJECT_SOURCE_DIR}/assets/shaders/raytracing/*.rgen"
-  "${PROJECT_SOURCE_DIR}/assets/shaders/raytracing/*.rahit"
-  "${PROJECT_SOURCE_DIR}/assets/shaders/raytracing/*.rchit"
-  "${PROJECT_SOURCE_DIR}/assets/shaders/raytracing/*.rmiss"
-  "${PROJECT_SOURCE_DIR}/assets/shaders/raytracing/*.rint"
-  "${PROJECT_SOURCE_DIR}/assets/shaders/raytracing/*.rcall"
-)
-
-file(MAKE_DIRECTORY ${PROJECT_SOURCE_DIR}/out/shaders)
-
-foreach(GLSL ${GLSL_SOURCE_FILES})
-  get_filename_component(FILE_NAME ${GLSL} NAME)
-  set(SPIRV "${PROJECT_SOURCE_DIR}/out/shaders/${FILE_NAME}.spv")
-  add_custom_command(
-    OUTPUT ${SPIRV}
-    COMMAND ${GLSL_VALIDATOR} -V ${GLSL} -o ${SPIRV} -I${PROJECT_SOURCE_DIR}/assets/shaders --target-env vulkan1.3
-    DEPENDS ${GLSL})
-  list(APPEND SPIRV_BINARY_FILES ${SPIRV})
-endforeach(GLSL)
-
-add_custom_target(
-    Shaders
-    DEPENDS ${SPIRV_BINARY_FILES}
-)
-
-# Add Shaders as dependency of executable
-add_dependencies(${PROJECT_NAME} Shaders)

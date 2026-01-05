@@ -1,7 +1,5 @@
 #pragma once
 
-#include "tinyfiledialogs.h"
-
 namespace pxt::core {
     class FileSystem {
     public:

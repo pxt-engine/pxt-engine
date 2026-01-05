@@ -1,5 +1,7 @@
 #include "core/filesystem.hpp"
 
+#include "tinyfiledialogs.h"
+
 namespace pxt::core {
     std::string FileSystem::openFileDialog() {
         const char* path = tinyfd_openFileDialog("Select File to Import",
