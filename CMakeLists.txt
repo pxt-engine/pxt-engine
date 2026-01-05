@@ -10,13 +10,13 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Output directories
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/out)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/out)
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/out)
-set(SHADER_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/out/shaders")
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/out")
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/out")
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/out")
+set(SHADER_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/out/shaders")
 
 # Shader directory
-set(SHADER_DIRECTORY "${PROJECT_SOURCE_DIR}/assets/shaders")
+set(SHADER_DIRECTORY "${CMAKE_SOURCE_DIR}/assets/shaders")
 
 # CMake modules path
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
@@ -32,7 +32,7 @@ add_subdirectory(Engine)
 add_subdirectory(Editor)
 add_subdirectory(Application)
 
-compile_shaders(${PROJECT_NAME} "${SHADER_DIRECTORY}" "${SHADER_OUTPUT_DIRECTORY}")
+compile_shaders(${PROJECT_NAME} ${SHADER_DIRECTORY} ${SHADER_OUTPUT_DIRECTORY})
 
 # MSVC specific settings
 if (MSVC)
@@ -40,4 +40,3 @@ if (MSVC)
     # This is because the shaderc library does not provide pdb files, and MSVC will complain about it.
     target_link_options(${PROJECT_NAME} PRIVATE /IGNORE:4099)
 endif()
-

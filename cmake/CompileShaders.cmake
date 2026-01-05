@@ -1,5 +1,8 @@
-# cmake/CompileShaders.cmake
-
+# CMake function to compile GLSL shaders to SPIR-V binaries using glslangValidator.
+# parameters:
+#   TARGET_NAME: The name of the CMake target to which the shaders belong.
+#   SHADER_DIR: The directory containing the GLSL shader source files.
+#   OUTPUT_DIR: The directory where the compiled SPIR-V binaries will be placed.
 function(compile_shaders TARGET_NAME SHADER_DIR OUTPUT_DIR)
     # Find the validator once if not already found
     find_program(GLSL_VALIDATOR glslangValidator HINTS 
