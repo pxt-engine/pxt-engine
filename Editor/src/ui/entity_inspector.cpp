@@ -116,7 +116,7 @@ namespace pxt::editor {
 
         // CameraComponent
         RegisterComponent<CameraComponent>("CameraComponent", [](CameraComponent& c) {
-            c.camera.drawCameraUi();
+            c.cameraData.drawCameraUi();
         });
 
         // PointLightComponent

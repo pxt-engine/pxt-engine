@@ -130,12 +130,13 @@ namespace pxt {
              if (!c.useViewportAspectRatio) {
                 out << YAML::Key << "aspectRatio" << YAML::Value << c.aspectRatio;
              }
-             out << YAML::Key << "isPerspective" << YAML::Value << c.camera.isPerspective();
-             out << YAML::Key << "nearPlane" << YAML::Value << c.camera.getNearPlane();
-             out << YAML::Key << "farPlane" << YAML::Value << c.camera.getFarPlane();
-             out << YAML::Key << "fovYDegrees" << YAML::Value << c.camera.getFovYDegrees();
-             out << YAML::Key << "orthoParams" << YAML::Value << YAML::Flow << YAML::BeginSeq << c.camera.getOrthoLeft()
-                 << c.camera.getOrthoRight() << c.camera.getOrthoTop() << c.camera.getOrthoBottom() << YAML::EndSeq;
+             out << YAML::Key << "isPerspective" << YAML::Value << c.cameraData.isPerspective();
+             out << YAML::Key << "nearPlane" << YAML::Value << c.cameraData.getNearPlane();
+             out << YAML::Key << "farPlane" << YAML::Value << c.cameraData.getFarPlane();
+             out << YAML::Key << "fovYDegrees" << YAML::Value << c.cameraData.getFovYDegrees();
+             out << YAML::Key << "orthoParams" << YAML::Value << YAML::Flow << YAML::BeginSeq
+                 << c.cameraData.getOrthoLeft() << c.cameraData.getOrthoRight() << c.cameraData.getOrthoTop()
+                 << c.cameraData.getOrthoBottom() << YAML::EndSeq;
              out << YAML::EndMap;
          })},
 
@@ -179,7 +180,7 @@ namespace pxt {
         out << YAML::Key << "scene" << YAML::Value << m_scene->getName();
 
         // main camera
-        out << YAML::Key << "mainCameraEntity" << YAML::Value << m_scene->getMainCameraEntity().get<IDComponent>().uuid.toString();
+        out << YAML::Key << "activeCameraEntity" << YAML::Value << m_scene->getActiveCameraEntityUUID().toString();
 
         serializeEnvironment(m_scene, out);
 
@@ -230,7 +231,7 @@ namespace pxt {
         }
 
         std::string sceneName = data["scene"].as<std::string>();
-        core::UUID mainCameraUUID = core::UUID(data["mainCameraEntity"].as<std::string>());
+        core::UUID activeCameraUUID = core::UUID(data["activeCameraEntity"].as<std::string>());
 
         auto entities = data["entities"];
 
@@ -270,7 +271,7 @@ namespace pxt {
             Entity entity = m_scene->createEntity(name, uuid);
 
             // check if its main camera
-            bool isMainCamera = uuid == mainCameraUUID;
+            bool isActiveCamera = uuid == activeCameraUUID;
 
             // Deserialize TransformComponent
             if (auto transformComponentNode = entityNode["TransformComponent"]) {
@@ -395,18 +396,18 @@ namespace pxt {
                 float farPlane = cameraComponentNode["farPlane"].as<float>();
                 float fovYDegrees = cameraComponentNode["fovYDegrees"].as<float>();
                 auto orthoParams = cameraComponentNode["orthoParams"].as<std::vector<float>>();
-                Camera camera;
-                camera.setPerspectiveParams(fovYDegrees, nearPlane, farPlane);
-                camera.setOrthographicParams(orthoParams[0], orthoParams[1], orthoParams[2], orthoParams[3], nearPlane,
-                                             farPlane);
-                camera.setIsPerspective(isPerspective);
+                CameraData cameraData;
+                cameraData.setPerspectiveParams(fovYDegrees, nearPlane, farPlane);
+                cameraData.setOrthographicParams(orthoParams[0], orthoParams[1], orthoParams[2], orthoParams[3],
+                                                 nearPlane, farPlane);
+                cameraData.setIsPerspective(isPerspective);
 
-                auto& cameraComp = entity.addAndGet<CameraComponent>(camera);
+                auto& cameraComp = entity.addAndGet<CameraComponent>(cameraData);
                 cameraComp.useViewportAspectRatio = useViewportAspectRatio;
                 cameraComp.aspectRatio = useViewportAspectRatio ? 1.f : cameraComponentNode["aspectRatio"].as<float>();
 
-                if (isMainCamera) {
-                    m_scene->setMainCameraEntity(entity);
+                if (isActiveCamera) {
+                    m_scene->setActiveCameraEntity(uuid);
                 }
             }
 

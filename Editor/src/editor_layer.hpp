@@ -5,15 +5,18 @@
 #include "ui/entity_inspector.hpp"
 #include "ui/main_menu_bar.hpp"
 #include "ui/scene_hierarchy.hpp"
-#include "editor_camera.hpp"
+#include "editor_camera_controller.hpp"
 #include "camera_nav_state.hpp"
+#include "editor_view_provider.hpp"
+#include "game_view_provider.hpp"
+#include "core/engine_mode.hpp"
 
 #include <ImGuizmo.h>
 
 namespace pxt::editor {
     class EditorLayer : public core::Layer {
     public:
-        EditorLayer();
+        explicit EditorLayer();
 
         void onBeginFrame(float deltaTime) override;
         void onEvent(core::Event& event) override;
@@ -24,6 +27,8 @@ namespace pxt::editor {
         void updateGizmos(FrameInfo& frameInfo);
         void updateViewportOverlayButtons(FrameInfo& frameInfo, float buttonsScale = 0.1f);
 
+        void buildCameraNavigationState();
+
         ImVec2 getImageSizeWithAspectRatioForImGuiWindow(ImVec2 windowSize, float aspectRatio);
         bool onMouseButtonPress(core::MouseButtonPressEvent& event);
         bool onLeftMouseButtonPress();
@@ -32,10 +37,17 @@ namespace pxt::editor {
 
         const float getViewportAspectRatio() const { return m_sceneImageExtent.x / m_sceneImageExtent.y; };
 
+        core::EngineMode m_engineMode = core::EngineMode::EDIT;
+
         Unique<EditorTextureRegistry> m_editorTextureRegistry = nullptr;
 
-        Unique<EditorCamera> m_editorCamera = nullptr;
         CameraNavigationState m_navigationState{};
+        CameraData m_editorCameraData{};
+        glm::vec2 m_editorCameraRotation{0.f};
+        glm::vec3 m_editorCameraPosition{0.f};
+
+        EditorViewProvider m_editorViewProvider{EditorCameraController()};
+        GameViewProvider m_gameViewProvider;
 
         bool m_isViewportFocused = false;
         bool m_isViewportHovered = false;

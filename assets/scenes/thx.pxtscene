@@ -1,5 +1,5 @@
 scene: thx
-mainCameraEntity: 019977fa-dd8d-7969-839e-ec32d324f972
+activeCameraEntity: 019977fa-dd8d-7969-839e-ec32d324f972
 entities:
   - entity: 019977fa-dd8d-7969-839e-ec32d324f972
     NameComponent: camera

@@ -5,7 +5,7 @@
 #include "core/uuid.hpp"
 #include "resources/types/material.hpp"
 #include "resources/types/mesh.hpp"
-#include "scene/camera.hpp"
+#include "scene/camera_data.hpp"
 
 namespace pxt {
     struct IDComponent {
@@ -245,7 +245,7 @@ namespace pxt {
     };
 
     struct CameraComponent {
-        Camera camera;
+        CameraData cameraData;
         float aspectRatio = 1.f;
         bool useViewportAspectRatio = true;
 
@@ -253,11 +253,10 @@ namespace pxt {
 
         CameraComponent(float aspectRatio) : aspectRatio(aspectRatio), useViewportAspectRatio(false) {}
 
-        CameraComponent(const Camera& camera)
-            : camera(camera) {}
+        CameraComponent(const CameraData& cameraData) : cameraData(cameraData) {}
 
-        CameraComponent(const Camera& camera, const float aspectRatio)
-            : camera(camera), aspectRatio(aspectRatio), useViewportAspectRatio(false) {}
+        CameraComponent(const CameraData& cameraData, const float aspectRatio)
+            : cameraData(cameraData), aspectRatio(aspectRatio), useViewportAspectRatio(false) {}
 
         CameraComponent(const CameraComponent&) = default;
     };

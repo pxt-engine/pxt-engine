@@ -1,29 +1,27 @@
-#include "editor_camera.hpp"
+#include "editor_camera_controller.hpp"
 
 namespace pxt::editor {
-    EditorCamera::EditorCamera() : Camera() {}
-
-    void EditorCamera::onUpdate(float deltaTime, CameraNavigationState& camState, float aspectRatio) {
+    void EditorCameraController::onUpdate(float deltaTime, CameraNavigationState& camState, glm::vec2& rotation, glm::vec3& position) {
         // --- Keyboard Rotation ---
         if (glm::length2(camState.rotate) > glm::epsilon<float>()) {
-            m_rotation += m_lookSpeed * deltaTime * glm::normalize(camState.rotate);
+            rotation += m_lookSpeed * deltaTime * glm::normalize(camState.rotate);
         }
 
         // --- Mouse Movement for Rotation ---
         if (camState.freeLookEnabled) {
             // Invert the Y offset so that moving the mouse up (decreasing y)
             // increases the pitch (rotation.x) and vice versa.
-            m_rotation.x += camState.mouseDelta.y * m_mouseSensitivity;
-            m_rotation.y += camState.mouseDelta.x * m_mouseSensitivity;
+            rotation.x += camState.mouseDelta.y * m_mouseSensitivity;
+            rotation.y += camState.mouseDelta.x * m_mouseSensitivity;
 
-            m_rotation.x = glm::clamp(m_rotation.x, -1.5f, 1.5f);
-            m_rotation.y = glm::mod(m_rotation.y, glm::two_pi<float>());
+            rotation.x = glm::clamp(rotation.x, -1.5f, 1.5f);
+            rotation.y = glm::mod(rotation.y, glm::two_pi<float>());
         }
 
         // --- Keyboard Translation ---
         glm::vec3 forward;
-        float pitch = m_rotation.x;
-        float yaw = m_rotation.y;
+        float pitch = rotation.x;
+        float yaw = rotation.y;
 
         forward.x = glm::sin(yaw) * glm::cos(pitch);
         forward.y = -glm::sin(pitch);
@@ -43,21 +41,13 @@ namespace pxt::editor {
 
             glm::vec3 worldMove = localDir.z * forward + localDir.x * rightDir + localDir.y * worldUp;
 
-            m_position += m_moveSpeed * deltaTime * worldMove;
+            position += m_moveSpeed * deltaTime * worldMove;
         }
 
         // --- Mouse Scroll Zoom (Dolly) ---
         if (camState.scrollDelta.y != 0.0f) {
             // We move the camera translation along the forward vector
-            m_position += forward * camState.scrollDelta.y * m_zoomSpeed;
-        }
-
-        setViewDirection(m_position, forward, worldUp);
-
-        if (camState.isPerspective) {
-            setPerspective(aspectRatio);
-        } else {
-            setOrthographic();
+            position += forward * camState.scrollDelta.y * m_zoomSpeed;
         }
     }
 } // namespace pxt::editor

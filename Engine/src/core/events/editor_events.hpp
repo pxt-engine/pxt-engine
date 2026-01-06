@@ -46,11 +46,11 @@ namespace pxt::core {
 
         [[nodiscard]] uint32_t getHeight() const { return m_height; }
 
-        [[nodiscard]] Event::Type getEventType() const override { return Event::Type::ImGuiViewportResize; }
+        [[nodiscard]] Event::Type getEventType() const override { return Event::Type::ViewportResizeEvent; }
 
-        [[nodiscard]] std::string getName() const override { return "ImGuiViewportResize"; }
+        [[nodiscard]] std::string getName() const override { return "ViewportResizeEvent"; }
 
-        static Event::Type getStaticType() { return Event::Type::ImGuiViewportResize; }
+        static Event::Type getStaticType() { return Event::Type::ViewportResizeEvent; }
 
     private:
         uint32_t m_width, m_height;

@@ -75,22 +75,4 @@ void CameraController::onUpdate(float deltaTime) {
     if (glm::dot(moveDir, moveDir) > std::numeric_limits<float>::epsilon()) {
         transform.translation += m_moveSpeed * deltaTime * glm::normalize(moveDir);
     }
-
-    // --- Mouse Scroll Zoom (Dolly) ---
-    float scrollDeltaY = Input::getState().getScrollDelta().y; // Assuming .y is the vertical wheel
-    if (std::abs(scrollDeltaY) > 0.0f) {
-        // We move the camera translation along the forward vector
-        transform.translation += forward * scrollDeltaY * m_zoomSpeed;
-    }
-    
-    // update camera view matrix and perspective
-    auto& cameraComp = get<CameraComponent>();
-    auto& camera = cameraComp.camera;
-    camera.setViewDirection(transform.translation, forward, worldUp);
-    
-    if (camera.isPerspective()) {
-        camera.setPerspective(cameraComp.aspectRatio);
-    } else {
-        camera.setOrthographic();
-    }
 }

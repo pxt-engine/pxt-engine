@@ -95,7 +95,7 @@ namespace pxt {
                 view.get<PointLightComponent, ColorComponent, TransformComponent>(entity);
 
             glm::vec3 lightPos = transform.translation;
-            glm::vec3 cameraPos = frameInfo.camera.getPosition();
+            glm::vec3 cameraPos = CameraUtils::getCameraPos(frameInfo.cameraMatrices.inverseViewMatrix);
 
             glm::vec3 lightToCamera = cameraPos - lightPos;
 

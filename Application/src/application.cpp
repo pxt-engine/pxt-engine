@@ -36,7 +36,7 @@ public:
 
         camera.addAndGet<ScriptComponent>().bind<CameraController>();
 
-        getScene().setMainCameraEntity(camera);
+        getScene().setActiveCameraEntity(camera.getUUID());
     }
 
     Entity createPointLightEntity(const float intensity = 1.0f, const float radius = 0.1f,
@@ -297,8 +297,9 @@ public:
         serializer.deserialize(SCENES_PATH + "thx.pxtscene");
 
         // TODO: add scripts to scene serialize
-        Entity camera = scene.getMainCameraEntity();
-        camera.addAndGet<ScriptComponent>().bind<CameraController>();
+        if (auto camera = scene.getActiveCameraEntity()) {
+            camera.value().addAndGet<ScriptComponent>().bind<CameraController>();
+        }
 
         auto view = scene.getEntitiesWith<PointLightComponent>();
         for (auto entity : view) {

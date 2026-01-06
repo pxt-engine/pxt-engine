@@ -92,9 +92,11 @@ namespace pxt {
          * @brief Gets the entity designated as the main camera.
          * @return The main camera entity or an empty entity if none exist.
          */
-        Entity getMainCameraEntity();
+        std::optional<Entity> getActiveCameraEntity();
+
+        core::UUID getActiveCameraEntityUUID();
         
-        void setMainCameraEntity(Entity newMainCamera);
+        void setActiveCameraEntity(core::UUID newActiveCameraID);
 
         void updateCamerasAspectRatio(float newAspect);
 
@@ -114,7 +116,7 @@ namespace pxt {
         entt::registry m_registry;
 
         Shared<Environment> m_environment = createShared<Environment>();
-        entt::entity m_mainCameraEntity;
+        core::UUID m_activeCameraEntityID = core::UUID::s_invalidId;
         
         friend class Entity;
     };

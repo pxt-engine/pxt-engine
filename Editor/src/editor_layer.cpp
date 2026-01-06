@@ -1,5 +1,6 @@
 #include "editor_layer.hpp"
 #include "core/events/editor_events.hpp"
+#include "core/events/engine_state_events.hpp"
 #include "ui/widgets/mode_selector_image_button.hpp"
 #include "ui/widgets/toggle_image_button.hpp"
 
@@ -8,18 +9,35 @@
 namespace pxt::editor {
     EditorLayer::EditorLayer() : core::Layer("EditorLayer") {
         m_editorTextureRegistry = createUnique<EditorTextureRegistry>();
-        m_editorCamera = createUnique<EditorCamera>();
+        
+        Application::get().setViewProvider(&m_editorViewProvider);
     }
 
     void EditorLayer::onBeginFrame(float deltaTime) {
         // reset state
         m_navigationState = {};
+        m_editorViewProvider.resetState();
 
-        if (!m_isViewportFocused || !m_isViewportHovered)
+        // update active camera information inside the provider
+        m_editorViewProvider.updateActiveCamera(m_engineMode, m_editorCameraData, m_editorCameraPosition,
+                                                m_editorCameraRotation);
+
+        // we want focus and hover to accept user input
+        if (!m_isViewportFocused || !m_isViewportHovered) {
             return;
+        }
 
+        buildCameraNavigationState();
+
+        m_editorViewProvider.setCameraNavigationState(m_navigationState);
+        // here we update the active camera data with the editor controller
+        m_editorViewProvider.onUpdateCameraController(deltaTime);
+    }
+
+    void EditorLayer::buildCameraNavigationState() {
         const auto& input = core::Input::getState();
-        m_navigationState.freeLookEnabled = input.isMouseButtonDown(core::RightMouseButton) || input.isKeyDown(core::KeyCode::Space);
+        m_navigationState.freeLookEnabled =
+            input.isMouseButtonDown(core::RightMouseButton) || input.isKeyDown(core::KeyCode::Space);
 
         m_navigationState.mouseDelta = input.getMouseDelta();
         m_navigationState.scrollDelta = input.getScrollDelta();
@@ -29,19 +47,36 @@ namespace pxt::editor {
             (input.isKeyDown(core::KeyCode::E) ? 1.f : 0.f) - (input.isKeyDown(core::KeyCode::Q) ? 1.f : 0.f),
             (input.isKeyDown(core::KeyCode::W) ? 1.f : 0.f) - (input.isKeyDown(core::KeyCode::S) ? 1.f : 0.f)};
 
-        m_navigationState.rotate = {
-            (input.isKeyDown(core::KeyCode::DownArrow) ? 1.f : 0.f) - (input.isKeyDown(core::KeyCode::UpArrow) ? 1.f : 0.f),
-            (input.isKeyDown(core::KeyCode::RightArrow) ? 1.f : 0.f) - (input.isKeyDown(core::KeyCode::LeftArrow) ? 1.f : 0.f)};
-
-        m_editorCamera->onUpdate(deltaTime, m_navigationState, getViewportAspectRatio());
+        m_navigationState.rotate = {(input.isKeyDown(core::KeyCode::DownArrow) ? 1.f : 0.f) -
+                                        (input.isKeyDown(core::KeyCode::UpArrow) ? 1.f : 0.f),
+                                    (input.isKeyDown(core::KeyCode::RightArrow) ? 1.f : 0.f) -
+                                        (input.isKeyDown(core::KeyCode::LeftArrow) ? 1.f : 0.f)};
     }
-
 
     void EditorLayer::onEvent(core::Event& event) {
         core::EventDispatcher dispatcher(event);
 
         dispatcher.dispatch<core::SelectedEntityChangedEvent>([this](core::SelectedEntityChangedEvent& e) {
             m_selectedEntityUUID = e.getSelectedEntityUUID();
+            return false;
+        });
+
+        dispatcher.dispatch<core::EngineModeChangedEvent>([this](core::EngineModeChangedEvent& e) {
+            m_engineMode = e.getNewEngineMode();
+
+            auto& engine = Application::get();
+            switch (m_engineMode) { 
+            case (core::EngineMode::EDIT):
+                engine.setViewProvider(&m_editorViewProvider);
+                break;
+            case (core::EngineMode::PLAY):
+                engine.setViewProvider(&m_gameViewProvider);
+                break;
+            default:
+                PXT_WARN("Editor received unsupported engine mode change event: {}", core::engineModeToString(m_engineMode));
+                break;
+            }
+
             return false;
         });
 
@@ -217,8 +252,8 @@ namespace pxt::editor {
         TransformComponent& transform = selectedEntity.get<TransformComponent>();
 
         // copy - we need to modify them to adhere opengl standards (rh, y up)
-        const glm::mat4& gizmoView = frameInfo.camera.getViewMatrix();
-        glm::mat4 gizmoProj = frameInfo.camera.getProjectionMatrix();
+        const glm::mat4& gizmoView = frameInfo.cameraMatrices.viewMatrix;
+        glm::mat4 gizmoProj = frameInfo.cameraMatrices.projectionMatrix;
         gizmoProj[1][1] *= -1; // flip Y for ImGuizmo (it expects GL style projection matrix)
 
         glm::mat4 modelMatrix = transform.mat4();
@@ -254,12 +289,14 @@ namespace pxt::editor {
                                        ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav |
                                        ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBackground;
 
+        // -- GIZMOS --
+
         // Top-right of viewport
         ImVec2 windowPos(m_viewportUpperLeftScreenCoord.x + m_sceneImageExtent.x - padding,
                          m_viewportUpperLeftScreenCoord.y + padding);
 
         ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always, ImVec2(1.0f, 0.0f));
-        ImGui::Begin("ViewportOverlayButtons", nullptr, windowFlags);
+        ImGui::Begin("ViewportOverlayGizmoButtons", nullptr, windowFlags);
 
         // check for viewport focus/hover
         m_isViewportFocused |= ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
@@ -275,26 +312,61 @@ namespace pxt::editor {
         ImTextureID worldIcon = (ImTextureID)m_editorTextureRegistry->get("world_mode_gizmo.png");
 
         // TODO: Replace ImGuizmo::BOUNDS with a custom enum when new tools are added
-        ui::ModeSelectorImageButton::render(selectIcon, "##selection-tool", "Selection Tool (R)", ImGuizmo::BOUNDS,
+        ui::ModeSelectorImageButton::render(selectIcon, "##selection-tool", "Selection Tool (Q)", ImGuizmo::BOUNDS,
                                             m_currentGizmoOperation, buttonSize);
 
         ImGui::SameLine(0.f, 10.f);
 
-        ui::ModeSelectorImageButton::render(translateIcon, "##translate-gizmo", "Translate (1)", ImGuizmo::TRANSLATE,
+        ui::ModeSelectorImageButton::render(translateIcon, "##translate-gizmo", "Translate (W)", ImGuizmo::TRANSLATE,
                                             m_currentGizmoOperation, buttonSize);
 
         ImGui::SameLine(0.f, 0.f);
-        ui::ModeSelectorImageButton::render(rotateIcon, "##rotate-gizmo", "Rotate (2)", ImGuizmo::ROTATE,
+        ui::ModeSelectorImageButton::render(rotateIcon, "##rotate-gizmo", "Rotate (E)", ImGuizmo::ROTATE,
                                             m_currentGizmoOperation, buttonSize);
         ImGui::SameLine(0.f, 0.f);
-        ui::ModeSelectorImageButton::render(scaleIcon, "##scale-gizmo", "Scale (3)", ImGuizmo::SCALE,
+        ui::ModeSelectorImageButton::render(scaleIcon, "##scale-gizmo", "Scale (R)", ImGuizmo::SCALE,
                                             m_currentGizmoOperation, buttonSize);
 
         ImGui::SameLine(0.f, 10.f);
-        ui::ToggleImageButton::render(worldIcon, "##world-mode-gizmo", "World Mode (4)", ImGuizmo::WORLD,
+        ui::ToggleImageButton::render(worldIcon, "##world-mode-gizmo", "World Mode (T)", ImGuizmo::WORLD,
                                       ImGuizmo::LOCAL, m_currentGizmoMode, buttonSize);
 
         ImGui::End();
+
+        // -- PLAY / STOP BUTTON --
+        // Top-left of viewport
+        windowPos = ImVec2(m_viewportUpperLeftScreenCoord.x + padding,
+                         m_viewportUpperLeftScreenCoord.y + padding);
+
+        ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always, ImVec2(0.0f, 0.0f));
+        ImGui::Begin("ViewportOverlayPlayButton", nullptr, windowFlags);
+
+        // check for viewport focus/hover
+        m_isViewportFocused |= ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
+        m_isViewportHovered |= ImGui::IsWindowHovered(ImGuiHoveredFlags_None);
+        m_isAnyButtonHovered |= ImGui::IsWindowHovered(ImGuiHoveredFlags_None);
+
+        ImTextureID playIcon;
+        std::string tooltip;
+        if (m_engineMode == core::EngineMode::EDIT) {
+            playIcon = (ImTextureID)m_editorTextureRegistry->get("play_button.png");
+            tooltip = "Play";
+        } else {
+            playIcon = (ImTextureID)m_editorTextureRegistry->get("pause_button.png");
+            tooltip = "Pause";
+        }
+
+        core::EngineMode oldEngineMode = m_engineMode;
+        ui::ToggleImageButton::render(playIcon, "##play-button", tooltip.c_str(), core::EngineMode::PLAY,
+                                      core::EngineMode::EDIT, m_engineMode, buttonSize);
+
+        ImGui::End();
+
+        // if the user clicked the button we request a mode change to the engine
+        if (oldEngineMode != m_engineMode) {
+            Application::get().queueEvent<core::RequestEngineModeChangeEvent>(
+                core::RequestEngineModeChangeEvent(m_engineMode));
+        }
     }
 
     ImVec2 EditorLayer::getImageSizeWithAspectRatioForImGuiWindow(ImVec2 windowSize, float aspectRatio) {

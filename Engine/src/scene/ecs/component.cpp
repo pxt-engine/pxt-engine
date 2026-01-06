@@ -40,6 +40,6 @@ namespace pxt {
     }
 
     // --- CameraComponent ---
-    CameraComponent::CameraComponent() { camera = Camera{}; }
+    CameraComponent::CameraComponent() { cameraData = CameraData(); }
 
 } // namespace pxt

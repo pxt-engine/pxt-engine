@@ -2,6 +2,7 @@
 
 #include "core/events/event.hpp"
 #include "core/events/event_queue.hpp"
+#include "core/engine_mode.hpp"
 #include "core/layer/layer_stack.hpp"
 #include "core/pch.hpp"
 #include "graphics/context/context.hpp"
@@ -14,6 +15,7 @@
 #include "graphics/resources/material_registry.hpp"
 #include "graphics/resources/texture_registry.hpp"
 #include "graphics/window.hpp"
+#include "graphics/view_provider.hpp"
 #include "resources/resource_manager.hpp"
 #include "resources/types/material.hpp"
 #include "scene/scene.hpp"
@@ -90,6 +92,8 @@ namespace pxt {
             m_eventQueue.queueEvent(std::forward<E>(event));
         }
 
+        void setViewProvider(IViewProvider* viewProvider) { m_viewProviderPtr = viewProvider; }
+
     protected:
         virtual void loadScene() {}
 
@@ -108,6 +112,9 @@ namespace pxt {
         Window m_window{WindowData()};
         Context m_context{m_window};
 
+        core::EngineMode m_engineMode = core::EngineMode::EDIT;
+
+        IViewProvider* m_viewProviderPtr = nullptr;
         Renderer m_renderer{m_window, m_context};
 
         core::LayerStack m_layerStack{};

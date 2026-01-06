@@ -383,10 +383,10 @@ namespace pxt {
         }
 
         // update ubo buffer
-        ubo.projection = frameInfo.camera.getProjectionMatrix();
-        ubo.view = frameInfo.camera.getViewMatrix();
-        ubo.inverseView = frameInfo.camera.getInverseViewMatrix();
-        ubo.inverseProjection = frameInfo.camera.getInverseProjMatrix();
+        ubo.projection = frameInfo.cameraMatrices.projectionMatrix;
+        ubo.view = frameInfo.cameraMatrices.viewMatrix;
+        ubo.inverseView = frameInfo.cameraMatrices.inverseViewMatrix;
+        ubo.inverseProjection = frameInfo.cameraMatrices.inverseProjectionMatrix;
 
         // update light values into ubo
         m_pointLightSystem->update(frameInfo, ubo);

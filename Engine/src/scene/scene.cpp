@@ -66,9 +66,26 @@ namespace pxt {
         });
     }
 
-    Entity Scene::getMainCameraEntity() { return {m_mainCameraEntity, this}; }
+    std::optional<Entity> Scene::getActiveCameraEntity() {
+        if (m_activeCameraEntityID == core::UUID::s_invalidId)
+            return std::nullopt;
+        return getEntity(m_activeCameraEntityID);
+    }
 
-    void Scene::setMainCameraEntity(Entity newMainCamera) { m_mainCameraEntity = newMainCamera; }
+    core::UUID Scene::getActiveCameraEntityUUID() {
+        return m_activeCameraEntityID;
+    }
+
+    void Scene::setActiveCameraEntity(core::UUID newActiveCameraID) { 
+        // if the entity exists and does not have a cameraComponent it cannot be the active camera
+        if (newActiveCameraID != core::UUID::s_invalidId &&
+            !getEntity(newActiveCameraID).has<CameraComponent>()) {
+            throw std::logic_error("The new active camera entity must have a CameraComponent or must be an invalid UUID (no one is "
+                      "the active camera)");
+        }
+
+        m_activeCameraEntityID = newActiveCameraID;
+    }
 
     void Scene::updateCamerasAspectRatio(float newAspect) {
         getEntitiesWith<CameraComponent>().each([=](auto entity, auto& cameraComponent) {

@@ -3,9 +3,11 @@
 #include "core/diagnostics.hpp"
 #include "core/events/event_dispatcher.hpp"
 #include "core/events/window_event.hpp"
+#include "core/events/engine_state_events.hpp"
 #include "core/input/input.hpp"
 #include "graphics/resources/texture2d.hpp"
-#include "scene/camera.hpp"
+#include "graphics/dummy_view_provider.hpp"
+#include "scene/camera_data.hpp"
 #include "scene/ecs/component.hpp"
 #include "scene/ecs/entity.hpp"
 
@@ -199,12 +201,20 @@ namespace pxt {
     }
 
     void Application::run() {
+        if (m_viewProviderPtr == nullptr) {
+            auto dummyViewProvider = DummyViewProvider();
+            m_viewProviderPtr = &dummyViewProvider;
+            PXT_WARN("Engine View Provider is set to NULL. Make sure to set a valid implementation of IViewProvider to the Engine using the setViewProvider() API. Defaulting to DummyViewProvider now.");
+        }
+
         auto currentTime = std::chrono::high_resolution_clock::now();
+
+        // set the initial state of the engine to EDIT
+        // this will not be hardcoded in the future
+        queueEvent(core::EngineModeChangedEvent(core::EngineMode::EDIT));
 
         m_scene.onStart();
 
-        Camera& mainCamera = m_scene.getMainCameraEntity().get<CameraComponent>().camera;
-        
         uint32_t frameCount = 0;
         while (isRunning()) {
             // reset temporary inputs
@@ -223,13 +233,15 @@ namespace pxt {
                 int frameIndex = m_renderer.getFrameIndex();
 
                 m_scene.onUpdate(elapsedTime);
+                float aspectRatio = m_renderLayerPtr->getSceneAspectRatio();
+                CameraMatrices cameraMatrices = m_viewProviderPtr->getCameraMatrices(aspectRatio);
 
                 FrameInfo frameInfo = {
                     frameIndex,
                     elapsedTime,
-                    m_renderer.getAspectRatio(),
+                    aspectRatio,
                     commandBuffer,
-                    mainCamera,
+                    cameraMatrices,
                     m_globalDescriptorSets[frameIndex],
                     m_renderLayerPtr->getImGuiSceneDescriptorSet(),
                     m_scene,
@@ -280,6 +292,17 @@ namespace pxt {
         dispatcher.dispatch<core::WindowResizeEvent>([this](auto& event) {
             m_renderer.onWindowResize();
             return true;
+        });
+
+        dispatcher.dispatch<core::RequestEngineModeChangeEvent>([this](auto& event) {
+            // TODO: here we should check if the engine is ready or can switch mode, if yes, we trigger the event
+            queueEvent<core::EngineModeChangedEvent>(core::EngineModeChangedEvent(event.getNewEngineMode()));
+            return false;
+        });
+
+        dispatcher.dispatch<core::EngineModeChangedEvent>([this](auto& event) {
+            m_engineMode = event.getNewEngineMode();
+            return false;
         });
 
         m_layerStack.onEvent(event);
