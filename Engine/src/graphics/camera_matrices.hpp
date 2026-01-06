@@ -10,19 +10,22 @@ namespace pxt {
         glm::mat4 inverseProjectionMatrix{1.f};
     };
 
-    class CameraUtils {
+    class CameraMath {
     public:
-        [[nodiscard]] static glm::mat4 buildOrthographic(CameraData& camData);
+        [[nodiscard]] static glm::mat4 makeOrthographic(const CameraData& camData);
 
-        [[nodiscard]] static glm::mat4 buildPerspective(CameraData& camData, float aspect);
+        [[nodiscard]] static glm::mat4 makePerspective(const CameraData& camData, float aspect);
 
-        [[nodiscard]] static glm::mat4 setViewDirection(glm::vec3 position, glm::vec3 direction, glm::vec3 up);
+        [[nodiscard]] static glm::mat4 makeViewFromDirection(const glm::vec3 position, const glm::vec3 direction,
+                                                             const glm::vec3 up);
 
-        [[nodiscard]] static glm::mat4 setViewTarget(glm::vec3 position, glm::vec3 target, glm::vec3 up);
+        [[nodiscard]] static glm::mat4 makeViewFromTarget(const glm::vec3 position, const glm::vec3 target,
+                                                          const glm::vec3 up);
 
         [[nodiscard]] static glm::vec3 getCameraPos(const glm::mat4& inverseViewMatrix);
 
-        static void buildOrthonormalBasisFromPitchAndYaw(glm::vec3& forward, glm::vec3& upDir, glm::vec3& rightDir,
-                                                         float pitch, float yaw, bool isWorldYUp = true);
+        static void computeOrthonormalBasisFromPitchYaw(glm::vec3& forward, glm::vec3& upDir, glm::vec3& rightDir,
+                                                        const float pitch, const float yaw,
+                                                        const bool isWorldYUp = true);
     };
-}
+} // namespace pxt

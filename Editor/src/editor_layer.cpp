@@ -225,9 +225,10 @@ namespace pxt::editor {
 
         ImGui::Image(scene, m_sceneImageExtent);
 
-        // if nothing selected or selection tool is active, do not show gizmos
+        // if nothing selected, selection tool is active or we are not in edit mode: do not show gizmos
         // we currently use ImGuizmo::BOUNDS as "selection tool" placeholder
-        if (m_selectedEntityUUID != core::UUID::s_invalidId && m_currentGizmoOperation != ImGuizmo::BOUNDS) {
+        if (m_selectedEntityUUID != core::UUID::s_invalidId && m_currentGizmoOperation != ImGuizmo::BOUNDS &&
+            m_engineMode == core::EngineMode::EDIT) {
             // this has to be called inside the window where ImGuizmo is used
             updateGizmos(frameInfo);
         }
@@ -281,20 +282,7 @@ namespace pxt::editor {
         }
     }
 
-    void EditorLayer::updateViewportOverlayButtons(FrameInfo& frameInfo, float buttonsScale) {
-        const float minButtonSize = 24.0f;
-        const float minViewportExtent = std::min(m_sceneImageExtent.x, m_sceneImageExtent.y);
-        ImVec2 buttonSize = ImVec2(minViewportExtent * buttonsScale, minViewportExtent * buttonsScale);
-        buttonSize.x = std::max(buttonSize.x, minButtonSize);
-        buttonSize.y = std::max(buttonSize.y, minButtonSize);
-        const float padding = 10.0f;
-
-        ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize |
-                                       ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav |
-                                       ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBackground;
-
-        // -- GIZMOS --
-
+    void EditorLayer::updateGizmoOverlayButtons(ImGuiWindowFlags windowFlags, float padding, ImVec2 buttonSize) {
         // Top-right of viewport
         ImVec2 windowPos(m_viewportUpperLeftScreenCoord.x + m_sceneImageExtent.x - padding,
                          m_viewportUpperLeftScreenCoord.y + padding);
@@ -336,10 +324,15 @@ namespace pxt::editor {
                                       ImGuizmo::LOCAL, m_currentGizmoMode, buttonSize);
 
         ImGui::End();
+    }
 
-        // -- PLAY / STOP BUTTON --
+    core::EngineMode EditorLayer::updatePlayPauseOverlayButton(ImGuiWindowFlags windowFlags, float padding,
+                                                               ImVec2 buttonSize) {
+        core::EngineMode newEngineMode = m_engineMode;
+
         // Top-left of viewport
-        windowPos = ImVec2(m_viewportUpperLeftScreenCoord.x + padding, m_viewportUpperLeftScreenCoord.y + padding);
+        ImVec2 windowPos =
+            ImVec2(m_viewportUpperLeftScreenCoord.x + padding, m_viewportUpperLeftScreenCoord.y + padding);
 
         ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always, ImVec2(0.0f, 0.0f));
         ImGui::Begin("ViewportOverlayPlayButton", nullptr, windowFlags);
@@ -359,17 +352,42 @@ namespace pxt::editor {
             tooltip = "Pause";
         }
 
-        core::EngineMode oldEngineMode = m_engineMode;
         ui::ToggleImageButton::render(playIcon, "##play-button", tooltip.c_str(), core::EngineMode::PLAY,
-                                      core::EngineMode::EDIT, m_engineMode, buttonSize);
+                                      core::EngineMode::EDIT, newEngineMode, buttonSize);
 
         ImGui::End();
 
+        return newEngineMode;
+    }
+
+    void EditorLayer::updateViewportOverlayButtons(FrameInfo& frameInfo, float buttonsScale) {
+        const float minButtonSize = 24.0f;
+        const float minViewportExtent = std::min(m_sceneImageExtent.x, m_sceneImageExtent.y);
+        ImVec2 buttonSize = ImVec2(minViewportExtent * buttonsScale, minViewportExtent * buttonsScale);
+        buttonSize.x = std::max(buttonSize.x, minButtonSize);
+        buttonSize.y = std::max(buttonSize.y, minButtonSize);
+        const float padding = 10.0f;
+
+        ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize |
+                                       ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav |
+                                       ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBackground;
+
+        // -- PLAY / STOP BUTTON --
+        core::EngineMode newEngineMode = updatePlayPauseOverlayButton(windowFlags, padding, buttonSize);
+
         // if the user clicked the button we request a mode change to the engine
-        if (oldEngineMode != m_engineMode) {
+        if (newEngineMode != m_engineMode) {
             Application::get().queueEvent<core::RequestEngineModeChangeEvent>(
-                core::RequestEngineModeChangeEvent(m_engineMode));
+                core::RequestEngineModeChangeEvent(newEngineMode));
         }
+
+        // if we are not in EDIT mode we shouldn't render gizmo etc...
+        if (m_engineMode != core::EngineMode::EDIT) {
+            return;
+        }
+
+        // -- GIZMOS --
+        updateGizmoOverlayButtons(windowFlags, padding, buttonSize);
     }
 
     ImVec2 EditorLayer::getImageSizeWithAspectRatioForImGuiWindow(ImVec2 windowSize, float aspectRatio) {

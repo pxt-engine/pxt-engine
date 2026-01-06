@@ -405,6 +405,8 @@ namespace pxt {
     }
 
     void RenderLayer::doRenderPasses(FrameInfo& frameInfo) {
+        const core::EngineMode currentEngineMode = Application::get().getEngineMode();
+
         if (m_densityTextureSystem->needsRegeneration()) {
             m_densityTextureSystem->generate(frameInfo.commandBuffer);
         }
@@ -466,20 +468,27 @@ namespace pxt {
 
             m_skyboxRenderSystem->render(frameInfo);
 
-            m_editorGridRenderSystem->render(frameInfo);
+            if (currentEngineMode == core::EngineMode::EDIT) {
+                m_editorGridRenderSystem->render(frameInfo);
+            }
 
             m_pointLightSystem->render(frameInfo);
 
             m_renderer.endRenderPass(frameInfo.commandBuffer, *m_offscreenRenderPass, *m_offscreenFb);
         }
 
+        // if we are in EDIT mode, use the true selected entity
+        // else, make it think nothing is selected, to avoid selection edges
+        core::UUID currentlySelectedUUID =
+            currentEngineMode == core::EngineMode::EDIT ? m_selectedEntityUUID : core::UUID::s_invalidId;
+
         // render selection mask
-        m_selectionMaskRenderSystem->render(frameInfo, m_renderer, m_selectedEntityUUID);
+        m_selectionMaskRenderSystem->render(frameInfo, m_renderer, currentlySelectedUUID);
 
         // composition pass (compute shader)
         m_compositionRenderSystem->render(frameInfo, *m_sceneImage, m_selectionMaskRenderSystem->getMaskColorImage(),
                                           m_objectPickingSystem->getObjectIdImage(), *m_finalImage,
-                                          frameInfo.scene.getObjPickingIdFromEntityUUID(m_selectedEntityUUID));
+                                          frameInfo.scene.getObjPickingIdFromEntityUUID(currentlySelectedUUID));
     }
 
     void RenderLayer::onPostFrameUpdate(FrameInfo& frameInfo) {

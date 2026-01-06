@@ -1,8 +1,8 @@
 #pragma once
 
+#include "core/engine_mode.hpp"
 #include "core/events/event.hpp"
 #include "core/events/event_queue.hpp"
-#include "core/engine_mode.hpp"
 #include "core/layer/layer_stack.hpp"
 #include "core/pch.hpp"
 #include "graphics/context/context.hpp"
@@ -14,8 +14,8 @@
 #include "graphics/resources/blas_registry.hpp"
 #include "graphics/resources/material_registry.hpp"
 #include "graphics/resources/texture_registry.hpp"
-#include "graphics/window.hpp"
 #include "graphics/view_provider.hpp"
+#include "graphics/window.hpp"
 #include "resources/resource_manager.hpp"
 #include "resources/types/material.hpp"
 #include "scene/scene.hpp"
@@ -41,6 +41,8 @@ namespace pxt {
         ResourceManager* getResourceManager() { return m_resourceManagerPtr; }
 
         DescriptorAllocatorGrowable* getDescriptorAllocator() { return m_descriptorAllocator.get(); }
+
+        const core::EngineMode getEngineMode() { return m_engineMode; }
 
         // LAYERS
 

@@ -10,20 +10,20 @@ namespace pxt {
         m_rotation = glm::vec2(0.f);
     }
 
-    CameraMatrices DummyViewProvider::getCameraMatrices(float aspectRatio) { 
+    CameraMatrices DummyViewProvider::getCameraMatrices(float aspectRatio) {
         CameraMatrices cm{};
 
         glm::vec3 forward;
         glm::vec3 upDir;
         glm::vec3 rightDir;
 
-        CameraUtils::buildOrthonormalBasisFromPitchAndYaw(forward, upDir, rightDir, m_rotation.x, m_rotation.y);
+        CameraMath::computeOrthonormalBasisFromPitchYaw(forward, upDir, rightDir, m_rotation.x, m_rotation.y);
 
-        cm.viewMatrix = CameraUtils::setViewDirection(m_position, forward, upDir);
+        cm.viewMatrix = CameraMath::makeViewFromDirection(m_position, forward, upDir);
         cm.inverseViewMatrix = glm::inverse(cm.viewMatrix);
-        cm.projectionMatrix = CameraUtils::buildPerspective(m_dummyCameraData, aspectRatio);
+        cm.projectionMatrix = CameraMath::makePerspective(m_dummyCameraData, aspectRatio);
         cm.inverseProjectionMatrix = glm::inverse(cm.projectionMatrix);
 
         return cm;
     }
-}
+} // namespace pxt

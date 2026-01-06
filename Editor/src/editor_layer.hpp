@@ -1,15 +1,15 @@
 #pragma once
 
+#include "camera_nav_state.hpp"
+#include "core/engine_mode.hpp"
+#include "editor_camera_controller.hpp"
 #include "editor_texture_registry.hpp"
+#include "editor_view_provider.hpp"
+#include "game_view_provider.hpp"
 #include "pxtengine.h"
 #include "ui/entity_inspector.hpp"
 #include "ui/main_menu_bar.hpp"
 #include "ui/scene_hierarchy.hpp"
-#include "editor_camera_controller.hpp"
-#include "camera_nav_state.hpp"
-#include "editor_view_provider.hpp"
-#include "game_view_provider.hpp"
-#include "core/engine_mode.hpp"
 
 #include <ImGuizmo.h>
 
@@ -26,6 +26,8 @@ namespace pxt::editor {
         void updateSceneUi(FrameInfo& frameInfo);
         void updateGizmos(FrameInfo& frameInfo);
         void updateViewportOverlayButtons(FrameInfo& frameInfo, float buttonsScale = 0.1f);
+        void updateGizmoOverlayButtons(ImGuiWindowFlags windowFlags, float padding, ImVec2 buttonSize);
+        core::EngineMode updatePlayPauseOverlayButton(ImGuiWindowFlags windowFlags, float padding, ImVec2 buttonSize);
 
         void buildCameraNavigationState();
 

@@ -13,12 +13,12 @@ namespace pxt::editor {
         glm::vec3 upDir;
         glm::vec3 rightDir;
 
-        CameraUtils::buildOrthonormalBasisFromPitchAndYaw(forward, upDir, rightDir, m_activeCameraRotation.x,
-                                                          m_activeCameraRotation.y);
+        CameraMath::computeOrthonormalBasisFromPitchYaw(forward, upDir, rightDir, m_activeCameraRotation.x,
+                                                        m_activeCameraRotation.y);
 
-        cm.viewMatrix = CameraUtils::setViewDirection(m_activeCameraPosition, forward, upDir);
+        cm.viewMatrix = CameraMath::makeViewFromDirection(m_activeCameraPosition, forward, upDir);
         cm.inverseViewMatrix = glm::inverse(cm.viewMatrix);
-        cm.projectionMatrix = CameraUtils::buildPerspective(m_activeCameraData, finalAspectRatio);
+        cm.projectionMatrix = CameraMath::makePerspective(m_activeCameraData, finalAspectRatio);
         cm.inverseProjectionMatrix = glm::inverse(cm.projectionMatrix);
 
         return cm;
