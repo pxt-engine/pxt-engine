@@ -9,7 +9,7 @@
 namespace pxt::editor {
     EditorLayer::EditorLayer() : core::Layer("EditorLayer") {
         m_editorTextureRegistry = createUnique<EditorTextureRegistry>();
-        
+
         Application::get().setViewProvider(&m_editorViewProvider);
     }
 
@@ -18,9 +18,14 @@ namespace pxt::editor {
         m_navigationState = {};
         m_editorViewProvider.resetState();
 
+        // here we have to obtain the corrext camera data based on engine mode
+        // if we are not in EDIT mode, we simply return for now
+        if (m_engineMode != core::EngineMode::EDIT) {
+            return;
+        }
+
         // update active camera information inside the provider
-        m_editorViewProvider.updateActiveCamera(m_engineMode, m_editorCameraData, m_editorCameraPosition,
-                                                m_editorCameraRotation);
+        m_editorViewProvider.updateActiveCamera(m_editorCameraData, m_editorCameraPosition, m_editorCameraRotation);
 
         // we want focus and hover to accept user input
         if (!m_isViewportFocused || !m_isViewportHovered) {
@@ -65,7 +70,7 @@ namespace pxt::editor {
             m_engineMode = e.getNewEngineMode();
 
             auto& engine = Application::get();
-            switch (m_engineMode) { 
+            switch (m_engineMode) {
             case (core::EngineMode::EDIT):
                 engine.setViewProvider(&m_editorViewProvider);
                 break;
@@ -73,7 +78,8 @@ namespace pxt::editor {
                 engine.setViewProvider(&m_gameViewProvider);
                 break;
             default:
-                PXT_WARN("Editor received unsupported engine mode change event: {}", core::engineModeToString(m_engineMode));
+                PXT_WARN("Editor received unsupported engine mode change event: {}",
+                         core::engineModeToString(m_engineMode));
                 break;
             }
 
@@ -82,9 +88,8 @@ namespace pxt::editor {
 
         // I/O Events
 
-        //! here we block i/o events if
-        //! the viewport is not focused
-        if (!m_isViewportFocused) {
+        //! here we block i/o events if the viewport is not focused or we are not in EDIT mode
+        if (!m_isViewportFocused || m_engineMode != core::EngineMode::EDIT) {
             return;
         }
 
@@ -95,7 +100,6 @@ namespace pxt::editor {
 
             return onMouseButtonPress(e);
         });
-
 
         dispatcher.dispatch<core::KeyPressEvent>([this](core::KeyPressEvent& e) {
             // we return also if user is using free look mode
@@ -335,8 +339,7 @@ namespace pxt::editor {
 
         // -- PLAY / STOP BUTTON --
         // Top-left of viewport
-        windowPos = ImVec2(m_viewportUpperLeftScreenCoord.x + padding,
-                         m_viewportUpperLeftScreenCoord.y + padding);
+        windowPos = ImVec2(m_viewportUpperLeftScreenCoord.x + padding, m_viewportUpperLeftScreenCoord.y + padding);
 
         ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always, ImVec2(0.0f, 0.0f));
         ImGui::Begin("ViewportOverlayPlayButton", nullptr, windowFlags);

@@ -1,10 +1,10 @@
 #include "editor_view_provider.hpp"
 
 namespace pxt::editor {
-    EditorViewProvider::EditorViewProvider(EditorCameraController editorCameraController) 
-        : m_editorCameraController(editorCameraController){}
+    EditorViewProvider::EditorViewProvider(EditorCameraController editorCameraController)
+        : m_editorCameraController(editorCameraController) {}
 
-    CameraMatrices EditorViewProvider::getCameraMatrices(float aspectRatio) { 
+    CameraMatrices EditorViewProvider::getCameraMatrices(float aspectRatio) {
         CameraMatrices cm{};
 
         float finalAspectRatio = m_overrideAspectRatio ? m_aspectRatioOverride : aspectRatio;
@@ -24,7 +24,7 @@ namespace pxt::editor {
         return cm;
     }
 
-    void EditorViewProvider::resetState() { 
+    void EditorViewProvider::resetState() {
         m_camNavState = CameraNavigationState();
         m_overrideAspectRatio = false;
 
@@ -32,20 +32,13 @@ namespace pxt::editor {
         m_activeCameraPosition = glm::vec3(0.f);
     }
 
-    void EditorViewProvider::updateActiveCamera(const core::EngineMode engineMode,
-                                                const CameraData& editorCameraData,
+    void EditorViewProvider::updateActiveCamera(const CameraData& editorCameraData,
                                                 const glm::vec3& editorCameraPosition,
                                                 const glm::vec2& editorCameraRotation) {
         float aspectRatio = 1.f;
         bool overrideAspectRatio = false;
-        
-        // here we have to obtain the corrext camera data based on engine mode
-        // if we are not in EDIT mode, we simply return for now
-        if (engineMode != core::EngineMode::EDIT) {
-            return;
-        }
 
-        // ELSE we are in EDIT mode and we need to know if there is an active camera entity.
+        // we are in EDIT mode and we need to know if there is an active camera entity.
         // if yes, we use its transform and camera component to update the editor camera
         if (auto activeCam = Application::get().getScene().getActiveCameraEntity()) {
             Entity activeCamEntity = activeCam.value();
@@ -56,7 +49,7 @@ namespace pxt::editor {
 
             auto& activeCameraComp = activeCamEntity.get<CameraComponent>();
             m_activeCameraData = activeCameraComp.cameraData;
-            
+
             if (!activeCameraComp.useViewportAspectRatio) {
                 m_overrideAspectRatio = true;
                 m_aspectRatioOverride = activeCameraComp.aspectRatio;
@@ -71,7 +64,7 @@ namespace pxt::editor {
         }
     }
 
-    void EditorViewProvider::onUpdateCameraController(float deltaTime) { 
+    void EditorViewProvider::onUpdateCameraController(float deltaTime) {
         m_editorCameraController.onUpdate(deltaTime, m_camNavState, m_activeCameraRotation, m_activeCameraPosition);
     }
-}
+} // namespace pxt::editor

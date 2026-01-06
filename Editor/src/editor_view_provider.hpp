@@ -1,8 +1,8 @@
 #pragma once
 
-#include "graphics/view_provider.hpp"
-#include "graphics/camera_matrices.hpp"
 #include "editor_camera_controller.hpp"
+#include "graphics/camera_matrices.hpp"
+#include "graphics/view_provider.hpp"
 
 namespace pxt::editor {
     class EditorViewProvider : public IViewProvider {
@@ -15,7 +15,8 @@ namespace pxt::editor {
 
         void resetState();
 
-        void updateActiveCamera(const core::EngineMode engineMode, const CameraData& editorCameraData, const glm::vec3& editorCameraPosition, const glm::vec2& editorCameraRotation);
+        void updateActiveCamera(const CameraData& editorCameraData, const glm::vec3& editorCameraPosition,
+                                const glm::vec2& editorCameraRotation);
 
         void setCameraNavigationState(CameraNavigationState newCameraNavState) { m_camNavState = newCameraNavState; };
 
@@ -25,7 +26,7 @@ namespace pxt::editor {
 
         void setActiveCameraRotation(const glm::vec2 rotation) { m_activeCameraRotation = rotation; };
 
-        void setAspectRatioOverride(const float aspectRatioOverride) { 
+        void setAspectRatioOverride(const float aspectRatioOverride) {
             m_aspectRatioOverride = aspectRatioOverride;
             m_overrideAspectRatio = true;
         };
@@ -47,4 +48,4 @@ namespace pxt::editor {
         float m_aspectRatioOverride = 1.f;
         bool m_overrideAspectRatio = false;
     };
-}
+} // namespace pxt::editor
