@@ -45,10 +45,11 @@ namespace pxt::editor {
 
         CameraNavigationState m_navigationState{};
         CameraData m_editorCameraData{};
-        glm::vec2 m_editorCameraRotation{0.f};
+        glm::vec3 m_editorCameraRotation{0.f};
         glm::vec3 m_editorCameraPosition{0.f};
 
-        EditorViewProvider m_editorViewProvider{EditorCameraController()};
+        EditorViewProvider m_editorViewProvider{EditorCameraController(), m_editorCameraPosition,
+                                                m_editorCameraRotation};
         GameViewProvider m_gameViewProvider;
 
         bool m_isViewportFocused = false;

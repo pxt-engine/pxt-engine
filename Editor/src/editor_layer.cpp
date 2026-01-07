@@ -10,6 +10,23 @@ namespace pxt::editor {
     EditorLayer::EditorLayer() : core::Layer("EditorLayer") {
         m_editorTextureRegistry = createUnique<EditorTextureRegistry>();
 
+        // we set up the editorViewProvider with the last saved camera view, if any
+        std::optional<Entity> activeCameraEntityOpt = Application::get().getScene().getActiveCameraEntity();
+        if (activeCameraEntityOpt.has_value()) {
+            Entity activeCameraEntity = activeCameraEntityOpt.value();
+            auto& transform = activeCameraEntity.get<TransformComponent>();
+
+            m_editorCameraPosition = transform.translation;
+            m_editorCameraRotation = transform.rotation;
+        } else {
+            // default view when opening editor
+            m_editorCameraPosition = glm::vec3(0.f, 0.3f, 0.3f);
+            m_editorCameraRotation = glm::vec3(0.f, glm::quarter_pi<float>() / 2, 0.f);
+        }
+
+        m_editorViewProvider.setActiveCameraPosition(m_editorCameraPosition);
+        m_editorViewProvider.setActiveCameraRotation(m_editorCameraRotation);
+
         Application::get().setViewProvider(&m_editorViewProvider);
     }
 
@@ -55,7 +72,9 @@ namespace pxt::editor {
         m_navigationState.rotate = {(input.isKeyDown(core::KeyCode::DownArrow) ? 1.f : 0.f) -
                                         (input.isKeyDown(core::KeyCode::UpArrow) ? 1.f : 0.f),
                                     (input.isKeyDown(core::KeyCode::RightArrow) ? 1.f : 0.f) -
-                                        (input.isKeyDown(core::KeyCode::LeftArrow) ? 1.f : 0.f)};
+                                        (input.isKeyDown(core::KeyCode::LeftArrow) ? 1.f : 0.f),
+                                    (input.isKeyDown(core::KeyCode::Keypad4) ? 1.f : 0.f) -
+                                        (input.isKeyDown(core::KeyCode::Keypad6) ? 1.f : 0.f)};
     }
 
     void EditorLayer::onEvent(core::Event& event) {

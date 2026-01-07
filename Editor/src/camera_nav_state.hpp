@@ -24,7 +24,7 @@ namespace pxt::editor {
         // Z = forward (+W / -S)
         glm::vec3 move{0.0f};
 
-        //. X = pitch, Y = yaw
-        glm::vec2 rotate{0.0f};
+        //. X = pitch, Y = yaw, Z = tilt
+        glm::vec3 rotate{0.0f};
     };
-}
+} // namespace pxt::editor

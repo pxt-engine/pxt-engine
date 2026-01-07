@@ -1,9 +1,9 @@
 #pragma once
 
+#include "core/events/event.hpp"
 #include "core/obj_picking_id.hpp"
 #include "core/pch.hpp"
 #include "core/uuid.hpp"
-#include "core/events/event.hpp"
 
 #include "scene/environment.hpp"
 
@@ -95,10 +95,12 @@ namespace pxt {
         std::optional<Entity> getActiveCameraEntity();
 
         core::UUID getActiveCameraEntityUUID();
-        
+
         void setActiveCameraEntity(core::UUID newActiveCameraID);
 
         void updateCamerasAspectRatio(float newAspect);
+
+        std::optional<Entity> tryFindCamera();
 
         /**
          * @brief Retrieves the environment settings for the scene.
@@ -117,7 +119,7 @@ namespace pxt {
 
         Shared<Environment> m_environment = createShared<Environment>();
         core::UUID m_activeCameraEntityID = core::UUID::s_invalidId;
-        
+
         friend class Entity;
     };
 } // namespace pxt

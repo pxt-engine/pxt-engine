@@ -5,6 +5,9 @@
 
 namespace pxt::editor {
 
+    template <typename Component>
+    using ComponentUiFunction = std::function<void(Component&, Entity entity)>;
+
     struct ComponentUiInfo {
         std::string name;
         // the function that will draw the ImGui component
@@ -33,14 +36,14 @@ namespace pxt::editor {
          *		 drawn into the entity inspector drawer.
          *
          */
-        template <typename T>
-        void RegisterComponent(const std::string& name, std::function<void(T&)> uiFunction) {
+        template <typename Component>
+        void RegisterComponent(const std::string& name, ComponentUiFunction<Component> uiFunction) {
             m_componentUiRegistry.push_back(
                 {name, [=](pxt::Entity entity) {
-                     if (entity.has<T>()) {
-                         T& component = entity.get<T>();
+                     if (entity.has<Component>()) {
+                         Component& component = entity.get<Component>();
                          if (ImGui::TreeNodeEx(name.c_str(), ImGuiTreeNodeFlags_DefaultOpen)) {
-                             uiFunction(component);
+                             uiFunction(component, entity);
 
                              ImGui::TreePop();
                          }

@@ -103,6 +103,13 @@ namespace pxt {
          */
         uint32_t getObjPickingId() { return get<ObjPickingIdComponent>().objPickingId.getObjPickingId(); }
 
+        std::optional<std::reference_wrapper<Scene>> tryGetScene() {
+            if (!m_scene) {
+                return std::nullopt;
+            }
+            return std::ref(*m_scene);
+        }
+
     private:
         entt::entity m_enttEntity{entt::null};
         Scene* m_scene = nullptr;

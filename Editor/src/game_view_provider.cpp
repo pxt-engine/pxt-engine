@@ -5,37 +5,44 @@ namespace pxt::editor {
     CameraMatrices GameViewProvider::getCameraMatrices(float aspectRatio) {
         CameraMatrices cm{};
 
-        if (auto activeGameCameraEntity = Application::get().getScene().getActiveCameraEntity()) {
-            Entity cameraEntity = activeGameCameraEntity.value();
+        Scene& scene = Application::get().getScene();
+        std::optional<Entity> cameraEntityOpt = scene.getActiveCameraEntity();
 
-            const auto& cameraComp = cameraEntity.get<CameraComponent>();
-            const auto& transformComp = cameraEntity.get<TransformComponent>();
+        if (!cameraEntityOpt.has_value()) {
+            cameraEntityOpt = scene.tryFindCamera();
 
-            const float finalAspectRatio = cameraComp.useViewportAspectRatio ? aspectRatio : cameraComp.aspectRatio;
-
-            glm::vec3 forward;
-            glm::vec3 upDir;
-            glm::vec3 rightDir;
-            const float pitch = transformComp.rotation.x;
-            const float yaw = transformComp.rotation.y;
-            CameraMath::computeOrthonormalBasisFromPitchYaw(forward, upDir, rightDir, pitch, yaw);
-
-            // Build view matrix
-            cm.viewMatrix = CameraMath::makeViewFromDirection(transformComp.translation, forward, upDir);
-            cm.inverseViewMatrix = glm::inverse(cm.viewMatrix);
-            // Build projection matrix
-            const CameraData& cameraData = cameraComp.cameraData;
-            if (cameraData.isPerspective()) {
-                cm.projectionMatrix = CameraMath::makePerspective(cameraData, finalAspectRatio);
-            } else {
-                cm.projectionMatrix = CameraMath::makeOrthographic(cameraData);
+            if (!cameraEntityOpt.has_value()) {
+                // TODO: black screen or warning
+                PXT_WARN("No cameras exist to render for GameViewProvider!!!");
+                return cm;
             }
-            cm.inverseProjectionMatrix = glm::inverse(cm.projectionMatrix);
-
-        } else {
-            // TODO: black screen?
-            PXT_WARN("No active camera set for GameViewProvider!");
         }
+
+        Entity cameraEntity = cameraEntityOpt.value();
+
+        const auto& cameraComp = cameraEntity.get<CameraComponent>();
+        const auto& transformComp = cameraEntity.get<TransformComponent>();
+
+        const float finalAspectRatio = cameraComp.useViewportAspectRatio ? aspectRatio : cameraComp.aspectRatio;
+
+        glm::vec3 forward;
+        glm::vec3 upDir;
+        glm::vec3 rightDir;
+        const float pitch = transformComp.rotation.x;
+        const float yaw = transformComp.rotation.y;
+        CameraMath::computeOrthonormalBasisFromPitchYaw(forward, upDir, rightDir, pitch, yaw);
+
+        // Build view matrix
+        cm.viewMatrix = CameraMath::makeViewFromDirection(transformComp.translation, forward, upDir);
+        cm.inverseViewMatrix = glm::inverse(cm.viewMatrix);
+        // Build projection matrix
+        const CameraData& cameraData = cameraComp.cameraData;
+        if (cameraData.isPerspective()) {
+            cm.projectionMatrix = CameraMath::makePerspective(cameraData, finalAspectRatio);
+        } else {
+            cm.projectionMatrix = CameraMath::makeOrthographic(cameraData);
+        }
+        cm.inverseProjectionMatrix = glm::inverse(cm.projectionMatrix);
 
         return cm;
     }

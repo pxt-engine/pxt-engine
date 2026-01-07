@@ -1,7 +1,8 @@
 #include "editor_camera_controller.hpp"
 
 namespace pxt::editor {
-    void EditorCameraController::onUpdate(float deltaTime, CameraNavigationState& camState, glm::vec2& rotation, glm::vec3& position) {
+    void EditorCameraController::onUpdate(float deltaTime, CameraNavigationState& camState, glm::vec3& rotation,
+                                          glm::vec3& position) {
         // --- Keyboard Rotation ---
         if (glm::length2(camState.rotate) > glm::epsilon<float>()) {
             rotation += m_lookSpeed * deltaTime * glm::normalize(camState.rotate);

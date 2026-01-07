@@ -2,7 +2,21 @@ scene: thx
 activeCameraEntity: 019977fa-dd8d-7969-839e-ec32d324f972
 entities:
   - entity: 019977fa-dd8d-7969-839e-ec32d324f972
-    NameComponent: camera
+    NameComponent: camera1
+    TransformComponent:
+      translation: [0, 0, 3.156]
+      scale: [0, 0, 0]
+      rotation: [0, 0, 0]
+    CameraComponent:
+      useViewportAspectRatio: true
+      aspectRatio: 1.0
+      isPerspective: true
+      nearPlane: 0.1
+      farPlane: 100
+      fovYDegrees: 50
+      orthoParams: [-1, 1, -1, 1]
+  - entity: 019977fa-dd8d-7969-839e-ec32d324f976
+    NameComponent: camera2
     TransformComponent:
       translation: [0, 0, 3.156]
       scale: [0, 0, 0]

@@ -1,12 +1,12 @@
 #include "application.hpp"
 
 #include "core/diagnostics.hpp"
+#include "core/events/engine_state_events.hpp"
 #include "core/events/event_dispatcher.hpp"
 #include "core/events/window_event.hpp"
-#include "core/events/engine_state_events.hpp"
 #include "core/input/input.hpp"
-#include "graphics/resources/texture2d.hpp"
 #include "graphics/dummy_view_provider.hpp"
+#include "graphics/resources/texture2d.hpp"
 #include "scene/camera_data.hpp"
 #include "scene/ecs/component.hpp"
 #include "scene/ecs/entity.hpp"
@@ -25,7 +25,6 @@ namespace pxt {
         PXT_PROFILE_FN();
 
         m_resourceManagerPtr = pushLayer<ResourceManager>();
-        
 
         // load default and scene assets and register them in the resource registry
         createDefaultResources();
@@ -204,7 +203,8 @@ namespace pxt {
         if (m_viewProviderPtr == nullptr) {
             auto dummyViewProvider = DummyViewProvider();
             m_viewProviderPtr = &dummyViewProvider;
-            PXT_WARN("Engine View Provider is set to NULL. Make sure to set a valid implementation of IViewProvider to the Engine using the setViewProvider() API. Defaulting to DummyViewProvider now.");
+            PXT_WARN("Engine View Provider is set to NULL. Make sure to set a valid implementation of IViewProvider to "
+                     "the Engine using the setViewProvider() API. Defaulting to DummyViewProvider now.");
         }
 
         auto currentTime = std::chrono::high_resolution_clock::now();
@@ -232,7 +232,11 @@ namespace pxt {
             if (auto commandBuffer = m_renderer.beginFrame()) {
                 int frameIndex = m_renderer.getFrameIndex();
 
-                m_scene.onUpdate(elapsedTime);
+                // if we are in PLAY/RUNTIME mode we want to run game scripts
+                if (m_engineMode == core::EngineMode::PLAY || m_engineMode == core::EngineMode::RUNTIME) {
+                    m_scene.onUpdate(elapsedTime);
+                }
+
                 float aspectRatio = m_renderLayerPtr->getSceneAspectRatio();
                 CameraMatrices cameraMatrices = m_viewProviderPtr->getCameraMatrices(aspectRatio);
 

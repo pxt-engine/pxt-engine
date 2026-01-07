@@ -1,10 +1,10 @@
 #include "scene/scene.hpp"
 
+#include "core/events/editor_events.hpp"
+#include "core/events/event_dispatcher.hpp"
 #include "scene/ecs/component.hpp"
 #include "scene/ecs/entity.hpp"
 #include "scene/script/script.hpp"
-#include "core/events/event_dispatcher.hpp"
-#include "core/events/editor_events.hpp"
 
 namespace pxt {
     Scene::Scene() {
@@ -61,9 +61,8 @@ namespace pxt {
     }
 
     void Scene::onUpdate(float delta) {
-        getEntitiesWith<ScriptComponent>().each([=](auto entity, auto& scriptComponent) {
-            scriptComponent.script->onUpdate(delta);
-        });
+        getEntitiesWith<ScriptComponent>().each(
+            [=](auto entity, auto& scriptComponent) { scriptComponent.script->onUpdate(delta); });
     }
 
     std::optional<Entity> Scene::getActiveCameraEntity() {
@@ -72,16 +71,14 @@ namespace pxt {
         return getEntity(m_activeCameraEntityID);
     }
 
-    core::UUID Scene::getActiveCameraEntityUUID() {
-        return m_activeCameraEntityID;
-    }
+    core::UUID Scene::getActiveCameraEntityUUID() { return m_activeCameraEntityID; }
 
-    void Scene::setActiveCameraEntity(core::UUID newActiveCameraID) { 
+    void Scene::setActiveCameraEntity(core::UUID newActiveCameraID) {
         // if the entity exists and does not have a cameraComponent it cannot be the active camera
-        if (newActiveCameraID != core::UUID::s_invalidId &&
-            !getEntity(newActiveCameraID).has<CameraComponent>()) {
-            throw std::logic_error("The new active camera entity must have a CameraComponent or must be an invalid UUID (no one is "
-                      "the active camera)");
+        if (newActiveCameraID != core::UUID::s_invalidId && !getEntity(newActiveCameraID).has<CameraComponent>()) {
+            throw std::logic_error(
+                "The new active camera entity must have a CameraComponent or must be an invalid UUID (no one is "
+                "the active camera)");
         }
 
         m_activeCameraEntityID = newActiveCameraID;
@@ -93,6 +90,15 @@ namespace pxt {
                 cameraComponent.aspectRatio = newAspect;
             }
         });
+    }
+
+    std::optional<Entity> Scene::tryFindCamera() {
+        auto view = getEntitiesWith<CameraComponent>();
+        if (view.empty()) {
+            return std::nullopt;
+        }
+
+        return Entity{view.front(), this};
     }
 
     void Scene::onEvent(core::Event& event) {
@@ -107,7 +113,6 @@ namespace pxt {
         });
 
         getEntitiesWith<ScriptComponent>().each(
-            [&](auto entity, auto& scriptComponent) { scriptComponent.script->onEvent(event); 
-        });
+            [&](auto entity, auto& scriptComponent) { scriptComponent.script->onEvent(event); });
     }
 } // namespace pxt

@@ -7,7 +7,8 @@
 namespace pxt::editor {
     class EditorViewProvider : public IViewProvider {
     public:
-        explicit EditorViewProvider(EditorCameraController editorCameraController);
+        explicit EditorViewProvider(EditorCameraController editorCameraController, glm::vec3& position,
+                                    glm::vec3& rotation);
 
         CameraMatrices getCameraMatrices(float aspectRatio) override;
 
@@ -15,16 +16,16 @@ namespace pxt::editor {
 
         void resetState();
 
-        void updateActiveCamera(const CameraData& editorCameraData, const glm::vec3& editorCameraPosition,
-                                const glm::vec2& editorCameraRotation);
+        void updateActiveCamera(const CameraData& editorCameraData, glm::vec3& editorCameraPosition,
+                                glm::vec3& editorCameraRotation);
 
         void setCameraNavigationState(CameraNavigationState newCameraNavState) { m_camNavState = newCameraNavState; };
 
         void setActiveCameraData(const CameraData& camData) { m_activeCameraData = camData; };
 
-        void setActiveCameraPosition(const glm::vec3 position) { m_activeCameraPosition = position; };
+        void setActiveCameraPosition(glm::vec3& position) { m_activeCameraPosition = &position; };
 
-        void setActiveCameraRotation(const glm::vec2 rotation) { m_activeCameraRotation = rotation; };
+        void setActiveCameraRotation(glm::vec3& rotation) { m_activeCameraRotation = &rotation; };
 
         void setAspectRatioOverride(const float aspectRatioOverride) {
             m_aspectRatioOverride = aspectRatioOverride;
@@ -38,8 +39,8 @@ namespace pxt::editor {
         CameraNavigationState m_camNavState{};
 
         CameraData m_activeCameraData{};
-        glm::vec2 m_activeCameraRotation{0.f};
-        glm::vec3 m_activeCameraPosition{0.f};
+        glm::vec3* m_activeCameraRotation;
+        glm::vec3* m_activeCameraPosition;
 
         //! this could be bad design
         //! (to override a method parameter of the interface method "getCameraMatrices" without the caller knowing)

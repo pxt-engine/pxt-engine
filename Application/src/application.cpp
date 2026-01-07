@@ -297,9 +297,10 @@ public:
         serializer.deserialize(SCENES_PATH + "thx.pxtscene");
 
         // TODO: add scripts to scene serialize
-        if (auto camera = scene.getActiveCameraEntity()) {
-            camera.value().addAndGet<ScriptComponent>().bind<CameraController>();
-        }
+        scene.getEntitiesWith<CameraComponent>().each([&](auto e, auto& cameraComp) {
+            Entity entity = {e, &scene};
+            entity.addAndGet<ScriptComponent>().bind<CameraController>();
+        });
 
         auto view = scene.getEntitiesWith<PointLightComponent>();
         for (auto entity : view) {

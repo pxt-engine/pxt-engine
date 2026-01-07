@@ -1,8 +1,10 @@
 #include "editor_view_provider.hpp"
 
 namespace pxt::editor {
-    EditorViewProvider::EditorViewProvider(EditorCameraController editorCameraController)
-        : m_editorCameraController(editorCameraController) {}
+    EditorViewProvider::EditorViewProvider(EditorCameraController editorCameraController, glm::vec3& position,
+                                           glm::vec3& rotation)
+        : m_editorCameraController(editorCameraController), m_activeCameraPosition(&position),
+          m_activeCameraRotation(&rotation) {}
 
     CameraMatrices EditorViewProvider::getCameraMatrices(float aspectRatio) {
         CameraMatrices cm{};
@@ -13,10 +15,10 @@ namespace pxt::editor {
         glm::vec3 upDir;
         glm::vec3 rightDir;
 
-        CameraMath::computeOrthonormalBasisFromPitchYaw(forward, upDir, rightDir, m_activeCameraRotation.x,
-                                                        m_activeCameraRotation.y);
+        CameraMath::computeOrthonormalBasisFromPitchYaw(forward, upDir, rightDir, m_activeCameraRotation->x,
+                                                        m_activeCameraRotation->y);
 
-        cm.viewMatrix = CameraMath::makeViewFromDirection(m_activeCameraPosition, forward, upDir);
+        cm.viewMatrix = CameraMath::makeViewFromDirection(*m_activeCameraPosition, forward, upDir);
         cm.inverseViewMatrix = glm::inverse(cm.viewMatrix);
         cm.projectionMatrix = CameraMath::makePerspective(m_activeCameraData, finalAspectRatio);
         cm.inverseProjectionMatrix = glm::inverse(cm.projectionMatrix);
@@ -28,13 +30,12 @@ namespace pxt::editor {
         m_camNavState = CameraNavigationState();
         m_overrideAspectRatio = false;
 
-        m_activeCameraRotation = glm::vec2(0.f);
-        m_activeCameraPosition = glm::vec3(0.f);
+        m_activeCameraPosition = nullptr;
+        m_activeCameraRotation = nullptr;
     }
 
-    void EditorViewProvider::updateActiveCamera(const CameraData& editorCameraData,
-                                                const glm::vec3& editorCameraPosition,
-                                                const glm::vec2& editorCameraRotation) {
+    void EditorViewProvider::updateActiveCamera(const CameraData& editorCameraData, glm::vec3& editorCameraPosition,
+                                                glm::vec3& editorCameraRotation) {
         float aspectRatio = 1.f;
         bool overrideAspectRatio = false;
 
@@ -44,8 +45,8 @@ namespace pxt::editor {
             Entity activeCamEntity = activeCam.value();
             auto& transform = activeCamEntity.get<TransformComponent>();
 
-            m_activeCameraRotation = glm::vec2(transform.rotation.x, transform.rotation.y);
-            m_activeCameraPosition = transform.translation;
+            m_activeCameraRotation = &transform.rotation;
+            m_activeCameraPosition = &transform.translation;
 
             auto& activeCameraComp = activeCamEntity.get<CameraComponent>();
             m_activeCameraData = activeCameraComp.cameraData;
@@ -57,14 +58,14 @@ namespace pxt::editor {
         }
         // else we use the editor camera data
         else {
-            m_activeCameraRotation = editorCameraRotation;
-            m_activeCameraPosition = editorCameraPosition;
+            m_activeCameraRotation = &editorCameraRotation;
+            m_activeCameraPosition = &editorCameraPosition;
 
             m_activeCameraData = editorCameraData;
         }
     }
 
     void EditorViewProvider::onUpdateCameraController(float deltaTime) {
-        m_editorCameraController.onUpdate(deltaTime, m_camNavState, m_activeCameraRotation, m_activeCameraPosition);
+        m_editorCameraController.onUpdate(deltaTime, m_camNavState, *m_activeCameraRotation, *m_activeCameraPosition);
     }
 } // namespace pxt::editor
