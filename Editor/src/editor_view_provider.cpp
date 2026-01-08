@@ -20,7 +20,13 @@ namespace pxt::editor {
 
         cm.viewMatrix = CameraMath::makeViewFromDirection(*m_activeCameraPosition, forward, upDir);
         cm.inverseViewMatrix = glm::inverse(cm.viewMatrix);
-        cm.projectionMatrix = CameraMath::makePerspective(m_activeCameraData, finalAspectRatio);
+
+        if (m_activeCameraData.isPerspective()) {
+            cm.projectionMatrix = CameraMath::makePerspective(m_activeCameraData, finalAspectRatio);
+        } else {
+            cm.projectionMatrix = CameraMath::makeOrthographic(m_activeCameraData);
+        }
+
         cm.inverseProjectionMatrix = glm::inverse(cm.projectionMatrix);
 
         return cm;

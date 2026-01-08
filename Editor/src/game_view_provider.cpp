@@ -42,6 +42,7 @@ namespace pxt::editor {
         } else {
             cm.projectionMatrix = CameraMath::makeOrthographic(cameraData);
         }
+
         cm.inverseProjectionMatrix = glm::inverse(cm.projectionMatrix);
 
         return cm;
