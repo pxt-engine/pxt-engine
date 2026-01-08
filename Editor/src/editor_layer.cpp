@@ -3,6 +3,7 @@
 #include "core/events/engine_state_events.hpp"
 #include "ui/widgets/mode_selector_image_button.hpp"
 #include "ui/widgets/toggle_image_button.hpp"
+#include "ui/widgets/dismissable_badge.hpp"
 
 #include <glm/gtx/matrix_decompose.hpp> // will use it in the future for gizmos
 
@@ -345,7 +346,7 @@ namespace pxt::editor {
         ImGui::End();
     }
 
-    core::EngineMode EditorLayer::updatePlayPauseOverlayButton(ImGuiWindowFlags windowFlags, float padding,
+    core::EngineMode EditorLayer::updatePlayPausaButton(ImGuiWindowFlags windowFlags, float padding,
                                                                ImVec2 buttonSize) {
         core::EngineMode newEngineMode = m_engineMode;
 
@@ -374,6 +375,25 @@ namespace pxt::editor {
         ui::ToggleImageButton::render(playIcon, "##play-button", tooltip.c_str(), core::EngineMode::PLAY,
                                       core::EngineMode::EDIT, newEngineMode, buttonSize);
 
+        // render a camera tag if there is an active camera in EDIT MODE
+        // TODO: separate these ui methods for the overlay better, needs refactoring. too many ifs depending on engine mode.
+        Scene& scene = Application::get().getScene();
+        auto activeCameraEntityOpt = scene.getActiveCameraEntity();
+        if (activeCameraEntityOpt.has_value() && m_engineMode == core::EngineMode::EDIT) {
+            Entity activeCameraEntity = activeCameraEntityOpt.value();
+            std::string activeCameraName = activeCameraEntity.get<NameComponent>().name;
+
+            // if we clicked we have to dismiss the badge and set active camera to invalid.
+            //! here we pass true for now because if we are inside this block we already checked for it to be open
+            //! (there is an active camera) but we do not want to change a bool member variable (for example). 
+            //! we want to call "setActiveCameraEntity" to set no active camera entities.
+            bool open = true;
+            ImTextureID cameraIcon = (ImTextureID)m_editorTextureRegistry->get("camera_tag_icon.png");
+            if (ui::DismissableBadge::renderWithIcon(activeCameraName.c_str(), &open, cameraIcon, ImVec2(buttonSize.x * 2.5f, 30.f))) {
+                scene.setActiveCameraEntity(core::UUID::s_invalidId);
+            }
+        }
+
         ImGui::End();
 
         return newEngineMode;
@@ -392,7 +412,7 @@ namespace pxt::editor {
                                        ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBackground;
 
         // -- PLAY / STOP BUTTON --
-        core::EngineMode newEngineMode = updatePlayPauseOverlayButton(windowFlags, padding, buttonSize);
+        core::EngineMode newEngineMode = updatePlayPausaButton(windowFlags, padding, buttonSize);
 
         // if the user clicked the button we request a mode change to the engine
         if (newEngineMode != m_engineMode) {

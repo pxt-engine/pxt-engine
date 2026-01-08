@@ -27,7 +27,7 @@ namespace pxt::editor {
         void updateGizmos(FrameInfo& frameInfo);
         void updateViewportOverlayButtons(FrameInfo& frameInfo, float buttonsScale = 0.1f);
         void updateGizmoOverlayButtons(ImGuiWindowFlags windowFlags, float padding, ImVec2 buttonSize);
-        core::EngineMode updatePlayPauseOverlayButton(ImGuiWindowFlags windowFlags, float padding, ImVec2 buttonSize);
+        core::EngineMode updatePlayPausaButton(ImGuiWindowFlags windowFlags, float padding, ImVec2 buttonSize);
 
         void buildCameraNavigationState();
 
