@@ -55,8 +55,8 @@ namespace pxt::editor {
         bool m_isViewportFocused = false;
         bool m_isViewportHovered = false;
 
-        // we need this to block certain events when interacting with buttons
-        bool m_isAnyButtonHovered = false;
+        // we need this to block certain events when interacting with UI
+        bool m_isCursorOverUI = false;
 
         glm::vec2 m_lastClickMousePosImGui = {0.0f, 0.0f};
 

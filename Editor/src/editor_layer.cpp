@@ -1,9 +1,9 @@
 #include "editor_layer.hpp"
 #include "core/events/editor_events.hpp"
 #include "core/events/engine_state_events.hpp"
+#include "ui/widgets/dismissable_badge.hpp"
 #include "ui/widgets/mode_selector_image_button.hpp"
 #include "ui/widgets/toggle_image_button.hpp"
-#include "ui/widgets/dismissable_badge.hpp"
 
 #include <glm/gtx/matrix_decompose.hpp> // will use it in the future for gizmos
 
@@ -142,7 +142,7 @@ namespace pxt::editor {
 
     bool EditorLayer::onLeftMouseButtonPress() {
         // we do not want to interfere with other ui elements
-        if (!m_isAnyButtonHovered) {
+        if (!m_isCursorOverUI) {
             return doMousePicking();
         }
 
@@ -218,7 +218,7 @@ namespace pxt::editor {
     }
 
     void EditorLayer::updateSceneUi(FrameInfo& frameInfo) {
-        m_isAnyButtonHovered = false;
+        m_isCursorOverUI = false;
 
         ImTextureID scene = (ImTextureID)frameInfo.sceneDescriptorSet;
 
@@ -313,7 +313,7 @@ namespace pxt::editor {
         // check for viewport focus/hover
         m_isViewportFocused |= ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
         m_isViewportHovered |= ImGui::IsWindowHovered(ImGuiHoveredFlags_None);
-        m_isAnyButtonHovered |= ImGui::IsWindowHovered(ImGuiHoveredFlags_None);
+        m_isCursorOverUI |= ImGui::IsWindowHovered(ImGuiHoveredFlags_None);
 
         ImTextureID selectIcon = (ImTextureID)m_editorTextureRegistry->get("selection_tool.png");
 
@@ -347,7 +347,7 @@ namespace pxt::editor {
     }
 
     core::EngineMode EditorLayer::updatePlayPausaButton(ImGuiWindowFlags windowFlags, float padding,
-                                                               ImVec2 buttonSize) {
+                                                        ImVec2 buttonSize) {
         core::EngineMode newEngineMode = m_engineMode;
 
         // Top-left of viewport
@@ -360,7 +360,7 @@ namespace pxt::editor {
         // check for viewport focus/hover
         m_isViewportFocused |= ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
         m_isViewportHovered |= ImGui::IsWindowHovered(ImGuiHoveredFlags_None);
-        m_isAnyButtonHovered |= ImGui::IsWindowHovered(ImGuiHoveredFlags_None);
+        m_isCursorOverUI |= ImGui::IsWindowHovered(ImGuiHoveredFlags_None);
 
         ImTextureID playIcon;
         std::string tooltip;
@@ -376,7 +376,8 @@ namespace pxt::editor {
                                       core::EngineMode::EDIT, newEngineMode, buttonSize);
 
         // render a camera tag if there is an active camera in EDIT MODE
-        // TODO: separate these ui methods for the overlay better, needs refactoring. too many ifs depending on engine mode.
+        // TODO: separate these ui methods for the overlay better, needs refactoring. too many ifs depending on engine
+        // mode.
         Scene& scene = Application::get().getScene();
         auto activeCameraEntityOpt = scene.getActiveCameraEntity();
         if (activeCameraEntityOpt.has_value() && m_engineMode == core::EngineMode::EDIT) {
@@ -385,11 +386,12 @@ namespace pxt::editor {
 
             // if we clicked we have to dismiss the badge and set active camera to invalid.
             //! here we pass true for now because if we are inside this block we already checked for it to be open
-            //! (there is an active camera) but we do not want to change a bool member variable (for example). 
+            //! (there is an active camera) but we do not want to change a bool member variable (for example).
             //! we want to call "setActiveCameraEntity" to set no active camera entities.
             bool open = true;
             ImTextureID cameraIcon = (ImTextureID)m_editorTextureRegistry->get("camera_tag_icon.png");
-            if (ui::DismissableBadge::renderWithIcon(activeCameraName.c_str(), &open, cameraIcon, ImVec2(buttonSize.x * 2.5f, 30.f))) {
+            if (ui::DismissableBadge::renderWithIcon(activeCameraName.c_str(), &open, cameraIcon,
+                                                     ImVec2(buttonSize.x * 2.5f, 30.f))) {
                 scene.setActiveCameraEntity(core::UUID::s_invalidId);
             }
         }
