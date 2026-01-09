@@ -6,23 +6,6 @@
 namespace pxt::core {
     class InputState {
     public:
-        // Keyboard
-        std::array<bool, (size_t)KeyCode::COUNT> keyDown{};
-        std::array<bool, (size_t)KeyCode::COUNT> keyPressed{};
-        std::array<bool, (size_t)KeyCode::COUNT> keyReleased{};
-
-        // Mouse
-        std::array<bool, (size_t)MouseButton::COUNT> mouseDown{};
-        std::array<bool, (size_t)MouseButton::COUNT> mousePressed{};
-        std::array<bool, (size_t)MouseButton::COUNT> mouseReleased{};
-
-        glm::vec2 mousePos{0.f, 0.f};
-        glm::vec2 mouseDelta{0.f, 0.f};
-        glm::vec2 scrollDelta{0.f, 0.f};
-
-        // Text Input
-        std::vector<uint32_t> textInput; // UTF-32 characters
-
         // Frame Update
         void beginFrame();
         void reset();
@@ -64,5 +47,23 @@ namespace pxt::core {
         glm::vec2 getMouseDelta() const { return mouseDelta; }
 
         glm::vec2 getScrollDelta() const { return scrollDelta; }
+
+    private:
+        // Keyboard
+        std::array<bool, (size_t)KeyCode::COUNT> keyDown{};
+        std::array<bool, (size_t)KeyCode::COUNT> keyPressed{};
+        std::array<bool, (size_t)KeyCode::COUNT> keyReleased{};
+
+        // Mouse
+        std::array<bool, (size_t)MouseButton::COUNT> mouseDown{};
+        std::array<bool, (size_t)MouseButton::COUNT> mousePressed{};
+        std::array<bool, (size_t)MouseButton::COUNT> mouseReleased{};
+
+        glm::vec2 mousePos{0.f, 0.f};
+        glm::vec2 mouseDelta{0.f, 0.f};
+        glm::vec2 scrollDelta{0.f, 0.f};
+
+        // Text Input
+        std::vector<uint32_t> textInput; // UTF-32 characters
     };
 } // namespace pxt::core
