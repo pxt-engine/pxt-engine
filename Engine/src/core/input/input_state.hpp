@@ -7,23 +7,7 @@ namespace pxt::core {
     class InputState {
     public:
         // Frame Update
-        void beginFrame();
         void reset();
-
-        // Keyboard events
-        void onKey(KeyCode key, bool down);
-        void onKeyPress(KeyCode key);
-        void onKeyRelease(KeyCode key);
-        void onKeyRepeat(KeyCode key);
-
-        // Mouse events
-        void onMouseButton(MouseButton btn, bool down);
-        void onMousePress(MouseButton button);
-        void onMouseRelease(MouseButton button);
-        void onMouseMove(double x, double y);
-        void onScroll(double xoff, double yoff);
-
-        void onChar(uint32_t charCode);
 
         bool isKeyDown(KeyCode key) const { return m_keyDown[(size_t)key]; }
 
@@ -48,7 +32,28 @@ namespace pxt::core {
 
         glm::vec2 getScrollDelta() const { return m_scrollDelta; }
 
+        bool isViewportFocused = false;
+        bool isViewportHovered = false;
+
+        // we need this to block certain events when interacting with UI
+        bool isCursorOverUI = false;
+
     private:
+        // Keyboard events
+        void onKey(KeyCode key, bool down);
+        void onKeyPress(KeyCode key);
+        void onKeyRelease(KeyCode key);
+        void onKeyRepeat(KeyCode key);
+
+        // Mouse events
+        void onMouseButton(MouseButton button, bool down);
+        void onMousePress(MouseButton button);
+        void onMouseRelease(MouseButton button);
+        void onMouseMove(double x, double y);
+        void onScroll(double xoff, double yoff);
+
+        void onChar(uint32_t charCode);
+
         // Keyboard
         std::array<bool, (size_t)KeyCode::COUNT> m_keyDown{};
         std::array<bool, (size_t)KeyCode::COUNT> m_keyPressed{};
@@ -66,10 +71,6 @@ namespace pxt::core {
         // Text Input
         std::vector<uint32_t> m_textInput; // UTF-32 characters
 
-        bool m_isViewportFocused = false;
-        bool m_isViewportHovered = false;
-
-        // we need this to block certain events when interacting with UI
-        bool m_isCursorOverUI = false;
+        friend class Window;
     };
 } // namespace pxt::core

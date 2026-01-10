@@ -46,7 +46,7 @@ namespace pxt::editor {
         m_editorViewProvider.updateActiveCamera(m_editorCameraData, m_editorCameraPosition, m_editorCameraRotation);
 
         // we want focus and hover to accept user input
-        if (!m_isViewportFocused || !m_isViewportHovered) {
+        if (!m_inputState.isViewportFocused || !m_inputState.isViewportHovered) {
             return;
         }
 
@@ -109,13 +109,13 @@ namespace pxt::editor {
         // I/O Events
 
         //! here we block i/o events if the viewport is not focused or we are not in EDIT mode
-        if (!m_isViewportFocused || m_engineMode != core::EngineMode::EDIT) {
+        if (!m_inputState.isViewportFocused || m_engineMode != core::EngineMode::EDIT) {
             return;
         }
 
         dispatcher.dispatch<core::MouseButtonPressEvent>([this](core::MouseButtonPressEvent& e) {
             // we dont care about mouse clicks outside of the viewport
-            if (!m_isViewportHovered)
+            if (!m_inputState.isViewportHovered)
                 return false;
 
             return onMouseButtonPress(e);
@@ -123,7 +123,7 @@ namespace pxt::editor {
 
         dispatcher.dispatch<core::KeyPressEvent>([this](core::KeyPressEvent& e) {
             // we return also if user is using free look mode
-            if (!m_isViewportHovered || m_navigationState.freeLookEnabled)
+            if (!m_inputState.isViewportHovered || m_navigationState.freeLookEnabled)
                 return false;
             return onKeyPressEvent(e);
         });
@@ -142,7 +142,7 @@ namespace pxt::editor {
 
     bool EditorLayer::onLeftMouseButtonPress() {
         // we do not want to interfere with other ui elements
-        if (!m_isCursorOverUI) {
+        if (!m_inputState.isCursorOverUI) {
             return doMousePicking();
         }
 
@@ -215,10 +215,14 @@ namespace pxt::editor {
 
         //? maybe viewport class in the future?
         updateSceneUi(frameInfo);
+
+        core::Input::getState().isViewportFocused = m_inputState.isViewportFocused;
+        core::Input::getState().isViewportHovered = m_inputState.isViewportHovered;
+        core::Input::getState().isCursorOverUI = m_inputState.isCursorOverUI;
     }
 
     void EditorLayer::updateSceneUi(FrameInfo& frameInfo) {
-        m_isCursorOverUI = false;
+        m_inputState.isCursorOverUI = false;
 
         ImTextureID scene = (ImTextureID)frameInfo.sceneDescriptorSet;
 
@@ -226,8 +230,8 @@ namespace pxt::editor {
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
         ImGui::Begin("Viewport");
 
-        m_isViewportHovered = ImGui::IsWindowHovered(ImGuiHoveredFlags_None);
-        m_isViewportFocused = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
+        m_inputState.isViewportHovered = ImGui::IsWindowHovered(ImGuiHoveredFlags_None);
+        m_inputState.isViewportFocused = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
         m_viewportUpperLeftScreenCoord = ImGui::GetCursorScreenPos();
 
         ImVec2 viewportSize = ImGui::GetContentRegionAvail();
@@ -311,9 +315,9 @@ namespace pxt::editor {
         ImGui::Begin("ViewportOverlayGizmoButtons", nullptr, windowFlags);
 
         // check for viewport focus/hover
-        m_isViewportFocused |= ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
-        m_isViewportHovered |= ImGui::IsWindowHovered(ImGuiHoveredFlags_None);
-        m_isCursorOverUI |= ImGui::IsWindowHovered(ImGuiHoveredFlags_None);
+        m_inputState.isViewportFocused |= ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
+        m_inputState.isViewportHovered |= ImGui::IsWindowHovered(ImGuiHoveredFlags_None);
+        m_inputState.isCursorOverUI |= ImGui::IsWindowHovered(ImGuiHoveredFlags_None);
 
         ImTextureID selectIcon = (ImTextureID)m_editorTextureRegistry->get("selection_tool.png");
 
@@ -358,9 +362,9 @@ namespace pxt::editor {
         ImGui::Begin("ViewportOverlayPlayButton", nullptr, windowFlags);
 
         // check for viewport focus/hover
-        m_isViewportFocused |= ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
-        m_isViewportHovered |= ImGui::IsWindowHovered(ImGuiHoveredFlags_None);
-        m_isCursorOverUI |= ImGui::IsWindowHovered(ImGuiHoveredFlags_None);
+        m_inputState.isViewportFocused |= ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
+        m_inputState.isViewportHovered |= ImGui::IsWindowHovered(ImGuiHoveredFlags_None);
+        m_inputState.isCursorOverUI |= ImGui::IsWindowHovered(ImGuiHoveredFlags_None);
 
         ImTextureID playIcon;
         std::string tooltip;

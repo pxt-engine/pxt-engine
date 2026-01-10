@@ -85,7 +85,10 @@ namespace pxt::core {
          */
         static glm::vec2 getMouseDelta();
 
-    private:
-        static GLFWwindow* getWindow() { return Application::get().getWindow().getBaseWindow(); }
+        static bool isViewportFocused();
+
+        static bool isViewportHovered();
+
+        static bool isCursorOverUI();
     };
 } // namespace pxt::core

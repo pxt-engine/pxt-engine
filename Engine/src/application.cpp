@@ -218,7 +218,7 @@ namespace pxt {
         uint32_t frameCount = 0;
         while (isRunning()) {
             // reset temporary inputs
-            core::Input::getState().beginFrame();
+            core::Input::getState().reset();
             // then poll events to update input state
             glfwPollEvents();
             m_eventQueue.pollEvents();

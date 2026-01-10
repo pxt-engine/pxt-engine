@@ -3,6 +3,10 @@
 using namespace pxt::core;
 
 void CameraController::onUpdate(float deltaTime) {
+    if (!Input::isViewportFocused() || !Input::isViewportHovered()) {
+        return;
+    }
+
     auto& transform = get<TransformComponent>();
 
     // can look with mouse when Space is Hold

@@ -2,7 +2,7 @@
 
 namespace pxt::core {
 
-    void InputState::beginFrame() {
+    void InputState::reset() {
         // clear transient events
         m_keyPressed.fill(false);
         m_keyReleased.fill(false);
@@ -13,14 +13,6 @@ namespace pxt::core {
         m_mouseDelta = {0.f, 0.f};
         m_scrollDelta = {0.f, 0.f};
         m_textInput.clear();
-    }
-
-    void InputState::reset() {
-        // clear transient events
-        beginFrame();
-
-        m_keyDown.fill(false);
-        m_mouseDown.fill(false);
     }
 
     // Keyboard

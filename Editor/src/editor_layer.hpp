@@ -52,11 +52,7 @@ namespace pxt::editor {
                                                 m_editorCameraRotation};
         GameViewProvider m_gameViewProvider;
 
-        bool m_isViewportFocused = false;
-        bool m_isViewportHovered = false;
-
-        // we need this to block certain events when interacting with UI
-        bool m_isCursorOverUI = false;
+        core::InputState& m_inputState = core::Input::getState();
 
         glm::vec2 m_lastClickMousePosImGui = {0.0f, 0.0f};
 
