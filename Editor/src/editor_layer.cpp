@@ -346,7 +346,7 @@ namespace pxt::editor {
         ImGui::End();
     }
 
-    core::EngineMode EditorLayer::updatePlayPausaButton(ImGuiWindowFlags windowFlags, float padding,
+    core::EngineMode EditorLayer::updatePlayPauseButton(ImGuiWindowFlags windowFlags, float padding,
                                                         ImVec2 buttonSize) {
         core::EngineMode newEngineMode = m_engineMode;
 
@@ -414,7 +414,7 @@ namespace pxt::editor {
                                        ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBackground;
 
         // -- PLAY / STOP BUTTON --
-        core::EngineMode newEngineMode = updatePlayPausaButton(windowFlags, padding, buttonSize);
+        core::EngineMode newEngineMode = updatePlayPauseButton(windowFlags, padding, buttonSize);
 
         // if the user clicked the button we request a mode change to the engine
         if (newEngineMode != m_engineMode) {
