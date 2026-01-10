@@ -16,7 +16,7 @@ namespace pxt::core {
      * The Input class provides static methods for querying input events such as key presses,
      * mouse button presses, and mouse movement.
      */
-    class Input {
+    struct Input {
     public:
         static InputState& getState() {
             static InputState s_inputState;
