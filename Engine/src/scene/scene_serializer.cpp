@@ -5,6 +5,8 @@
 
 #include <typeindex>
 
+#include "yaml-cpp/yaml.h"
+
 namespace pxt {
 
     using SerializerFunction = std::function<void(Entity, YAML::Emitter&)>;

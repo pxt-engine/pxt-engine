@@ -7,6 +7,8 @@
 #include "editor_view_provider.hpp"
 #include "game_view_provider.hpp"
 #include "pxtengine.h"
+
+#include "editor_texture_registry.hpp"
 #include "ui/entity_inspector.hpp"
 #include "ui/main_menu_bar.hpp"
 #include "ui/scene_hierarchy.hpp"

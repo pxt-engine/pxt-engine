@@ -51,7 +51,7 @@ namespace pxt {
 
     void ShadowMapRenderSystem::createDescriptorSets(DescriptorSetLayout& setLayout) {
         // Create descriptor set for each frame in flight
-        for (int i = 0; i < m_lightDescriptorSets.size(); i++) {
+        for (size_t i = 0; i < m_lightDescriptorSets.size(); i++) {
             auto bufferInfo = m_lightUniformBuffers[i]->descriptorInfo();
 
             m_descriptorAllocator.allocate(setLayout.getDescriptorSetLayout(), m_lightDescriptorSets[i]);
@@ -347,7 +347,7 @@ namespace pxt {
                 .build();
 
         // Create descriptor set for each face of the cube map
-        for (int i = 0; i < m_debugImageDescriptorInfos.size(); i++) {
+        for (size_t i = 0; i < m_debugImageDescriptorInfos.size(); i++) {
             m_descriptorAllocator.allocate(debugSetLayout->getDescriptorSetLayout(), m_shadowMapDebugDescriptorSets[i]);
             DescriptorWriter(m_context, *debugSetLayout)
                 .writeImage(0, &m_debugImageDescriptorInfos[i])
