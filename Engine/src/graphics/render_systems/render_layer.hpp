@@ -110,7 +110,7 @@ namespace pxt {
         Unique<DescriptorSetLayout> m_finalImageDescriptorSetLayout = nullptr;
 
         // this initial value will never be used, as it will be updated
-        // on the first ImGuiViewportResizeEvent. That will happen
+        // on the first ViewportResizeEvent. That will happen
         // the first frame the ImGui viewport is created.
         VkExtent2D m_viewportExtent{1600, 900};
 

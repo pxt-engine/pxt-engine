@@ -150,6 +150,9 @@ namespace pxt {
 
             ImGui_ImplGlfw_ScrollCallback(window, xOffset, yOffset);
 
+            if (ImGuizmo::IsUsingAny())
+                return;
+
             core::Input::getState().onScroll(xOffset, yOffset);
             core::MouseScrollEvent event(xOffset, yOffset);
             data.eventCallback(event);

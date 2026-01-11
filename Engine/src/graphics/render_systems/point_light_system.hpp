@@ -5,7 +5,7 @@
 #include "graphics/frame_info.hpp"
 #include "graphics/pipeline.hpp"
 #include "graphics/swap_chain.hpp"
-#include "scene/camera.hpp"
+#include "scene/camera_data.hpp"
 #include "scene/scene.hpp"
 
 namespace pxt {

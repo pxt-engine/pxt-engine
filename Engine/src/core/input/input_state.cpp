@@ -2,25 +2,17 @@
 
 namespace pxt::core {
 
-    void InputState::beginFrame() {
-        // clear transient events
-        keyPressed.fill(false);
-        keyReleased.fill(false);
-
-        mousePressed.fill(false);
-        mouseReleased.fill(false);
-
-        mouseDelta = {0.f, 0.f};
-        scrollDelta = {0.f, 0.f};
-        textInput.clear();
-    }
-
     void InputState::reset() {
         // clear transient events
-        beginFrame();
+        m_keyPressed.fill(false);
+        m_keyReleased.fill(false);
 
-        keyDown.fill(false);
-        mouseDown.fill(false);
+        m_mousePressed.fill(false);
+        m_mouseReleased.fill(false);
+
+        m_mouseDelta = {0.f, 0.f};
+        m_scrollDelta = {0.f, 0.f};
+        m_textInput.clear();
     }
 
     // Keyboard
@@ -36,22 +28,22 @@ namespace pxt::core {
 
     void InputState::onKeyPress(KeyCode key) {
         size_t i = (size_t)key;
-        if (!keyDown[i])
-            keyPressed[i] = true;
-        keyDown[i] = true;
+        if (!m_keyDown[i])
+            m_keyPressed[i] = true;
+        m_keyDown[i] = true;
     }
 
     void InputState::onKeyRelease(KeyCode key) {
         size_t i = (size_t)key;
-        if (keyDown[i])
-            keyReleased[i] = true;
-        keyDown[i] = false;
+        if (m_keyDown[i])
+            m_keyReleased[i] = true;
+        m_keyDown[i] = false;
     }
 
     void InputState::onKeyRepeat(KeyCode key) {
         size_t i = (size_t)key;
-        // Repeat doesn’t change keyDown, but may trigger repeat events in game logic
-        keyPressed[i] = true;
+        // Repeat doesn’t change m_keyDown, but may trigger repeat events in game logic
+        m_keyPressed[i] = true;
     }
 
     // Mouse
@@ -67,28 +59,28 @@ namespace pxt::core {
 
     void InputState::onMousePress(MouseButton button) {
         size_t i = (size_t)button;
-        if (!mouseDown[i])
-            mousePressed[i] = true;
-        mouseDown[i] = true;
+        if (!m_mouseDown[i])
+            m_mousePressed[i] = true;
+        m_mouseDown[i] = true;
     }
 
     void InputState::onMouseRelease(MouseButton button) {
         size_t i = (size_t)button;
-        if (mouseDown[i])
-            mouseReleased[i] = true;
-        mouseDown[i] = false;
+        if (m_mouseDown[i])
+            m_mouseReleased[i] = true;
+        m_mouseDown[i] = false;
     }
 
     void InputState::onMouseMove(double x, double y) {
         glm::vec2 newPos = {(float)x, (float)y};
-        mouseDelta = newPos - mousePos;
-        mousePos = newPos;
+        m_mouseDelta = newPos - m_mousePos;
+        m_mousePos = newPos;
     }
 
     void InputState::onScroll(double xoff, double yoff) {
-        scrollDelta.x += (float)xoff;
-        scrollDelta.y += (float)yoff;
+        m_scrollDelta.x += (float)xoff;
+        m_scrollDelta.y += (float)yoff;
     }
 
-    void InputState::onChar(uint32_t c) { textInput.push_back(c); }
+    void InputState::onChar(uint32_t c) { m_textInput.push_back(c); }
 } // namespace pxt::core

@@ -1,5 +1,11 @@
 #pragma once
 
+#include "camera_nav_state.hpp"
+#include "core/engine_mode.hpp"
+#include "editor_camera_controller.hpp"
+#include "editor_texture_registry.hpp"
+#include "editor_view_provider.hpp"
+#include "game_view_provider.hpp"
 #include "pxtengine.h"
 
 #include "editor_texture_registry.hpp"
@@ -12,8 +18,9 @@
 namespace pxt::editor {
     class EditorLayer : public core::Layer {
     public:
-        EditorLayer();
+        explicit EditorLayer();
 
+        void onBeginFrame(float deltaTime) override;
         void onEvent(core::Event& event) override;
         void onUpdateUi(FrameInfo& frameInfo) override;
 
@@ -21,6 +28,10 @@ namespace pxt::editor {
         void updateSceneUi(FrameInfo& frameInfo);
         void updateGizmos(FrameInfo& frameInfo);
         void updateViewportOverlayButtons(FrameInfo& frameInfo, float buttonsScale = 0.1f);
+        void updateGizmoOverlayButtons(ImGuiWindowFlags windowFlags, float padding, ImVec2 buttonSize);
+        core::EngineMode updatePlayPauseButton(ImGuiWindowFlags windowFlags, float padding, ImVec2 buttonSize);
+
+        void buildCameraNavigationState();
 
         ImVec2 getImageSizeWithAspectRatioForImGuiWindow(ImVec2 windowSize, float aspectRatio);
         bool onMouseButtonPress(core::MouseButtonPressEvent& event);
@@ -28,14 +39,22 @@ namespace pxt::editor {
         bool doMousePicking();
         bool onKeyPressEvent(core::KeyPressEvent& event);
 
+        const float getViewportAspectRatio() const { return m_sceneImageExtent.x / m_sceneImageExtent.y; };
+
+        core::EngineMode m_engineMode = core::EngineMode::EDIT;
+
         Unique<EditorTextureRegistry> m_editorTextureRegistry = nullptr;
 
-        bool m_isViewportFocused = false;
-        bool m_isViewportHovered = false;
+        CameraNavigationState m_navigationState{};
+        CameraData m_editorCameraData{};
+        glm::vec3 m_editorCameraRotation{0.f};
+        glm::vec3 m_editorCameraPosition{0.f};
 
-        // we need this to block certain events when interacting with buttons
-        bool m_isAnyButtonHovered = false;
-        bool m_isFreeLookEnabled = false;
+        EditorViewProvider m_editorViewProvider{EditorCameraController(), m_editorCameraPosition,
+                                                m_editorCameraRotation};
+        GameViewProvider m_gameViewProvider;
+
+        core::InputState& m_inputState = core::Input::getState();
 
         glm::vec2 m_lastClickMousePosImGui = {0.0f, 0.0f};
 

@@ -36,12 +36,14 @@ namespace pxt::core {
             MouseMove,
             MouseScroll,
 
-            // ImGui events
-            ImGuiViewportResize,
+            // Engine State
+            EngineModeChanged,
+            RequestEngineModeChange,
 
             // Editor events
             PickObjectAt,
             SelectedEntityChanged,
+            ViewportResizeEvent,
         };
 
         [[nodiscard]] virtual Event::Type getEventType() const = 0;

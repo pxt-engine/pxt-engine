@@ -44,6 +44,8 @@ namespace pxt {
          */
         virtual void onDestroy() {}
 
+        virtual void onEvent(core::Event& event) {}
+
         /**
          * @brief Retrieves a component attached to the entity that owns this script.
          *

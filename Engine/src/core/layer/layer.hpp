@@ -13,6 +13,8 @@ namespace pxt::core {
 
         virtual void onDetach() {}
 
+        virtual void onBeginFrame(float deltaTime) {}
+
         virtual void onUpdate(FrameInfo& frameInfo, GlobalUbo& ubo) {}
 
         virtual void onPostFrameUpdate(FrameInfo& frameInfo) {}

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "core/pch.hpp"
-#include "scene/camera.hpp"
+#include "graphics/camera_matrices.hpp"
 #include "scene/scene.hpp"
 
 namespace pxt {
@@ -26,7 +26,7 @@ namespace pxt {
         float frameTime;
         float sceneAspectRatio;
         VkCommandBuffer commandBuffer;
-        Camera& camera;
+        CameraMatrices cameraMatrices;
         VkDescriptorSet globalDescriptorSet;
         VkDescriptorSet sceneDescriptorSet;
         Scene& scene;

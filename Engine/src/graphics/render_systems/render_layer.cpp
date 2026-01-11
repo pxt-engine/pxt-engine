@@ -1,7 +1,6 @@
 #include "graphics/render_systems/render_layer.hpp"
 #include "core/events/editor_events.hpp"
 #include "core/events/event_dispatcher.hpp"
-#include "core/events/imgui_events.hpp"
 #include "ui/widgets/space.hpp"
 
 #include "utils/vk_enum_str.h"
@@ -384,10 +383,10 @@ namespace pxt {
         }
 
         // update ubo buffer
-        ubo.projection = frameInfo.camera.getProjectionMatrix();
-        ubo.view = frameInfo.camera.getViewMatrix();
-        ubo.inverseView = frameInfo.camera.getInverseViewMatrix();
-        ubo.inverseProjection = frameInfo.camera.getInverseProjMatrix();
+        ubo.projection = frameInfo.cameraMatrices.projectionMatrix;
+        ubo.view = frameInfo.cameraMatrices.viewMatrix;
+        ubo.inverseView = frameInfo.cameraMatrices.inverseViewMatrix;
+        ubo.inverseProjection = frameInfo.cameraMatrices.inverseProjectionMatrix;
 
         // update light values into ubo
         m_pointLightSystem->update(frameInfo, ubo);
@@ -406,6 +405,8 @@ namespace pxt {
     }
 
     void RenderLayer::doRenderPasses(FrameInfo& frameInfo) {
+        const core::EngineMode currentEngineMode = Application::get().getEngineMode();
+
         if (m_densityTextureSystem->needsRegeneration()) {
             m_densityTextureSystem->generate(frameInfo.commandBuffer);
         }
@@ -467,20 +468,27 @@ namespace pxt {
 
             m_skyboxRenderSystem->render(frameInfo);
 
-            m_editorGridRenderSystem->render(frameInfo);
+            if (currentEngineMode == core::EngineMode::EDIT) {
+                m_editorGridRenderSystem->render(frameInfo);
+            }
 
             m_pointLightSystem->render(frameInfo);
 
             m_renderer.endRenderPass(frameInfo.commandBuffer, *m_offscreenRenderPass, *m_offscreenFb);
         }
 
+        // if we are in EDIT mode, use the true selected entity
+        // else, make it think nothing is selected, to avoid selection edges
+        core::UUID currentlySelectedUUID =
+            currentEngineMode == core::EngineMode::EDIT ? m_selectedEntityUUID : core::UUID::s_invalidId;
+
         // render selection mask
-        m_selectionMaskRenderSystem->render(frameInfo, m_renderer, m_selectedEntityUUID);
+        m_selectionMaskRenderSystem->render(frameInfo, m_renderer, currentlySelectedUUID);
 
         // composition pass (compute shader)
         m_compositionRenderSystem->render(frameInfo, *m_sceneImage, m_selectionMaskRenderSystem->getMaskColorImage(),
                                           m_objectPickingSystem->getObjectIdImage(), *m_finalImage,
-                                          frameInfo.scene.getObjPickingIdFromEntityUUID(m_selectedEntityUUID));
+                                          frameInfo.scene.getObjPickingIdFromEntityUUID(currentlySelectedUUID));
     }
 
     void RenderLayer::onPostFrameUpdate(FrameInfo& frameInfo) {
@@ -504,7 +512,7 @@ namespace pxt {
     void RenderLayer::onEvent(core::Event& event) {
         core::EventDispatcher dispatcher(event);
 
-        dispatcher.dispatch<core::ImGuiViewportResizeEvent>([this](auto& event) {
+        dispatcher.dispatch<core::ViewportResizeEvent>([this](auto& event) {
             m_viewportExtent = {event.getWidth(), event.getHeight()};
             recreateViewportResources();
 
@@ -519,7 +527,7 @@ namespace pxt {
 
             m_selectionMaskRenderSystem->updateImage(m_viewportExtent);
 
-            return true;
+            return false; // propagate (scene needs it for cameras)
         });
 
         dispatcher.dispatch<core::PickObjectAtEvent>([this](auto& event) {
