@@ -7,6 +7,9 @@
 
 #include <glm/gtx/matrix_decompose.hpp> // will use it in the future for gizmos
 
+#define DEFAULT_EDITOR_CAMERA_POS glm::vec3(1.565f, 1.702f, 4.293f);
+#define DEFAULT_EDITOR_CAMERA_ROT glm::vec3(0.3825064f, 5.950683, 0.0f);
+
 namespace pxt::editor {
     EditorLayer::EditorLayer() : core::Layer("EditorLayer") {
         m_editorTextureRegistry = createUnique<EditorTextureRegistry>();
@@ -21,8 +24,8 @@ namespace pxt::editor {
             m_editorCameraRotation = transform.rotation;
         } else {
             // default view when opening editor
-            m_editorCameraPosition = glm::vec3(0.f, 0.3f, 0.3f);
-            m_editorCameraRotation = glm::vec3(0.f, glm::quarter_pi<float>() / 2, 0.f);
+            m_editorCameraPosition = DEFAULT_EDITOR_CAMERA_POS;
+            m_editorCameraRotation = DEFAULT_EDITOR_CAMERA_ROT;
         }
 
         m_editorViewProvider.setActiveCameraPosition(m_editorCameraPosition);
