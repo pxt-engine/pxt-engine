@@ -43,6 +43,24 @@ namespace pxt::editor {
             }
         });
 
+        // Transform2dComponent
+        RegisterComponent<Transform2dComponent>("Transform2dComponent", [](auto& c, Entity entity) {
+            ImGui::DragFloat2("Translation", glm::value_ptr(c.translation), 0.01f);
+            ImGui::DragFloat2("Scale", glm::value_ptr(c.scale), 0.01f);
+            ImGui::DragFloat("Rotation", &c.rotation, 0.01f, -360.0f, 360.0f);
+        });
+
+        // TransformComponent
+        RegisterComponent<TransformComponent>("TransformComponent", [](auto& c, Entity entity) {
+            ImGui::DragFloat3("Translation", glm::value_ptr(c.translation), 0.01f);
+            ImGui::DragFloat3("Scale", glm::value_ptr(c.scale), 0.01f);
+
+            glm::vec3 rotationDegrees = glm::degrees(c.rotation);
+            if (ImGui::DragFloat3("Rotation", glm::value_ptr(rotationDegrees), 0.5f)) {
+                c.rotation = glm::radians(rotationDegrees);
+            }
+        });
+
         // ColorComponent
         RegisterComponent<ColorComponent>(
             "ColorComponent", [](auto& c, Entity entity) { ImGui::ColorEdit3("Color", glm::value_ptr(c.color)); });
@@ -83,36 +101,9 @@ namespace pxt::editor {
             ImGui::ColorEdit3("Tint", glm::value_ptr(c.tint));
         });
 
-        // Transform2dComponent
-        RegisterComponent<Transform2dComponent>("Transform2dComponent", [](auto& c, Entity entity) {
-            ImGui::DragFloat2("Translation", glm::value_ptr(c.translation), 0.01f);
-            ImGui::DragFloat2("Scale", glm::value_ptr(c.scale), 0.01f);
-            ImGui::DragFloat("Rotation", &c.rotation, 0.01f, -360.0f, 360.0f);
-        });
-
-        // TransformComponent
-        RegisterComponent<TransformComponent>("TransformComponent", [](auto& c, Entity entity) {
-            ImGui::DragFloat3("Translation", glm::value_ptr(c.translation), 0.01f);
-            ImGui::DragFloat3("Scale", glm::value_ptr(c.scale), 0.01f);
-
-            glm::vec3 rotationDegrees = glm::degrees(c.rotation);
-            if (ImGui::DragFloat3("Rotation", glm::value_ptr(rotationDegrees), 0.5f)) {
-                c.rotation = glm::radians(rotationDegrees);
-            }
-        });
-
         // MeshComponent
         RegisterComponent<MeshComponent>("MeshComponent", [](MeshComponent& c, Entity entity) {
             ImGui::Text("Mesh name: %s", c.mesh->alias.c_str());
-        });
-
-        // ScriptComponent
-        RegisterComponent<ScriptComponent>("ScriptComponent", [](ScriptComponent& c, Entity entity) {
-            if (c.script) {
-                ImGui::Text("Script instance: %p", c.script);
-            } else {
-                ImGui::Text("No script bound.");
-            }
         });
 
         // CameraComponent
@@ -142,6 +133,15 @@ namespace pxt::editor {
         // PointLightComponent
         RegisterComponent<PointLightComponent>("PointLightComponent", [](PointLightComponent& c, Entity entity) {
             ImGui::DragFloat("Intensity", &c.lightIntensity, 0.1f, 0.0f, 10.0f);
+        });
+
+        // ScriptComponent
+        RegisterComponent<ScriptComponent>("ScriptComponent", [](ScriptComponent& c, Entity entity) {
+            if (c.script) {
+                ImGui::Text("Script instance: %p", c.script);
+            } else {
+                ImGui::Text("No script bound.");
+            }
         });
     }
 } // namespace pxt::editor

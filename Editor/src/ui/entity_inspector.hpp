@@ -42,12 +42,31 @@ namespace pxt::editor {
                 {name, [=](pxt::Entity entity) {
                      if (entity.has<Component>()) {
                          Component& component = entity.get<Component>();
-                         if (ImGui::TreeNodeEx(name.c_str(), ImGuiTreeNodeFlags_DefaultOpen)) {
-                             uiFunction(component, entity);
 
-                             ImGui::TreePop();
+                         //? maybe also defualt open flag?
+                         ImGuiTreeNodeFlags treeFlags =
+                             ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick;
+
+                         // here we render without the close button for necessary components
+                         if constexpr (IsEssentialComponent<Component>::value) {
+                             if (ImGui::CollapsingHeader(name.c_str(), treeFlags)) {
+                                 uiFunction(component, entity);
+                             }
+
+                             return;
                          }
-                         ui::Space::render(0.0f, 5.0f);
+
+                         bool hasComponent = true;
+                         if (ImGui::CollapsingHeader(name.c_str(), &hasComponent, treeFlags)) {
+                             uiFunction(component, entity);
+                         }
+
+                         //! close button on header, we need to remove this component
+                         if constexpr (!IsEssentialComponent<Component>::value) {
+                             if (!hasComponent) {
+                                 entity.remove<Component>();
+                             }
+                         }
                      }
                  }});
         }
