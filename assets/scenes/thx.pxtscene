@@ -1,5 +1,5 @@
 scene: thx
-activeCameraEntity: 019977fa-dd8d-7969-839e-ec32d324f972
+activeCameraEntity: 00000000-0000-0000-0000-000000000000
 entities:
   - entity: 019977fa-dd8d-7969-839e-ec32d324f972
     NameComponent: camera1
@@ -256,9 +256,9 @@ entities:
   - entity: 019977fa-e5b3-7da1-818c-0992532334c5
     NameComponent: dragon
     TransformComponent:
-      translation: [-0.34, -0.58, -0.09]
+      translation: [-0.369, -0.565, -0.179]
       scale: [1.5, 1.5, 1.5]
-      rotation: [-3.1415927, 2.16, 0]
+      rotation: [3.0512718648, 0.8889485479, 3.0652519521]
     MaterialComponent:
       materialId: 01997817-fc0c-7e8a-8303-6675f2e321fe
       material: mat-dragon
