@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/engine_mode.hpp"
+#include "concurrency/job_system.hpp"
 #include "core/events/event.hpp"
 #include "core/events/event_queue.hpp"
 #include "core/layer/layer_stack.hpp"
@@ -110,6 +111,8 @@ namespace pxt {
         bool isRunning();
 
         bool m_running = true;
+
+        concurrency::JobSystem m_jobSystem{};
 
         Window m_window{WindowData()};
         Context m_context{m_window};
