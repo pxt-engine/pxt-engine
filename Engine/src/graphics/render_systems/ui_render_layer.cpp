@@ -38,6 +38,8 @@ namespace pxt {
         ImGuizmo::SetImGuiContext(imguiCtx);
         ImGui::StyleColorsDark();
 
+        setImGuiStyle();
+
         // enable docking and load ini file
         ImGuiIO& io = ImGui::GetIO();
         io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
@@ -69,6 +71,67 @@ namespace pxt {
         ImGui_ImplVulkan_Init(&initInfo);
 
         ImGui_ImplVulkan_CreateFontsTexture();
+    }
+
+    void UiRenderLayer::setImGuiStyle() {
+        ImGuiStyle& style = ImGui::GetStyle();
+
+        // Global alpha
+        style.Alpha = 1.0f;          // Global alpha (0.0-1.0)
+        style.DisabledAlpha = 0.60f; // Additional alpha for disabled items
+
+        // Window geometry
+        style.WindowPadding = ImVec2(8, 8);          // Padding within window
+        style.WindowRounding = 7.0f;                 // Radius of window corners
+        style.WindowBorderSize = 1.0f;               // Thickness of border
+        style.WindowMinSize = ImVec2(32, 32);        // Minimum window size
+        style.WindowTitleAlign = ImVec2(0.5f, 0.5f); // Title bar alignment (0.0=left, 0.5=center, 1.0=right)
+
+        // Window menu bar
+        style.WindowMenuButtonPosition = ImGuiDir_Right;
+
+        // Child windows
+        style.ChildRounding = 2.0f;   // Radius of child window corners
+        style.ChildBorderSize = 1.0f; // Thickness of child window border
+
+        // Popups
+        style.PopupRounding = 5.0f;   // Radius of popup corners
+        style.PopupBorderSize = 1.0f; // Thickness of popup border
+
+        // Frames (used by most widgets)
+        style.FramePadding = ImVec2(5, 4); // Padding within framed rectangle
+        style.FrameRounding = 5.0f;        // Radius of frame corners
+        style.FrameBorderSize = 0.0f;      // Thickness of frame border
+
+        // Items
+        style.ItemSpacing = ImVec2(8, 8);      // Horizontal/vertical spacing between widgets
+        style.ItemInnerSpacing = ImVec2(4, 4); // Horizontal/vertical spacing within elements
+
+        // Layout
+        style.IndentSpacing = 21.0f;    // Horizontal indentation for tree nodes
+        style.ColumnsMinSpacing = 6.0f; // Minimum spacing between columns
+        style.ScrollbarSize = 9.0f;     // Width of scrollbars
+        style.ScrollbarRounding = 9.0f; // Radius of scrollbar corners
+        style.GrabMinSize = 12.0f;      // Minimum size of grab boxes
+        style.GrabRounding = 0.0f;      // Radius of grabs
+
+        // Tabs
+        style.TabRounding = 8.0f;               // Radius of tab corners
+        style.TabBorderSize = 0.0f;             // Thickness of tab border
+        style.TabMinWidthForCloseButton = 0.0f; // Minimum width before close button appears
+        style.TabBarBorderSize = 1.0f;          // Thickness of tab bar border
+        style.TabBarOverlineSize = 0.0f;        // Thickness of tab overline
+
+        // Alignment
+        style.ButtonTextAlign = ImVec2(0.5f, 0.5f);     // Button text alignment
+        style.SelectableTextAlign = ImVec2(0.0f, 0.0f); // Selectable text alignment
+
+        // Rendering
+        style.AntiAliasedLines = true;            // Enable anti-aliasing on lines
+        style.AntiAliasedLinesUseTex = true;      // Use texture for AA lines (faster)
+        style.AntiAliasedFill = true;             // Enable anti-aliasing on filled shapes
+        style.CurveTessellationTol = 1.25f;       // Curve tessellation tolerance
+        style.CircleTessellationMaxError = 0.30f; // Maximum error for circle approximatio
     }
 
     void UiRenderLayer::render(FrameInfo& frameInfo, Renderer& renderer) {
