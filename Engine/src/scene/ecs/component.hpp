@@ -8,6 +8,27 @@
 #include "scene/camera_data.hpp"
 
 namespace pxt {
+    // forward declarations
+    struct IDComponent;
+    struct NameComponent;
+    struct Transform2dComponent;
+    struct TransformComponent;
+
+    template <typename T>
+    struct IsEssentialComponent : std::false_type {};
+
+    template <>
+    struct IsEssentialComponent<IDComponent> : std::true_type {};
+
+    template <>
+    struct IsEssentialComponent<NameComponent> : std::true_type {};
+
+    template <>
+    struct IsEssentialComponent<Transform2dComponent> : std::true_type {};
+
+    template <>
+    struct IsEssentialComponent<TransformComponent> : std::true_type {};
+
     struct IDComponent {
         core::UUID uuid;
 
@@ -56,6 +77,64 @@ namespace pxt {
         operator std::string&() { return name; }
 
         operator const std::string&() const { return name; }
+    };
+
+    // TODO: remember to enforce that an entity cannot have both a 2D and a 3D component
+    struct Transform2dComponent {
+        glm::vec2 translation{};
+        glm::vec2 scale{1.f, 1.f};
+        float rotation = 0.0f;
+
+        glm::mat2 mat2() const;
+
+        Transform2dComponent() = default;
+        Transform2dComponent(const Transform2dComponent&) = default;
+
+        Transform2dComponent(const glm::vec2& translation) : translation(translation) {}
+
+        Transform2dComponent(const glm::vec2& translation, const glm::vec2& scale)
+            : translation(translation), scale(scale) {}
+
+        Transform2dComponent(const glm::vec2& translation, const glm::vec2& scale, const float rotation)
+            : translation(translation), scale(scale), rotation(rotation) {}
+
+        operator glm::mat2() { return mat2(); }
+    };
+
+    struct TransformComponent {
+        glm::vec3 translation{};
+        glm::vec3 scale{1.f, 1.f, 1.f};
+        glm::vec3 rotation{};
+
+        /**
+         * @brief Computes the entity's world-space 4x4 transformation matrix.
+         *
+         * This function follows the standard computer graphics convention for Column-Major matrices:
+         * Matrix = Translation * Rotation * Scale (applied in that order).
+         *
+         * @details
+         * - Rotation: Uses Euler angles in RADIANS, converted to a Quaternion to avoid gimbal lock.
+         * - Order: Corresponds to Intrinsic Y -> X -> Z (Tait-Bryan) rotation sequence.
+         * - Coordinate System: Right-handed.
+         *
+         * * @return glm::mat4 Combined transformation matrix.
+         */
+        glm::mat4 mat4() const;
+        glm::mat3 normalMatrix(const glm::mat4& modelMatrix) const;
+
+        TransformComponent() = default;
+        TransformComponent(const TransformComponent&) = default;
+
+        TransformComponent(const glm::vec3& translation) : translation(translation) {}
+
+        TransformComponent(const glm::vec3& translation, const glm::vec3& scale)
+            : translation(translation), scale(scale) {}
+
+        TransformComponent(const glm::vec3& translation, const glm::vec3& scale, const glm::vec3& rotation)
+            : translation(translation), scale(scale), rotation(rotation) {}
+
+        // Conversion operator calling the mat4 function
+        operator glm::mat4() { return mat4(); }
     };
 
     struct ColorComponent {
@@ -160,63 +239,6 @@ namespace pxt {
         };
     };
 
-    struct Transform2dComponent {
-        glm::vec2 translation{};
-        glm::vec2 scale{1.f, 1.f};
-        float rotation = 0.0f;
-
-        glm::mat2 mat2() const;
-
-        Transform2dComponent() = default;
-        Transform2dComponent(const Transform2dComponent&) = default;
-
-        Transform2dComponent(const glm::vec2& translation) : translation(translation) {}
-
-        Transform2dComponent(const glm::vec2& translation, const glm::vec2& scale)
-            : translation(translation), scale(scale) {}
-
-        Transform2dComponent(const glm::vec2& translation, const glm::vec2& scale, const float rotation)
-            : translation(translation), scale(scale), rotation(rotation) {}
-
-        operator glm::mat2() { return mat2(); }
-    };
-
-    struct TransformComponent {
-        glm::vec3 translation{};
-        glm::vec3 scale{1.f, 1.f, 1.f};
-        glm::vec3 rotation{};
-
-        /**
-         * @brief Computes the entity's world-space 4x4 transformation matrix.
-         *
-         * This function follows the standard computer graphics convention for Column-Major matrices:
-         * Matrix = Translation * Rotation * Scale (applied in that order).
-         *
-         * @details
-         * - Rotation: Uses Euler angles in RADIANS, converted to a Quaternion to avoid gimbal lock.
-         * - Order: Corresponds to Intrinsic Y -> X -> Z (Tait-Bryan) rotation sequence.
-         * - Coordinate System: Right-handed.
-         * 
-         * * @return glm::mat4 Combined transformation matrix.
-         */
-        glm::mat4 mat4() const;
-        glm::mat3 normalMatrix(const glm::mat4& modelMatrix) const;
-
-        TransformComponent() = default;
-        TransformComponent(const TransformComponent&) = default;
-
-        TransformComponent(const glm::vec3& translation) : translation(translation) {}
-
-        TransformComponent(const glm::vec3& translation, const glm::vec3& scale)
-            : translation(translation), scale(scale) {}
-
-        TransformComponent(const glm::vec3& translation, const glm::vec3& scale, const glm::vec3& rotation)
-            : translation(translation), scale(scale), rotation(rotation) {}
-
-        // Conversion operator calling the mat4 function
-        operator glm::mat4() { return mat4(); }
-    };
-
     struct MeshComponent {
         Shared<Mesh> mesh;
 
@@ -224,24 +246,6 @@ namespace pxt {
         MeshComponent(const MeshComponent&) = default;
 
         MeshComponent(const Shared<Mesh>& mesh) : mesh(mesh) {}
-    };
-
-    class Script; // Forward declaration of Script class
-
-    struct ScriptComponent {
-        Script* script = nullptr;
-
-        // Type-erased factory and destructor
-        Script* (*create)() = nullptr;
-        void (*destroy)(Script*) = nullptr;
-
-        template <typename T>
-        requires(std::is_base_of_v<Script, T>)
-        void bind() {
-            create = []() -> Script* { return new T(); };
-
-            destroy = [](Script* s) { delete static_cast<T*>(s); };
-        }
     };
 
     struct CameraComponent {
@@ -268,5 +272,23 @@ namespace pxt {
         PointLightComponent(const PointLightComponent&) = default;
 
         PointLightComponent(const float intensity) : lightIntensity(intensity) {}
+    };
+
+    class Script; // Forward declaration of Script class
+
+    struct ScriptComponent {
+        Script* script = nullptr;
+
+        // Type-erased factory and destructor
+        Script* (*create)() = nullptr;
+        void (*destroy)(Script*) = nullptr;
+
+        template <typename T>
+        requires(std::is_base_of_v<Script, T>)
+        void bind() {
+            create = []() -> Script* { return new T(); };
+
+            destroy = [](Script* s) { delete static_cast<T*>(s); };
+        }
     };
 } // namespace pxt
