@@ -66,9 +66,24 @@ namespace pxt {
     }
 
     std::optional<Entity> Scene::getActiveCameraEntity() {
-        if (m_activeCameraEntityID == core::UUID::s_invalidId)
+        if (m_activeCameraEntityID == core::UUID::s_invalidId) {
             return std::nullopt;
-        return getEntity(m_activeCameraEntityID);
+        }
+
+        Entity activeCameraEntity = getEntity(m_activeCameraEntityID);
+
+        //! this could happen because the scene saves the uuid of the entity
+        //! so if the user sets a camera to be active but then removes its
+        //! CameraComponent, this method would return an entity which does not
+        //! contain a CameraComponent anymore, leading to bugs.
+        if (!activeCameraEntity.has<CameraComponent>()) {
+            // so here we set the active camera to invalid and return nullopt
+            setActiveCameraEntity(core::UUID::s_invalidId);
+
+            return std::nullopt;
+        }
+
+        return activeCameraEntity;
     }
 
     core::UUID Scene::getActiveCameraEntityUUID() { return m_activeCameraEntityID; }
