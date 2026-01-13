@@ -12,12 +12,13 @@ namespace pxt::ui {
         template <typename T>
         static bool render(ImTextureID texture, const char* strId, const char* tooltip, const T& valueOn,
                            const T& valueOff, T& currentValue, const ImVec2& size,
-                           const ImVec4& activeColor = ImVec4(0.05f, 0.25f, 0.65f, 1.f),
-                           const ImVec4& activeHoveredColor = ImVec4(0.30f, 0.50f, 0.90f, 1.00f),
-                           const ImVec4& activePressedColor = ImVec4(0.20f, 0.40f, 0.80f, 1.00f),
-                           const ImVec4& inactiveColor = ImVec4(0.10f, 0.1f, 0.1f, 1.f),
+                           const ImVec4& activeColor = ImVec4(0.569f, 0.325f, 0.859f, 1.f),
+                           const ImVec4& activeHoveredColor = ImVec4(0.669f, 0.425f, 0.959f, 1.00f),
+                           const ImVec4& activePressedColor = ImVec4(0.619f, 0.355f, 0.909f, 1.00f),
+                           const ImVec4& inactiveColor = ImVec4(0.1f, 0.1f, 0.1f, 1.f),
                            const ImVec4& inactiveHovered = ImVec4(0.25f, 0.25f, 0.25f, 1.f),
                            const ImVec4& inactivePressed = ImVec4(0.20f, 0.20f, 0.20f, 1.f)) {
+
             const bool isActive = (currentValue == valueOn);
 
             if (isActive) {
