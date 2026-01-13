@@ -7,6 +7,7 @@ const std::string SHADERS_PATH = "../assets/shaders/";
 const std::string MODELS_PATH = "../assets/models/";
 const std::string TEXTURES_PATH = "../assets/textures/";
 const std::string SCENES_PATH = "../assets/scenes/";
+const std::string FONTS_PATH = "../assets/fonts/";
 
 const std::string IMGUI_INI_FILEPATH = "../assets/imgui_config/imgui.ini";
 
