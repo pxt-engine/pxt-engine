@@ -230,5 +230,8 @@ namespace pxt {
         ImGuizmo::BeginFrame();
     }
 
-    void UiRenderLayer::buildUi(Scene& scene) { ImGui::ShowMetricsWindow(); }
+    void UiRenderLayer::buildUi(Scene& scene) {
+        ImGui::ShowMetricsWindow();
+        ImGui::ShowDemoWindow();
+    }
 } // namespace pxt

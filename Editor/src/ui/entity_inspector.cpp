@@ -17,6 +17,55 @@ namespace pxt::editor {
                     info.drawer(entity);
                 }
             }
+
+            // --- Centered, wide button ---
+            const float buttonWidth = 200.0f;
+            float availWidth = ImGui::GetContentRegionAvail().x;
+            float cursorX = ImGui::GetCursorPosX();
+            ImGui::SetCursorPosX(cursorX + (availWidth - buttonWidth) * 0.5f);
+
+            if (ImGui::Button("Add Component", ImVec2(buttonWidth, 0.0f))) {
+                m_openAddComponentWindow = true;
+            }
+
+            // Capture button rect in screen space
+            ImVec2 buttonMin = ImGui::GetItemRectMin();
+            ImVec2 buttonMax = ImGui::GetItemRectMax();
+
+            // --- Add Component window ---
+            if (m_openAddComponentWindow) {
+                ImGuiWindowFlags addComponentWindowFlags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove |
+                                                           ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize;
+
+                ImVec2 windowSize(200.0f, 250.0f);
+
+                // Position directly below the button
+                ImVec2 windowPos(buttonMin.x, buttonMax.y);
+
+                ImGui::SetNextWindowSize(windowSize, ImGuiCond_Always);
+                ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always);
+
+                ImGui::Begin("Add Component", &m_openAddComponentWindow, addComponentWindowFlags);
+
+                static ImGuiTextFilter simpleFilter;
+                simpleFilter.Draw("Search");
+
+                const char* lines[] = {"aaa1.c",   "bbb1.c",   "ccc1.c", "aaa2.cpp",
+                                       "bbb2.cpp", "ccc2.cpp", "abc.h",  "hello, world"};
+
+                for (int i = 0; i < IM_ARRAYSIZE(lines); i++) {
+                    if (simpleFilter.PassFilter(lines[i])) {
+                        if (ImGui::Selectable(lines[i])) {
+                            // TODO: add component logic with a name->type map
+                            PXT_DEBUG("clicked on {}", lines[i]);
+                            m_openAddComponentWindow = false;
+                        }
+                    }
+                }
+
+                ImGui::End();
+            }
+
         } else {
             ImGui::Text("No entity selected");
         }

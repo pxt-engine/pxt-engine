@@ -30,6 +30,8 @@ namespace pxt::editor {
     private:
         std::vector<ComponentUiInfo> m_componentUiRegistry;
 
+        bool m_openAddComponentWindow = false;
+
         /*
          *@brief Registers a component of type T into the m_componentUiRegistry.
          *		 Each element has a name and a function that dictates how it is
