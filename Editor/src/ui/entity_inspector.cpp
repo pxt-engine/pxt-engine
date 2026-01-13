@@ -24,9 +24,11 @@ namespace pxt::editor {
             float cursorX = ImGui::GetCursorPosX();
             ImGui::SetCursorPosX(cursorX + (availWidth - buttonWidth) * 0.5f);
 
+            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(5, 1));
             if (ImGui::Button("Add Component", ImVec2(buttonWidth, 0.0f))) {
                 m_openAddComponentWindow = true;
             }
+            ImGui::PopStyleVar();
 
             // Capture button rect in screen space
             ImVec2 buttonMin = ImGui::GetItemRectMin();
@@ -44,6 +46,12 @@ namespace pxt::editor {
 
                 ImGui::SetNextWindowSize(windowSize, ImGuiCond_Always);
                 ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always);
+
+                // make window bg color less transparent
+                ImGuiStyle& style = ImGui::GetStyle();
+                ImVec4 windowBgColor = style.Colors[ImGuiCol_WindowBg];
+                windowBgColor.w = 0.97f;
+                ImGui::PushStyleColor(ImGuiCol_WindowBg, windowBgColor);
 
                 ImGui::Begin("Add Component", &m_openAddComponentWindow, addComponentWindowFlags);
 
@@ -64,6 +72,7 @@ namespace pxt::editor {
                 }
 
                 ImGui::End();
+                ImGui::PopStyleColor();
             }
 
         } else {
