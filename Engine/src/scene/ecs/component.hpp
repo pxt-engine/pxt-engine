@@ -32,6 +32,8 @@ namespace pxt {
     struct IDComponent {
         core::UUID uuid;
 
+        IDComponent() : uuid(core::UUID()) {}
+
         IDComponent(core::UUID uuid) : uuid(uuid) {}
 
         IDComponent(const IDComponent&) = default;
@@ -68,7 +70,6 @@ namespace pxt {
     struct NameComponent {
         std::string name;
 
-        NameComponent() = default;
         NameComponent(const NameComponent&) = default;
 
         NameComponent(const std::string& name) : name(name) {}
@@ -81,7 +82,7 @@ namespace pxt {
 
     // TODO: remember to enforce that an entity cannot have both a 2D and a 3D component
     struct Transform2dComponent {
-        glm::vec2 translation{};
+        glm::vec2 translation{0.f, 0.f};
         glm::vec2 scale{1.f, 1.f};
         float rotation = 0.0f;
 
@@ -102,9 +103,9 @@ namespace pxt {
     };
 
     struct TransformComponent {
-        glm::vec3 translation{};
+        glm::vec3 translation{0.f, 0.f, 0.f};
         glm::vec3 scale{1.f, 1.f, 1.f};
-        glm::vec3 rotation{};
+        glm::vec3 rotation{0.f, 0.f, 0.f};
 
         /**
          * @brief Computes the entity's world-space 4x4 transformation matrix.
@@ -138,7 +139,7 @@ namespace pxt {
     };
 
     struct ColorComponent {
-        glm::vec3 color;
+        glm::vec3 color{1.f, 1.f, 1.f};
 
         ColorComponent() = default;
         ColorComponent(const ColorComponent&) = default;
@@ -160,11 +161,11 @@ namespace pxt {
             // phaseFunctionG > 0.0 for forward scattering
             // phaseFunctionG < 0.0 for backward scattering
             float phaseFunctionG = 0;
-            Shared<Image> densityTexture{};
-            Shared<Image> detailTexture{}; // for edge details of the volume
+            Shared<Image> densityTexture = nullptr;
+            Shared<Image> detailTexture = nullptr; // for edge details of the volume
         };
 
-        Volume volume;
+        Volume volume{};
 
         VolumeComponent() = default;
         VolumeComponent(const VolumeComponent&) = default;
@@ -278,6 +279,8 @@ namespace pxt {
 
     struct ScriptComponent {
         Script* script = nullptr;
+
+        ScriptComponent() = default;
 
         // Type-erased factory and destructor
         Script* (*create)() = nullptr;
