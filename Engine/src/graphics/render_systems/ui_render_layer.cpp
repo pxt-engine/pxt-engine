@@ -232,6 +232,6 @@ namespace pxt {
 
     void UiRenderLayer::buildUi(Scene& scene) {
         ImGui::ShowMetricsWindow();
-        ImGui::ShowDemoWindow();
+        // ImGui::ShowDemoWindow();
     }
 } // namespace pxt
