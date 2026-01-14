@@ -57,8 +57,8 @@ namespace pxt::editor {
             if constexpr (IsEssentialComponent<Component>::value) {
                 return [](Entity) {};
             } else {
-                static_assert(std::is_default_constructible_v<Component>,
-                              "Component must be default constructible to be added from the UI");
+                PXT_STATIC_ASSERT(std::is_default_constructible_v<Component>,
+                                  "Component must be default constructible to be added from the UI");
                 return [compName](Entity entity) {
                     // TODO: in the future script components will need extra config care
                     if (!entity.has<Component>()) {
