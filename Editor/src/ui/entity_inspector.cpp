@@ -8,75 +8,79 @@ namespace pxt::editor {
 
     void EntityInspector::drawEntityInspector(Scene& scene, const core::UUID& selectedEntityId) {
         ImGui::Begin("Entity Inspector");
-        if (selectedEntityId != core::UUID::s_invalidId) {
-            Entity entity = scene.getEntity(selectedEntityId);
 
-            if (entity) {
-                // draw registered components
-                for (auto& info : m_componentUiRegistry) {
-                    info.drawer(entity);
+        if (selectedEntityId == core::UUID::s_invalidId) {
+            ImGui::Text("No entity selected");
+            ImGui::End();
+
+            return;
+        }
+
+        Entity entity = scene.getEntity(selectedEntityId);
+
+        if (entity) {
+            // draw components
+            for (auto& info : m_componentUiRegistry) {
+                info.drawer(entity);
+            }
+        }
+
+        // --- Centered, wide button ---
+        const float buttonWidth = 200.0f;
+        float availWidth = ImGui::GetContentRegionAvail().x;
+        float cursorX = ImGui::GetCursorPosX();
+        ImGui::SetCursorPosX(cursorX + (availWidth - buttonWidth) * 0.5f);
+
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(5, 1));
+        if (ImGui::Button("Add Component", ImVec2(buttonWidth, 0.0f))) {
+            m_openAddComponentWindow = true;
+        }
+        ImGui::PopStyleVar();
+
+        // Capture button rect in screen space
+        ImVec2 buttonMin = ImGui::GetItemRectMin();
+        ImVec2 buttonMax = ImGui::GetItemRectMax();
+
+        // --- Add Component window ---
+        if (m_openAddComponentWindow) {
+            ImGuiWindowFlags addComponentWindowFlags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove |
+                                                       ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize;
+
+            ImVec2 windowSize(200.0f, 250.0f);
+
+            // Position directly below the button
+            ImVec2 windowPos(buttonMin.x, buttonMax.y);
+
+            ImGui::SetNextWindowSize(windowSize, ImGuiCond_Always);
+            ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always);
+
+            // make window bg color less transparent
+            ImGuiStyle& style = ImGui::GetStyle();
+            ImVec4 windowBgColor = style.Colors[ImGuiCol_WindowBg];
+            windowBgColor.w = 0.97f;
+            ImGui::PushStyleColor(ImGuiCol_WindowBg, windowBgColor);
+
+            ImGui::Begin("Add Component", &m_openAddComponentWindow, addComponentWindowFlags);
+
+            static ImGuiTextFilter simpleFilter;
+            simpleFilter.Draw("Search");
+
+            for (auto& info : m_componentUiRegistry) {
+                // skip essential components
+                if (info.essential) {
+                    continue;
                 }
-            }
 
-            // --- Centered, wide button ---
-            const float buttonWidth = 200.0f;
-            float availWidth = ImGui::GetContentRegionAvail().x;
-            float cursorX = ImGui::GetCursorPosX();
-            ImGui::SetCursorPosX(cursorX + (availWidth - buttonWidth) * 0.5f);
-
-            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(5, 1));
-            if (ImGui::Button("Add Component", ImVec2(buttonWidth, 0.0f))) {
-                m_openAddComponentWindow = true;
-            }
-            ImGui::PopStyleVar();
-
-            // Capture button rect in screen space
-            ImVec2 buttonMin = ImGui::GetItemRectMin();
-            ImVec2 buttonMax = ImGui::GetItemRectMax();
-
-            // --- Add Component window ---
-            if (m_openAddComponentWindow) {
-                ImGuiWindowFlags addComponentWindowFlags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove |
-                                                           ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize;
-
-                ImVec2 windowSize(200.0f, 250.0f);
-
-                // Position directly below the button
-                ImVec2 windowPos(buttonMin.x, buttonMax.y);
-
-                ImGui::SetNextWindowSize(windowSize, ImGuiCond_Always);
-                ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always);
-
-                // make window bg color less transparent
-                ImGuiStyle& style = ImGui::GetStyle();
-                ImVec4 windowBgColor = style.Colors[ImGuiCol_WindowBg];
-                windowBgColor.w = 0.97f;
-                ImGui::PushStyleColor(ImGuiCol_WindowBg, windowBgColor);
-
-                ImGui::Begin("Add Component", &m_openAddComponentWindow, addComponentWindowFlags);
-
-                static ImGuiTextFilter simpleFilter;
-                simpleFilter.Draw("Search");
-
-                const char* lines[] = {"aaa1.c",   "bbb1.c",   "ccc1.c", "aaa2.cpp",
-                                       "bbb2.cpp", "ccc2.cpp", "abc.h",  "hello, world"};
-
-                for (int i = 0; i < IM_ARRAYSIZE(lines); i++) {
-                    if (simpleFilter.PassFilter(lines[i])) {
-                        if (ImGui::Selectable(lines[i])) {
-                            // TODO: add component logic with a name->type map
-                            PXT_DEBUG("clicked on {}", lines[i]);
-                            m_openAddComponentWindow = false;
-                        }
+                if (simpleFilter.PassFilter(info.name.c_str())) {
+                    if (ImGui::Selectable(info.name.c_str())) {
+                        info.addComponent(entity);
+                        m_openAddComponentWindow = false;
                     }
                 }
-
-                ImGui::End();
-                ImGui::PopStyleColor();
             }
 
-        } else {
-            ImGui::Text("No entity selected");
+            ImGui::End();
+            ImGui::PopStyleColor();
         }
 
         ImGui::End();
@@ -191,6 +195,7 @@ namespace pxt::editor {
         // PointLightComponent
         RegisterComponent<PointLightComponent>("PointLightComponent", [](PointLightComponent& c, Entity entity) {
             ImGui::DragFloat("Intensity", &c.lightIntensity, 0.1f, 0.0f, 10.0f);
+            ImGui::ColorEdit3("Color", glm::value_ptr(c.lightColor));
         });
 
         // ScriptComponent

@@ -130,7 +130,7 @@ namespace pxt {
              out << YAML::BeginMap;
              out << YAML::Key << "useViewportAspectRatio" << YAML::Value << c.useViewportAspectRatio;
              if (!c.useViewportAspectRatio) {
-                out << YAML::Key << "aspectRatio" << YAML::Value << c.aspectRatio;
+                 out << YAML::Key << "aspectRatio" << YAML::Value << c.aspectRatio;
              }
              out << YAML::Key << "isPerspective" << YAML::Value << c.cameraData.isPerspective();
              out << YAML::Key << "nearPlane" << YAML::Value << c.cameraData.getNearPlane();
@@ -147,6 +147,8 @@ namespace pxt {
              out << YAML::Key << "PointLightComponent";
              out << YAML::BeginMap;
              out << YAML::Key << "lightIntensity" << YAML::Value << c.lightIntensity;
+             out << YAML::Key << "lightColor" << YAML::Value << YAML::Flow << YAML::BeginSeq << c.lightColor.r
+                 << c.lightColor.g << c.lightColor.b << YAML::EndSeq;
              out << YAML::EndMap;
          })},
     };
@@ -416,7 +418,10 @@ namespace pxt {
             // Deserialize PointLightComponent
             if (auto pointLightComponentNode = entityNode["PointLightComponent"]) {
                 float lightIntensity = pointLightComponentNode["lightIntensity"].as<float>();
-                entity.add<PointLightComponent>(lightIntensity);
+                auto lightColor = pointLightComponentNode["lightColor"].as<std::vector<float>>();
+                auto& plc = entity.addAndGet<PointLightComponent>(lightIntensity);
+
+                plc.lightColor = glm::vec3(lightColor[0], lightColor[1], lightColor[2]);
             }
         }
 
