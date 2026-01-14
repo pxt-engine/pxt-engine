@@ -79,9 +79,9 @@ namespace pxt {
 
         //! this could happen because the scene saves the uuid of the entity
         //! so if the user sets a camera to be active but then removes its
-        //! CameraComponent, this method would return an entity which does not
-        //! contain a CameraComponent anymore, leading to bugs.
-        if (!activeCameraEntity.has<CameraComponent>()) {
+        //! CameraComponent or TransformComponent, this method would return
+        //! an entity which does not contain a CameraComponent anymore, leading to bugs.
+        if (!activeCameraEntity.has<CameraComponent, TransformComponent>()) {
             // so here we set the active camera to invalid and return nullopt
             setActiveCameraEntity(core::UUID::s_invalidId);
 
@@ -94,11 +94,15 @@ namespace pxt {
     core::UUID Scene::getActiveCameraEntityUUID() { return m_activeCameraEntityID; }
 
     void Scene::setActiveCameraEntity(core::UUID newActiveCameraID) {
-        // if the entity exists and does not have a cameraComponent it cannot be the active camera
-        if (newActiveCameraID != core::UUID::s_invalidId && !getEntity(newActiveCameraID).has<CameraComponent>()) {
-            throw std::logic_error(
-                "The new active camera entity must have a CameraComponent or must be an invalid UUID (no one is "
-                "the active camera)");
+        // if the entity exists and does not have a cameraComponent and a TransformComponent it cannot be the active
+        // camera
+        if (newActiveCameraID != core::UUID::s_invalidId &&
+            !getEntity(newActiveCameraID).has<CameraComponent, TransformComponent>()) {
+            PXT_WARN("Cannot select Entity \"{}\" as active camera because it does not contain a CameraComponent or "
+                     "TransformComponent!",
+                     getEntity(newActiveCameraID).getName());
+
+            return;
         }
 
         m_activeCameraEntityID = newActiveCameraID;

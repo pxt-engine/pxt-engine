@@ -24,12 +24,6 @@ namespace pxt {
     template <>
     struct IsEssentialComponent<NameComponent> : std::true_type {};
 
-    template <>
-    struct IsEssentialComponent<Transform2dComponent> : std::true_type {};
-
-    template <>
-    struct IsEssentialComponent<TransformComponent> : std::true_type {};
-
     struct IDComponent {
         core::UUID uuid;
 

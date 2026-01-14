@@ -62,6 +62,8 @@ namespace pxt::editor {
 
             ImGui::Begin("Add Component", &m_openAddComponentWindow, addComponentWindowFlags);
 
+            m_openAddComponentWindow &= ImGui::IsWindowFocused();
+
             static ImGuiTextFilter simpleFilter;
             simpleFilter.Draw("Search");
 
