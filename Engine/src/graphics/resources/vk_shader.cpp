@@ -1,19 +1,7 @@
 // Code based on https://github.com/jbikker/lighthouse2/blob/master/lib/rendercore_vulkan_rt/vulkan_shader.cpp
 #include "graphics/resources/vk_shader.hpp"
 
-inline std::string get_cwd() {
-    char* cwd;
-    cwd = new char[FILENAME_MAX * sizeof(char)];
-#ifdef WIN32
-    _getcwd(cwd, FILENAME_MAX);
-#else
-    getcwd(cwd, FILENAME_MAX);
-#endif
-
-    std::string cwdStr = std::string(cwd);
-    delete[] cwd;
-    return cwdStr;
-}
+inline std::string get_cwd() { return std::filesystem::current_path().string(); }
 
 namespace pxt {
     inline bool IsSPIR_V(const std::string_view& fileName) {
