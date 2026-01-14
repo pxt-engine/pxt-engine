@@ -61,8 +61,13 @@ namespace pxt {
     }
 
     void Scene::onUpdate(float delta) {
-        getEntitiesWith<ScriptComponent>().each(
-            [=](auto entity, auto& scriptComponent) { scriptComponent.script->onUpdate(delta); });
+        getEntitiesWith<ScriptComponent>().each([=](auto entity, auto& scriptComponent) {
+            if (!scriptComponent.script) {
+                return;
+            }
+
+            scriptComponent.script->onUpdate(delta);
+        });
     }
 
     std::optional<Entity> Scene::getActiveCameraEntity() {
@@ -127,7 +132,12 @@ namespace pxt {
             return false;
         });
 
-        getEntitiesWith<ScriptComponent>().each(
-            [&](auto entity, auto& scriptComponent) { scriptComponent.script->onEvent(event); });
+        getEntitiesWith<ScriptComponent>().each([&](auto entity, auto& scriptComponent) {
+            if (!scriptComponent.script) {
+                return;
+            }
+
+            scriptComponent.script->onEvent(event);
+        });
     }
 } // namespace pxt
