@@ -294,7 +294,7 @@ public:
 #if 1
         Scene& scene = getScene();
         SceneSerializer serializer(&scene, getResourceManager());
-        serializer.deserialize(SCENES_PATH + "thx.pxtscene");
+        serializer.deserialize(SCENES_PATH + "sugo_funzionante.pxtscene");
 
         // TODO: add scripts to scene serialize
         scene.getEntitiesWith<CameraComponent>().each([&](auto e, auto& cameraComp) {
