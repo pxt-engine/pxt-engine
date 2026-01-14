@@ -3,11 +3,15 @@
 
 namespace pxt {
 
-    Shared<Material> ResourceManager::defaultMaterial = nullptr;
+    Shared<Material> ResourceManager::s_defaultMaterial = nullptr;
+    Shared<Mesh> ResourceManager::s_defaultObjMesh = nullptr;
 
     ResourceManager::ResourceManager() : Layer("ResourceManager") {}
 
-    ResourceManager::~ResourceManager() { defaultMaterial = nullptr; }
+    ResourceManager::~ResourceManager() {
+        s_defaultMaterial = nullptr;
+        s_defaultObjMesh = nullptr;
+    }
 
     Shared<Resource> ResourceManager::get(const std::string& alias, ResourceInfo* resourceInfo) {
 

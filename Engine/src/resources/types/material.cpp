@@ -125,20 +125,20 @@ namespace pxt {
 
     Shared<Material> Material::Builder::build() {
         if (!m_albedoMap)
-            m_albedoMap = ResourceManager::defaultMaterial->getAlbedoMap();
+            m_albedoMap = ResourceManager::s_defaultMaterial->getAlbedoMap();
         if (!m_normalMap)
-            m_normalMap = ResourceManager::defaultMaterial->getNormalMap();
+            m_normalMap = ResourceManager::s_defaultMaterial->getNormalMap();
 
         m_metallic = m_useMetallicWeight ? m_metallic : 1.0;
         m_roughness = m_useRoughnessWeight ? m_roughness : 1.0;
 
-        // if (!m_metallicMap) m_metallicMap = ResourceManager::defaultMaterial->getMetallicMap();
-        // if (!m_roughnessMap) m_roughnessMap = ResourceManager::defaultMaterial->getRoughnessMap();
+        // if (!m_metallicMap) m_metallicMap = ResourceManager::s_defaultMaterial->getMetallicMap();
+        // if (!m_roughnessMap) m_roughnessMap = ResourceManager::s_defaultMaterial->getRoughnessMap();
 
         if (!m_ambientOcclusionMap)
-            m_ambientOcclusionMap = ResourceManager::defaultMaterial->getAmbientOcclusionMap();
+            m_ambientOcclusionMap = ResourceManager::s_defaultMaterial->getAmbientOcclusionMap();
         if (!m_emissiveMap)
-            m_emissiveMap = ResourceManager::defaultMaterial->getEmissiveMap();
+            m_emissiveMap = ResourceManager::s_defaultMaterial->getEmissiveMap();
 
         return createShared<Material>(m_albedoColor, m_albedoMap, m_normalMap, m_metallic, m_metallicMap, m_roughness,
                                       m_roughnessMap, m_ambientOcclusionMap, m_emissiveColor, m_emissiveMap,
