@@ -11,7 +11,7 @@ namespace pxt::core {
 
     class ConsoleLoggerSink : public LoggerSink {
     public:
-        ConsoleLoggerSink();
+        ConsoleLoggerSink(LogLevel level = LogLevel::Trace);
         virtual ~ConsoleLoggerSink() override = default;
 
         void log(LogLevel level, std::string_view message, const std::source_location loc = {}) override;

@@ -16,13 +16,16 @@ namespace pxt::core {
     // %@ for source file and line number -> file.cpp:123
     constexpr char const* LOG_PATTERN = "%^[%H:%M:%S] [%!] [%l]%$ %v";
 
-    ConsoleLoggerSink::ConsoleLoggerSink() {
+    ConsoleLoggerSink::ConsoleLoggerSink(LogLevel level) {
         // Create the internal spdlog sink
         auto sink = createShared<spdlog::sinks::stdout_color_sink_mt>();
 
         // Create a dedicated logger for this sink
         m_internalLogger = createShared<spdlog::logger>(LOGGER_NAME, sink);
         m_internalLogger->set_pattern(LOG_PATTERN);
+
+        spdlog::level::level_enum spdlogLevel = pxtToSpdlogLevel(level);
+        m_internalLogger->set_level(spdlogLevel);
     }
 
     void ConsoleLoggerSink::log(LogLevel level, std::string_view message, const std::source_location loc) {
