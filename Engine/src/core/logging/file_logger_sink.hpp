@@ -11,7 +11,7 @@ namespace pxt::core {
 
     class FileLoggerSink : public LoggerSink {
     public:
-        FileLoggerSink();
+        FileLoggerSink(LogLevel level = LogLevel::Trace);
         virtual ~FileLoggerSink() override = default;
 
         void log(LogLevel level, std::string_view message, const std::source_location loc = {}) override;

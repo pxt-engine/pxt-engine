@@ -17,12 +17,15 @@ namespace pxt::core {
     // %@ for source file and line number -> file.cpp:123
     constexpr char const* LOG_PATTERN = "%^[%H:%M:%S] [%!] [%l]%$ %v";
 
-    FileLoggerSink::FileLoggerSink() {
+    FileLoggerSink::FileLoggerSink(LogLevel level) {
         // Create the internal spdlog file sink (true = truncate file on start)
         auto sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(LOG_PATH, true);
 
         m_internalLogger = std::make_shared<spdlog::logger>(LOGGER_NAME, sink);
         m_internalLogger->set_pattern(LOG_PATTERN);
+
+        spdlog::level::level_enum spdlogLevel = pxtToSpdlogLevel(level);
+        m_internalLogger->set_level(spdlogLevel);
     }
 
     void FileLoggerSink::log(LogLevel level, std::string_view message, const std::source_location loc) {
