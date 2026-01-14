@@ -31,7 +31,7 @@ namespace pxt::editor {
         float cursorX = ImGui::GetCursorPosX();
         ImGui::SetCursorPosX(cursorX + (availWidth - buttonWidth) * 0.5f);
 
-        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(5, 1));
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(5, 5));
         if (ImGui::Button("Add Component", ImVec2(buttonWidth, 0.0f))) {
             m_openAddComponentWindow = true;
         }
