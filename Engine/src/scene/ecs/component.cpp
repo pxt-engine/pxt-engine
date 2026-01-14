@@ -39,7 +39,8 @@ namespace pxt {
         return glm::transpose(glm::inverse(glm::mat3(modelMatrix)));
     }
 
+    MeshComponent::MeshComponent() { mesh = ResourceManager::s_defaultObjMesh; }
+
     // --- CameraComponent ---
     CameraComponent::CameraComponent() { cameraData = CameraData(); }
-
 } // namespace pxt

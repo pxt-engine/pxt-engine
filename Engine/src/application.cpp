@@ -155,7 +155,7 @@ namespace pxt {
                                    .setIndexOfRefraction(1.3f)
                                    .build();
 
-        ResourceManager::defaultMaterial = defaultMaterial;
+        ResourceManager::s_defaultMaterial = defaultMaterial;
 
         m_resourceManagerPtr->add(defaultMaterial, DEFAULT_MATERIAL);
 
@@ -174,6 +174,9 @@ namespace pxt {
             blueNoiseFile = BLUE_NOISE_FILE + std::to_string(i) + BLUE_NOISE_FILE_EXT;
             m_resourceManagerPtr->get<Image>(blueNoiseFile, &blueNoiseInfo);
         }
+
+        // create default cube mesh obj
+        ResourceManager::s_defaultObjMesh = m_resourceManagerPtr->get<Mesh>(DEFAULT_CUBE_MESH_OBJ);
     }
 
     void Application::registerResources() {

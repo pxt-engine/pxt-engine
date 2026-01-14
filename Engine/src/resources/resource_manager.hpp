@@ -68,7 +68,8 @@ namespace pxt {
 
         void onUpdateUi(FrameInfo& frameInfo) override;
 
-        static Shared<Material> defaultMaterial;
+        static Shared<Material> s_defaultMaterial;
+        static Shared<Mesh> s_defaultObjMesh;
 
     private:
         std::unordered_map<ResourceId, Shared<Resource>> m_resources;

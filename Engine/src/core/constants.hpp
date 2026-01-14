@@ -18,6 +18,7 @@ const std::string BLACK_PIXEL_LINEAR = "pixel_0xFF000000_RGBA8_LINEAR";
 const std::string NORMAL_PIXEL_LINEAR = "pixel_0xFFFF8080_RGBA8_LINEAR";
 
 const std::string DEFAULT_MATERIAL = "default_material";
+const std::string DEFAULT_CUBE_MESH_OBJ = MODELS_PATH + "cube_hd.obj";
 
 const std::string BLUE_NOISE_PATH = TEXTURES_PATH + "blue_noise/";
 const std::string BLUE_NOISE_FILE = BLUE_NOISE_PATH + "stbn_unitvec2_2Dx1D_128x128x64_";
