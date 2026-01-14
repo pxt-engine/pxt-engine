@@ -97,6 +97,13 @@ namespace pxt {
         core::UUID getUUID() { return get<IDComponent>().uuid; }
 
         /**
+         * @brief Get the name of the entity
+         *
+         * @return name of the entity
+         */
+        std::string getName() { return get<NameComponent>().name; }
+
+        /**
          * @brief Get the Object Picking ID of the entity
          *
          * @return Object Picking ID of the entity
