@@ -5,6 +5,7 @@ namespace pxt::core {
     public:
         static std::string openFileDialog();
         static void openErrorModal(const std::string& message);
+        static void openWarningModal(const std::string& message);
         static const std::vector<std::string> getAllFilesRecursive(const std::string& directory, bool relative);
     };
 } // namespace pxt::core

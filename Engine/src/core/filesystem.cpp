@@ -25,6 +25,10 @@ namespace pxt::core {
         tinyfd_messageBox("Error", message.c_str(), "ok", "error", 1);
     }
 
+    void FileSystem::openWarningModal(const std::string& message) {
+        tinyfd_messageBox("Warning", message.c_str(), "ok", "warning", 1);
+    }
+
     const std::vector<std::string> FileSystem::getAllFilesRecursive(const std::string& directory, bool relative) {
         namespace fs = std::filesystem;
 
