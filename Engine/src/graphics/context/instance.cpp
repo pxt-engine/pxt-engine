@@ -43,13 +43,13 @@ namespace pxt {
         ss << pCallbackData->pMessage << std::endl;
 
         if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT) {
-            PXT_DEBUG(ss.str());
+            PXT_DEBUG("{}", ss.str());
         } else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT) {
-            PXT_INFO(ss.str());
+            PXT_INFO("{}", ss.str());
         } else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
-            PXT_WARN(ss.str());
+            PXT_WARN("{}", ss.str());
         } else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
-            PXT_ERROR(ss.str());
+            PXT_ERROR("{}", ss.str());
         }
 
         return VK_FALSE;

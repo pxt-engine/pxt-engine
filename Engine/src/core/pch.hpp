@@ -1,17 +1,19 @@
 #pragma once
 
 // Standard Library Headers - Core Functionality
-#include <algorithm>  // For various algorithms (e.g., sort, find, min, max)
-#include <chrono>     // For time-related utilities (durations, time points, clocks)
-#include <fstream>    // For file input/output operations
-#include <functional> // For std::function, std::bind, and other function-related utilities
-#include <iostream>   // For input/output operations (e.g., std::cout, std::cin)
-#include <limits>     // For numeric_limits, providing properties of fundamental types
-#include <memory>     // For smart pointers (e.g., std::unique_ptr, std::shared_ptr) for memory management
-#include <new>        // For low-level memory management utilities
-#include <random>     // For random number generation
-#include <string>     // For std::string class, representing character sequences
-#include <utility>    // For std::pair, std::move, std::forward, and other utility functions
+#include <algorithm>       // For various algorithms (e.g., sort, find, min, max)
+#include <chrono>          // For time-related utilities (durations, time points, clocks)
+#include <fstream>         // For file input/output operations
+#include <functional>      // For std::function, std::bind, and other function-related utilities
+#include <iostream>        // For input/output operations (e.g., std::cout, std::cin)
+#include <limits>          // For numeric_limits, providing properties of fundamental types
+#include <memory>          // For smart pointers (e.g., std::unique_ptr, std::shared_ptr) for memory management
+#include <new>             // For low-level memory management utilities
+#include <random>          // For random number generation
+#include <source_location> // For std::source_location, to capture source code location information (C++20)
+#include <string>          // For std::string class, representing character sequences
+#include <string_view>     // For std::string_view, a non-owning view of a string
+#include <utility>         // For std::pair, std::move, std::forward, and other utility functions
 
 // Standard Library Headers - Data Structures and Containers
 #include <array> // For std::array, a fixed-size array
@@ -86,5 +88,4 @@ using u32vec2 = glm::highp_u32vec2;
 
 #include "core/constants.hpp"
 #include "core/diagnostics.hpp"
-#include "core/logger.hpp"
-#include "core/memory.hpp"
+#include "core/logging/logger.hpp"

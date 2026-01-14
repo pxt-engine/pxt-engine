@@ -6,7 +6,6 @@
 #include "core/events/window_event.hpp"
 #include "core/input/input.hpp"
 #include "core/input/mapper/glfw_input_mapper.hpp"
-#include "core/logger.hpp"
 
 #include <ImGuizmo.h>
 

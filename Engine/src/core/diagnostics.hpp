@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/logger.hpp"
+#include "core/logging/logger.hpp"
 #include "core/platform.hpp"
 #include "utils/timer.hpp"
 
