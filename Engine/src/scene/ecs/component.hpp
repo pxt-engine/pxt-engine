@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/constants.hpp"
 #include "core/obj_picking_id.hpp"
 #include "core/pch.hpp"
 #include "core/uuid.hpp"
@@ -243,7 +244,7 @@ namespace pxt {
     struct MeshComponent {
         Shared<Mesh> mesh;
 
-        MeshComponent() = default;
+        MeshComponent();
         MeshComponent(const MeshComponent&) = default;
 
         MeshComponent(const Shared<Mesh>& mesh) : mesh(mesh) {}
@@ -268,11 +269,15 @@ namespace pxt {
 
     struct PointLightComponent {
         float lightIntensity = 1.0f;
+        glm::vec3 lightColor = glm::vec3(1.f, 1.f, 1.f);
 
         PointLightComponent() = default;
         PointLightComponent(const PointLightComponent&) = default;
 
-        PointLightComponent(const float intensity) : lightIntensity(intensity) {}
+        PointLightComponent(const float intensity) : lightIntensity(intensity), lightColor(glm::vec3(1.f)) {}
+
+        PointLightComponent(float intensity, const glm::vec3& lightColor)
+            : lightIntensity(intensity), lightColor(lightColor) {}
     };
 
     class Script; // Forward declaration of Script class
