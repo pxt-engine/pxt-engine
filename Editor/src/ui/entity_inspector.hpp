@@ -110,6 +110,7 @@ namespace pxt::editor {
                          if constexpr (!IsEssentialComponent<Component>::value) {
                              if (!hasComponent) {
                                  entity.remove<Component>();
+                                 PXT_INFO("Removed {} from Entity \"{}\"", name, entity.getName());
                              }
                          }
                      }
