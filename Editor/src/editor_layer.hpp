@@ -9,6 +9,7 @@
 #include "pxtengine.h"
 
 #include "editor_texture_registry.hpp"
+#include "ui/editor_console.hpp"
 #include "ui/entity_inspector.hpp"
 #include "ui/main_menu_bar.hpp"
 #include "ui/scene_hierarchy.hpp"
@@ -58,6 +59,7 @@ namespace pxt::editor {
 
         glm::vec2 m_lastClickMousePosImGui = {0.0f, 0.0f};
 
+        EditorConsole m_editorConsole{};
         SceneHierarchy m_sceneHierarchy{};
         EntityInspector m_entityInspector{};
         MainMenuBar m_mainMenuBar{};

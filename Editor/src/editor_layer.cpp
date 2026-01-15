@@ -1,6 +1,8 @@
 #include "editor_layer.hpp"
+
 #include "core/events/editor_events.hpp"
 #include "core/events/engine_state_events.hpp"
+#include "editor_logger_sink.hpp"
 #include "ui/widgets/dismissable_badge.hpp"
 #include "ui/widgets/mode_selector_image_button.hpp"
 #include "ui/widgets/toggle_image_button.hpp"
@@ -12,6 +14,8 @@
 
 namespace pxt::editor {
     EditorLayer::EditorLayer() : core::Layer("EditorLayer") {
+        core::Logger::registerSink(createShared<EditorLoggerSink>(m_editorConsole));
+
         m_editorTextureRegistry = createUnique<EditorTextureRegistry>();
 
         // we set up the editorViewProvider with the last saved camera view, if any
@@ -215,6 +219,8 @@ namespace pxt::editor {
 
         // main menu bar
         m_mainMenuBar.onUpdateUi(frameInfo);
+
+        m_editorConsole.onUpdateUi();
 
         //? maybe viewport class in the future?
         updateSceneUi(frameInfo);
