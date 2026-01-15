@@ -13,12 +13,40 @@ namespace pxt {
         m_uuidToObjPickingId[core::UUID::s_invalidId] = core::ObjPickingId::s_invalidId;
     }
 
+    std::string Scene::getUniqueEntityName(const std::string& baseName) {
+        // Collect all existing names for fast lookup
+        std::unordered_set<std::string> existingNames;
+        auto view = getEntitiesWith<NameComponent>();
+        for (auto entityHandle : view) {
+            existingNames.insert(view.get<NameComponent>(entityHandle).name);
+        }
+
+        // If base name is free, return it immediately
+        if (existingNames.find(baseName) == existingNames.end()) {
+            return baseName;
+        }
+
+        // Increment until a unique name is found
+        int counter = 1;
+        std::string candidate;
+        do {
+            candidate = baseName + " " + std::to_string(counter++);
+        } while (existingNames.find(candidate) != existingNames.end());
+
+        return candidate;
+    }
+
     Entity Scene::createEntity(const std::string& name, core::UUID id, core::ObjPickingId objPickingId) {
         Entity entity = {m_registry.create(), this};
 
+        std::string newEntityName = name.empty() ? "Unnamed-Entity" : name;
+
+        // ensure unique name
+        newEntityName = getUniqueEntityName(newEntityName);
+
         entity.add<IDComponent>(id);
         entity.add<ObjPickingIdComponent>(objPickingId);
-        entity.add<NameComponent>(name.empty() ? "Unnamed-Entity" : name);
+        entity.add<NameComponent>(newEntityName);
 
         m_entityMap[entity.getUUID()] = entity;
         m_objPickingIdToUUID[objPickingId.getObjPickingId()] = entity.getUUID();

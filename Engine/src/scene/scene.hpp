@@ -109,6 +109,8 @@ namespace pxt {
         Shared<Environment> getEnvironment() const { return m_environment; }
 
     private:
+        std::string getUniqueEntityName(const std::string& baseName);
+
         std::string m_name = "Unnamed-Scene";
         std::unordered_map<core::UUID, entt::entity> m_entityMap;
         std::unordered_map<uint32_t, core::UUID> m_objPickingIdToUUID;
