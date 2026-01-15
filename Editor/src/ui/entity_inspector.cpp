@@ -95,7 +95,7 @@ namespace pxt::editor {
     void EntityInspector::registerComponents() {
         // IDComponent
         RegisterComponent<IDComponent>(
-            "IDComponent", [](auto& c, Entity entity) { ImGui::Text("core::UUID: %s", c.uuid.toString().c_str()); });
+            "IDComponent", [](auto& c, Entity entity) { ImGui::Text("UUID: %s", c.uuid.toString().c_str()); });
 
         // NameComponent
         RegisterComponent<NameComponent>("NameComponent", [](auto& c, Entity entity) {
