@@ -92,6 +92,64 @@ namespace pxt::editor {
         drawEntityInspector(frameInfo.scene, selectedEntityId);
     }
 
+    static void DrawVec3Control(const std::string& label, glm::vec3& values, float resetValue = 0.0f) {
+        ImGui::PushID(label.c_str());
+
+        // Create a table with 2 columns.
+        // ImGuiTableFlags_SizingFixedFit ensures the label column only takes what it needs.
+        if (ImGui::BeginTable("##table", 2)) {
+            ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed, 75.0f);
+            ImGui::TableSetupColumn("Control", ImGuiTableColumnFlags_WidthStretch);
+
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            ImGui::Text(label.c_str());
+
+            ImGui::TableSetColumnIndex(1);
+
+            // Logic for X, Y, Z controls
+            ImGui::PushMultiItemsWidths(3, ImGui::CalcItemWidth());
+
+            float innerSpacing = 4.0f;
+            float groupSpacing = 8.0f;
+            float lineHeight = GImGui->Font->FontSize + GImGui->Style.FramePadding.y * 2.0f;
+            ImVec2 buttonSize = {lineHeight + 3.0f, lineHeight};
+
+            // --- X ---
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{0.8f, 0.1f, 0.15f, 1.0f});
+            if (ImGui::Button("X", buttonSize))
+                values.x = resetValue;
+            ImGui::PopStyleColor();
+            ImGui::SameLine(0, innerSpacing);
+            ImGui::DragFloat("##X", &values.x, 0.1f);
+            ImGui::PopItemWidth();
+            ImGui::SameLine(0, groupSpacing);
+
+            // --- Y ---
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{0.2f, 0.7f, 0.2f, 1.0f});
+            if (ImGui::Button("Y", buttonSize))
+                values.y = resetValue;
+            ImGui::PopStyleColor();
+            ImGui::SameLine(0, innerSpacing);
+            ImGui::DragFloat("##Y", &values.y, 0.1f);
+            ImGui::PopItemWidth();
+            ImGui::SameLine(0, groupSpacing);
+
+            // --- Z ---
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{0.1f, 0.25f, 0.8f, 1.0f});
+            if (ImGui::Button("Z", buttonSize))
+                values.z = resetValue;
+            ImGui::PopStyleColor();
+            ImGui::SameLine(0, innerSpacing);
+            ImGui::DragFloat("##Z", &values.z, 0.1f);
+            ImGui::PopItemWidth();
+
+            ImGui::EndTable();
+        }
+
+        ImGui::PopID();
+    }
+
     void EntityInspector::registerComponents() {
         // IDComponent
         RegisterComponent<IDComponent>(
@@ -125,13 +183,13 @@ namespace pxt::editor {
 
         // TransformComponent
         RegisterComponent<TransformComponent>("TransformComponent", [](auto& c, Entity entity) {
-            ImGui::DragFloat3("Translation", glm::value_ptr(c.translation), 0.01f);
-            ImGui::DragFloat3("Scale", glm::value_ptr(c.scale), 0.01f);
+            DrawVec3Control("Translation", c.translation);
 
             glm::vec3 rotationDegrees = glm::degrees(c.rotation);
-            if (ImGui::DragFloat3("Rotation", glm::value_ptr(rotationDegrees), 0.5f)) {
-                c.rotation = glm::radians(rotationDegrees);
-            }
+            DrawVec3Control("Rotation", rotationDegrees);
+            c.rotation = glm::radians(rotationDegrees);
+
+            DrawVec3Control("Scale", c.scale, 1.0f); // Default scale reset to 1.0
         });
 
         // ColorComponent
