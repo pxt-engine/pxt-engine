@@ -2,9 +2,25 @@
 
 namespace pxt::editor {
 
-    EditorConsole::EditorConsole() {}
+    EditorConsole::EditorConsole() {
+        ImGuiIO& io = ImGui::GetIO();
 
-    void EditorConsole::push(EditorLogEntry entry) { m_entries.emplace_back(std::move(entry)); }
+        m_consoleFont = io.Fonts->AddFontFromFileTTF((FONTS_PATH + "RobotoMono-VariableFont_wght.ttf").c_str(), 16.5f);
+
+        io.Fonts->Build();
+
+        // Need to recreate fonts texture atlas after modifying fonts
+        ImGui_ImplVulkan_DestroyFontsTexture();
+        ImGui_ImplVulkan_CreateFontsTexture();
+    }
+
+    void EditorConsole::push(EditorLogEntry entry) {
+        m_entries.emplace_back(std::move(entry));
+
+        if (m_autoScrollEnabled) {
+            m_scrollToBottom = true;
+        }
+    }
 
     void EditorConsole::clear() { m_entries.clear(); }
 
@@ -47,12 +63,13 @@ namespace pxt::editor {
             clear();
 
         ImGui::SameLine();
-        ImGui::Checkbox("Auto-scroll", &m_autoScroll);
+        ImGui::Checkbox("Auto-scroll", &m_autoScrollEnabled);
 
         ImGui::Separator();
 
         ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0, 0, 0, 1));
-        ImGui::BeginChild("LogRegion", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
+        ImGui::PushFont(m_consoleFont);
+        ImGui::BeginChild("LogRegion", ImVec2(0, 0), ImGuiChildFlags_None, ImGuiWindowFlags_HorizontalScrollbar);
 
         for (const auto& entry : m_entries) {
             constexpr ImVec4 textColor = {1, 1, 1, 1};
@@ -70,10 +87,13 @@ namespace pxt::editor {
             ImGui::PopStyleColor();
         }
 
-        if (m_autoScroll && ImGui::GetScrollY() >= ImGui::GetScrollMaxY())
+        if (m_scrollToBottom) {
             ImGui::SetScrollHereY(1.0f);
+            m_scrollToBottom = false;
+        }
 
         ImGui::EndChild();
+        ImGui::PopFont();
         ImGui::PopStyleColor();
 
         ImGui::End();

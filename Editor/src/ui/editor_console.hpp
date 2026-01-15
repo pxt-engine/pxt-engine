@@ -23,7 +23,10 @@ namespace pxt::editor {
 
     private:
         std::vector<EditorLogEntry> m_entries;
-        bool m_autoScroll = true;
+        bool m_autoScrollEnabled = true;
+        bool m_scrollToBottom = false;
+
+        ImFont* m_consoleFont = nullptr;
     };
 
 } // namespace pxt::editor
