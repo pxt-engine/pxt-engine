@@ -96,6 +96,7 @@ namespace pxt::editor {
                          if constexpr (IsEssentialComponent<Component>::value) {
                              if (ImGui::CollapsingHeader(name.c_str(), treeFlags)) {
                                  uiFunction(component, entity);
+                                 ui::Space::render(0.0f, 5.0f);
                              }
 
                              return;
@@ -104,6 +105,7 @@ namespace pxt::editor {
                          bool hasComponent = true;
                          if (ImGui::CollapsingHeader(name.c_str(), &hasComponent, treeFlags)) {
                              uiFunction(component, entity);
+                             ui::Space::render(0.0f, 5.0f);
                          }
 
                          //! close button on header, we need to remove this component
