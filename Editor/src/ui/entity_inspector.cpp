@@ -99,11 +99,20 @@ namespace pxt::editor {
 
         // NameComponent
         RegisterComponent<NameComponent>("NameComponent", [](auto& c, Entity entity) {
-            char buffer[25];
-            memset(buffer, 0, sizeof(buffer));
-            strncpy(buffer, c.name.c_str(), sizeof(buffer) - 1);
-            if (ImGui::InputText("Name (max 25 chars)", buffer, sizeof(buffer))) {
-                c.name = buffer;
+            std::array<char, 25> textBuffer;
+
+            memset(textBuffer.data(), 0, textBuffer.size());
+            strncpy(textBuffer.data(), c.name.c_str(), textBuffer.size() - 1);
+
+            // The if returns true when Enter is pressed
+            if (ImGui::InputText("Name (max 25 chars)", textBuffer.data(), textBuffer.size(),
+                                 ImGuiInputTextFlags_EnterReturnsTrue)) {
+                c.name = textBuffer.data();
+            }
+
+            // The if returns true when the input field loses focus after an edit
+            if (ImGui::IsItemDeactivatedAfterEdit()) {
+                c.name = textBuffer.data();
             }
         });
 
