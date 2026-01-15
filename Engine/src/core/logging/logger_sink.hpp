@@ -5,7 +5,7 @@ namespace pxt::core {
     /**
      * @brief Enumeration of log levels.
      */
-    enum class LogLevel { Trace, Debug, Info, Warn, Error, Fatal };
+    enum class LogLevel : uint8_t { Trace = 0, Debug, Info, Warn, Error, Fatal };
 
     /**
      * @brief Interface for logging sinks that handle log messages.
