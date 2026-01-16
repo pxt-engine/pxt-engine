@@ -295,11 +295,11 @@ namespace pxt {
     };
 
     template <typename... Component>
-    struct Components {};
+    struct ComponentList {};
 
-    using CoreComponents = Components<IDComponent, NameComponent, ObjPickingIdComponent>;
+    using CoreComponents = ComponentList<IDComponent, NameComponent, ObjPickingIdComponent>;
 
     using AttachableComponents =
-        Components<TransformComponent, Transform2dComponent, ColorComponent, VolumeComponent, MaterialComponent,
-                   MeshComponent, CameraComponent, PointLightComponent, ScriptComponent>;
+        ComponentList<TransformComponent, Transform2dComponent, ColorComponent, VolumeComponent, MaterialComponent,
+                      MeshComponent, CameraComponent, PointLightComponent, ScriptComponent>;
 } // namespace pxt
