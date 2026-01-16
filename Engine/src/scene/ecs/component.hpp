@@ -293,4 +293,13 @@ namespace pxt {
             destroy = [](Script* s) { delete static_cast<T*>(s); };
         }
     };
+
+    template <typename... Component>
+    struct Components {};
+
+    using CoreComponents = Components<IDComponent, NameComponent, ObjPickingIdComponent>;
+
+    using AttachableComponents =
+        Components<TransformComponent, Transform2dComponent, ColorComponent, VolumeComponent, MaterialComponent,
+                   MeshComponent, CameraComponent, PointLightComponent, ScriptComponent>;
 } // namespace pxt
