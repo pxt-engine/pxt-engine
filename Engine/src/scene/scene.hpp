@@ -64,6 +64,13 @@ namespace pxt {
         void destroyEntity(core::UUID uuid);
 
         /**
+         * @brief Copy an entity and adds the copy to the scene.
+         * @param uuid The uuid of the entity to copy.
+         * @return The copied entity.
+         */
+        Entity duplicateEntity(core::UUID uuid);
+
+        /**
          * @brief Called when the scene starts.
          *
          * Initializes scripts attached to entities.

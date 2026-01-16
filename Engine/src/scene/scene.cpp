@@ -94,6 +94,49 @@ namespace pxt {
         m_registry.destroy(handle);
     }
 
+    template <typename... Component>
+    static void copyComponentList(ComponentList<Component...>, Entity source, Entity dest) {
+        // Fold expression: for each 'Component' in 'ComponentList'
+        (
+            [&]() {
+                if (source.has<Component>()) {
+                    dest.add<Component>(source.get<Component>());
+                }
+            }(),
+            ...);
+    }
+
+    Entity Scene::duplicateEntity(core::UUID uuid) {
+        PXT_ASSERT(m_entityMap.contains(uuid), "Source entity not found!");
+
+        Entity source = getEntity(uuid);
+
+        std::string originalName = source.getName();
+
+        // Check if "(Copy)" already exists in the name
+        size_t copyPos = originalName.find(" (Copy)");
+        std::string baseName;
+
+        if (copyPos != std::string::npos) {
+            // It's already a copy, so just take the part before " (Copy)"
+            // This prevents names like "Cube (Copy) (Copy)"
+            baseName = originalName.substr(0, copyPos) + " (Copy)";
+        } else {
+            // First time copying
+            baseName = originalName + " (Copy)";
+        }
+
+        // getUniqueEntityName will now take "Cube (Copy)" and
+        // find the next available: "Cube (Copy) 1", "Cube (Copy) 2", etc.
+        std::string uniqueName = getUniqueEntityName(baseName);
+
+        Entity replica = createEntity(uniqueName);
+
+        copyComponentList(AttachableComponents{}, source, replica);
+
+        return replica;
+    }
+
     void Scene::onStart() {
         getEntitiesWith<ScriptComponent>().each([this](auto entity, auto& scriptComponent) {
             scriptComponent.script = scriptComponent.create();
