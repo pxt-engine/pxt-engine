@@ -9,21 +9,6 @@
 #include "scene/camera_data.hpp"
 
 namespace pxt {
-    // forward declarations
-    struct IDComponent;
-    struct NameComponent;
-    struct Transform2dComponent;
-    struct TransformComponent;
-
-    template <typename T>
-    struct IsEssentialComponent : std::false_type {};
-
-    template <>
-    struct IsEssentialComponent<IDComponent> : std::true_type {};
-
-    template <>
-    struct IsEssentialComponent<NameComponent> : std::true_type {};
-
     struct IDComponent {
         core::UUID uuid;
 
@@ -302,4 +287,15 @@ namespace pxt {
     using AttachableComponents =
         ComponentList<TransformComponent, Transform2dComponent, ColorComponent, VolumeComponent, MaterialComponent,
                       MeshComponent, CameraComponent, PointLightComponent, ScriptComponent>;
+
+    // Helper to check if T is in a pack of Us
+    template <typename T, typename List>
+    struct IsInList;
+
+    // disjunction is like a logical OR for type traits
+    template <typename T, typename... Us>
+    struct IsInList<T, ComponentList<Us...>> : std::disjunction<std::is_same<T, Us>...> {};
+
+    template <typename Component>
+    struct IsCoreComponent : IsInList<Component, CoreComponents> {};
 } // namespace pxt

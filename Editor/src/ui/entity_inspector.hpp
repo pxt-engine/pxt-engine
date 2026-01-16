@@ -54,7 +54,7 @@ namespace pxt::editor {
          */
         template <typename Component>
         static std::function<void(Entity)> MakeAdder(std::string compName) {
-            if constexpr (IsEssentialComponent<Component>::value) {
+            if constexpr (IsCoreComponent<Component>::value) {
                 return [](Entity) {};
             } else {
                 PXT_STATIC_ASSERT(std::is_default_constructible_v<Component>,
@@ -83,7 +83,7 @@ namespace pxt::editor {
         template <typename Component>
         void RegisterComponent(const std::string& name, ComponentUiFunction<Component> uiFunction) {
             m_componentUiRegistry.push_back(
-                {name, IsEssentialComponent<Component>::value,
+                {name, IsCoreComponent<Component>::value,
                  [=](pxt::Entity entity) {
                      if (entity.has<Component>()) {
                          Component& component = entity.get<Component>();
@@ -93,7 +93,7 @@ namespace pxt::editor {
                              ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick;
 
                          // here we render without the close button for necessary components
-                         if constexpr (IsEssentialComponent<Component>::value) {
+                         if constexpr (IsCoreComponent<Component>::value) {
                              if (ImGui::CollapsingHeader(name.c_str(), treeFlags)) {
                                  uiFunction(component, entity);
                                  ui::Space::render(0.0f, 5.0f);
@@ -109,7 +109,7 @@ namespace pxt::editor {
                          }
 
                          //! close button on header, we need to remove this component
-                         if constexpr (!IsEssentialComponent<Component>::value) {
+                         if constexpr (!IsCoreComponent<Component>::value) {
                              if (!hasComponent) {
                                  entity.remove<Component>();
                                  PXT_INFO("Removed {} from Entity \"{}\"", name, entity.getName());
