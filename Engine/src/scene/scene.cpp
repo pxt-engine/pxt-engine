@@ -73,11 +73,25 @@ namespace pxt {
         return m_uuidToObjPickingId.at(uuid);
     }
 
-    void Scene::destroyEntity(Entity entity) {
-        m_entityMap.erase(entity.getUUID());
-        m_objPickingIdToUUID.erase(entity.getObjPickingId());
-        m_uuidToObjPickingId.erase(entity.getUUID());
-        m_registry.destroy(entity);
+    void Scene::destroyEntity(core::UUID uuid) {
+        PXT_ASSERT(m_entityMap.contains(uuid), "Trying to destroy non-existent entity!");
+
+        // Reset active camera if it's being deleted
+        if (uuid == m_activeCameraEntityID) {
+            m_activeCameraEntityID = core::UUID::s_invalidId;
+        }
+
+        entt::entity handle = m_entityMap.at(uuid);
+        Entity entity = {handle, this};
+
+        // Clean up maps
+        const uint32_t pickingId = getObjPickingIdFromEntityUUID(uuid);
+        m_objPickingIdToUUID.erase(pickingId);
+        m_uuidToObjPickingId.erase(uuid);
+        m_entityMap.erase(uuid);
+
+        // Final registry destruction
+        m_registry.destroy(handle);
     }
 
     void Scene::onStart() {

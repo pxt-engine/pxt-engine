@@ -59,9 +59,9 @@ namespace pxt {
 
         /**
          * @brief Destroys an entity and removes it from the scene.
-         * @param entity The entity to be destroyed.
+         * @param uuid The uuid of the entity to be destroyed.
          */
-        void destroyEntity(Entity entity);
+        void destroyEntity(core::UUID uuid);
 
         /**
          * @brief Called when the scene starts.
