@@ -39,7 +39,7 @@ namespace pxt {
 
         Window& getWindow() { return m_window; }
 
-        ResourceManager* getResourceManager() { return m_resourceManagerPtr; }
+        ResourceManager& getResourceManager() { return *m_resourceManagerPtr; }
 
         DescriptorAllocatorGrowable* getDescriptorAllocator() { return m_descriptorAllocator.get(); }
 

@@ -5,8 +5,8 @@
 namespace pxt {
     // --- MaterialComponent ---
     MaterialComponent::MaterialComponent() : tilingFactor(1.0f), tint(1.0f) {
-        auto rm = Application::get().getResourceManager();
-        material = rm->get<Material>(DEFAULT_MATERIAL);
+        auto& rm = Application::get().getResourceManager();
+        material = rm.get<Material>(DEFAULT_MATERIAL);
     }
 
     // --- Transform2dComponent ---

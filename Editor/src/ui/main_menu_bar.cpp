@@ -44,8 +44,8 @@ namespace pxt::editor {
                     scene.setName(sceneName);
 
                     // TODO: Use a project file system manager (save, create, load,	etc.)
-                    auto rm = Application::get().getResourceManager();
-                    SceneSerializer serializer(&scene, rm);
+                    auto& rm = Application::get().getResourceManager();
+                    SceneSerializer serializer(&scene, &rm);
                     serializer.serialize(SCENES_PATH + sceneName + ".pxtscene");
                     PXT_INFO("Saving scene with name: {}\n", sceneName);
                 }
