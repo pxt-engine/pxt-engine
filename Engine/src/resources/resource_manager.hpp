@@ -21,6 +21,12 @@ namespace pxt {
         ResourceManager();
         ~ResourceManager();
 
+        
+       /**
+        * @brief Retrieves all resources.
+        */
+        const std::unordered_map<ResourceId, Shared<Resource>>& getAllResources() const { return m_resources; };
+
         /**
          * @brief Retrieves a resource by its alias and casts it to the specified type.
          * If the alias is not found, it tries to load the resource using the provided string
