@@ -205,6 +205,8 @@ namespace pxt::editor {
     }
 
     void EditorLayer::onUpdateUi(FrameInfo& frameInfo) {
+        ResourceManager& rm = Application::get().getResourceManager();
+
         // first update scene hierarchy ui (an entity might be selected)
         m_sceneHierarchy.onUpdateUi(frameInfo, m_selectedEntityUUID);
 
@@ -221,6 +223,8 @@ namespace pxt::editor {
         m_mainMenuBar.onUpdateUi(frameInfo);
 
         m_editorConsole.onUpdateUi();
+
+        m_assetBrowser.onUpdateUi(rm);
 
         //? maybe viewport class in the future?
         updateSceneUi(frameInfo);

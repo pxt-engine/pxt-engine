@@ -13,6 +13,7 @@
 #include "ui/entity_inspector.hpp"
 #include "ui/main_menu_bar.hpp"
 #include "ui/scene_hierarchy.hpp"
+#include "ui/asset_browser.hpp"
 
 #include <ImGuizmo.h>
 
@@ -63,6 +64,7 @@ namespace pxt::editor {
         SceneHierarchy m_sceneHierarchy{};
         EntityInspector m_entityInspector{};
         MainMenuBar m_mainMenuBar{};
+        AssetBrowser m_assetBrowser{};
 
         core::UUID m_selectedEntityUUID = core::UUID::s_invalidId;
         core::UUID m_prevSelectedEntityUUID = core::UUID::s_invalidId;
