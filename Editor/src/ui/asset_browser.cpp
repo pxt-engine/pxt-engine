@@ -1,4 +1,5 @@
 #include "ui/asset_browser.hpp"
+#include "ui/drag_and_drop.hpp"
 
 namespace pxt::editor {
     void AssetBrowser::onUpdateUi(ResourceManager& rm) {
@@ -13,6 +14,15 @@ namespace pxt::editor {
                 if (ImGui::Selectable(resource->alias.c_str(), m_selectedResource == uuid)) {
                     m_selectedResource = uuid;
                 }
+
+                // check if the item is being dragged
+                DragAndDrop::EnginePayload payload = {
+                    uuid, 
+                    DragAndDrop::PayloadSource::AssetBrowser,
+                    resource->getType()
+                };
+
+                DragAndDrop::dragDropSource(payload, resource->alias);
             }
         }
 
