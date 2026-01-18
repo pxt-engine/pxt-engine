@@ -27,6 +27,34 @@ namespace pxt {
         */
         const std::unordered_map<ResourceId, Shared<Resource>>& getAllResources() const { return m_resources; };
 
+        const std::vector<Shared<Resource>> getResourcesByType(Resource::Type type) const;
+
+        /**
+         * @brief Retrieves a resource by its UUID and casts it to the specified type.
+         * If the resource is not found, it returns a nullptr.
+         *
+         * @tparam T The type of the resource to retrieve.
+         * @param uuid The UUID of the resource to retrieve.
+         * @param resourceInfo Optional pointer to store additional resource information.
+         *
+         * @return A shared pointer to the requested resource of type T.
+         */
+        template <typename T>
+        Shared<T> get(const core::UUID uuid, ResourceInfo* resourceInfo = nullptr) {
+            return std::static_pointer_cast<T>(get(uuid, resourceInfo));
+        }
+
+        /**
+         * @brief Retrieves a resource by its UUID.
+         * If the resource is not found, it returns a nullptr.
+         *
+         * @param uuid The UUID of the resource to retrieve.
+         * @param resourceInfo Optional pointer to store additional resource information.
+         *
+         * @return A shared pointer to the requested resource.
+         */
+        Shared<Resource> get(const core::UUID uuid, ResourceInfo* resourceInfo = nullptr);
+
         /**
          * @brief Retrieves a resource by its alias and casts it to the specified type.
          * If the alias is not found, it tries to load the resource using the provided string
