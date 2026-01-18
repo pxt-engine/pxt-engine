@@ -1,4 +1,6 @@
 #include "ui/entity_inspector.hpp"
+#include "ui/drag_and_drop.hpp"
+#include "ui/resource_slot.hpp"
 
 namespace pxt::editor {
 
@@ -234,7 +236,19 @@ namespace pxt::editor {
 
         // MeshComponent
         RegisterComponent<MeshComponent>("MeshComponent", [](MeshComponent& c, Entity entity) {
-            ImGui::Text("Mesh name: %s", c.mesh->alias.c_str());
+            DragAndDrop::EnginePayload payload = {
+                c.mesh->id,
+                DragAndDrop::PayloadSource::AssetBrowser,
+                Resource::Type::Mesh
+            };
+
+            ResourceManager& rm = Application::get().getResourceManager();
+
+            if (ResourceSlot::render("##entity-inspector-mesh-component-resource-slot", payload, rm)) {
+                c.mesh = rm.get<Mesh>(payload.id);
+
+                PXT_INFO("Changed Mesh of Entity \"{}\" to Mesh \"{}\"", entity.getName(), c.mesh->alias);
+            }
         });
 
         // CameraComponent
