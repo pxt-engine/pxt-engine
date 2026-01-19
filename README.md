@@ -17,7 +17,7 @@ A modern C++20 game engine based on Vulkan, with a hybrid rendering pipeline. De
 - **Editor Suite**: Full-featured UI using ImGui and ImGuizmo, including:
    - Scene Hierarchy & Entity Inspector: Real-time component and entity manipulation (add, edit, delete, copy).
    - Editor Console: Integrated logging system for real-time debugging.
-   - Live Controls: Modify the objects using Guizmos, switch camera, Play/Stop mode.
+   - Live Controls: Modify the objects using Gizmos, switch camera, Play/Stop mode.
 - **Native Scripting**: C++20 scripting using the API provided by the engine.
 - **Event System**
 - **Input System**
