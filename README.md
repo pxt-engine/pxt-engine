@@ -1,53 +1,37 @@
 # PXT Engine
 
-PXT Engine is a custom game engine built with C++, utilizing Vulkan for high-performance rendering, GLFW for window and input handling, and GLM for mathematics. The engine also integrates various third-party libraries like ImGui, tinyobjloader, and EnTT for ECS-based game architecture.
+A modern C++20 game engine based on Vulkan, with a hybrid rendering pipeline. Designed with a focus on photorealistic path tracing and an intuitive ECS-based editor.
 
-## Prerequisites
-Before building, ensure you have the following installed:
-- **CMake** (version 3.11.0 or higher)
-- **Vulkan SDK 1.3.x.x** (tested with 1.3.290.0)
-- **MinGW (if using MinGW Makefiles on Windows)**
-- **C++20 Compiler**
+## Key Features
 
-## Setup & Build Instructions
+### Rendering Architecture
+- **Hybrid Pipeline**: Integrated Vulkan-based rasterizer for real-time feedback and a Path Tracer for high-fidelity results.
+- **Path Tracing**: Surface Path Tracing utilizing a Disney-like BSDF (supporting reflection, refraction and trasmittance).
+- **Volumetric rendering**: Advanced volumetric path tracing using Delta Tracking and FBM (Fractional Brownian Motion) for procedural density textures. Allowing the creation of volumes such as fog or clouds or, in combination with the surface path tracer, Sub-Surface Scattering phenomena.
+- **Denoiser**: Simple Temporal and Spatial denoiser + Accumulation.
 
-### Windows (Visual Studio)
-1. Clone the repository:
-   ```sh
-   git clone --recursive https://github.com/Prox747/pxt-engine
-   cd pxt_engine
-   ```
-2. Set up environment variables in `.env`
-   ```sh
-   VULKAN_SDK_PATH=C:/VulkanSDK/x.x.x.x
-   ```
-3. Open the project in Visual Studio and run a preset.
-   
-### Windows (MinGW)
-1. Clone the repository:
-   ```sh
-   git clone --recursive https://github.com/Prox747/pxt-engine
-   cd pxt_engine
-   ```
-2. Set up environment variables in `.env`
-   ```sh
-   MINGW_PATH=C:/mingw64
-   VULKAN_SDK_PATH=C:/VulkanSDK/x.x.x.x
-   ```
-3. Run the `start.bat` script to build and run the project (from the `scripts` folder).
+### Engine & Tools
+- **ECS Architecture**: Powered by EnTT for high-performance entity management.
+- **Editor Suite**: Full-featured UI using ImGui and ImGuizmo, including:
+   - Scene Hierarchy & Entity Inspector: Real-time component and entity manipulation (add, edit, delete, copy).
+   - Editor Console: Integrated logging system for real-time debugging.
+   - Live Controls: Modify the objects using Guizmos, switch camera, Play/Stop mode.
+- **Native Scripting**: C++20 scripting using the API provided by the engine.
+- **Event System**
+- **Input System**
+- **Scene Serialization**
+- **Resource Management**
 
-### Linux/Unix
-1. Clone the repository:
-   ```sh
-   git clone --recursive https://github.com/Prox747/pxt-engine
-   cd pxt_engine
-   ```
-2. Install dependencies:
-   ```sh
-   sudo apt install build-essential cmake vulkan-sdk
-   ```
-3. Run the `start.sh` script to build and run the project (from the `scripts` folder).
-   
-## Shader Compilation
-The engine automatically compiles shaders using `glslangValidator`. Ensure the Vulkan SDK is properly installed and accessible. All `.frag` and `.vert` shaders in `assets/shaders/` are compiled into SPIR-V and stored in `out/shaders/`.
-When the project is built with the start script it will automatically compile the shaders.
+### Roadmap
+- **Job System**: (WIP)
+- **Resource & Asset managing improvements**: (WIP)
+- **C# Scripting**
+- **Project management**
+- **SDL**
+- **RHI and Rendering layer abstraction**
+- **Audio System**
+- **Physics Engine**
+ 
+## Disclaimer
+This engine is under active development and intended for learning, experimentation, and research purposes.
+APIs and features may change frequently.
