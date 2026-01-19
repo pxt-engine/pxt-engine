@@ -10,6 +10,8 @@ A modern C++20 game engine based on Vulkan, with a hybrid rendering pipeline. De
 - **Volumetric rendering**: Advanced volumetric path tracing using Delta Tracking and FBM (Fractional Brownian Motion) for procedural density textures. Allowing the creation of volumes such as fog or clouds or, in combination with the surface path tracer, Sub-Surface Scattering phenomena.
 - **Denoiser**: Simple Temporal and Spatial denoiser + Accumulation.
 
+![Path Tracing Preview](./assets/imgs/pxt_preview1.png "Path Tracing Preview")
+
 ### Engine & Tools
 - **ECS Architecture**: Powered by EnTT for high-performance entity management.
 - **Editor Suite**: Full-featured UI using ImGui and ImGuizmo, including:
