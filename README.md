@@ -29,6 +29,7 @@ A modern C++20 game engine based on Vulkan, with a hybrid rendering pipeline. De
 - **Resource & Asset managing improvements**: (WIP)
 - **C# Scripting**
 - **Project management**
+- **Convert shaders to slang**
 - **SDL**
 - **RHI and Rendering layer abstraction**
 - **Audio System**
