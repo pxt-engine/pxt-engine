@@ -1,5 +1,7 @@
 #include "core/filesystem.hpp"
 
+#include "tinyfiledialogs.h"
+
 namespace pxt::core {
     std::string FileSystem::openFileDialog() {
         const char* path = tinyfd_openFileDialog("Select File to Import",
@@ -21,6 +23,10 @@ namespace pxt::core {
 
     void FileSystem::openErrorModal(const std::string& message) {
         tinyfd_messageBox("Error", message.c_str(), "ok", "error", 1);
+    }
+
+    void FileSystem::openWarningModal(const std::string& message) {
+        tinyfd_messageBox("Warning", message.c_str(), "ok", "warning", 1);
     }
 
     const std::vector<std::string> FileSystem::getAllFilesRecursive(const std::string& directory, bool relative) {

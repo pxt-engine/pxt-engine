@@ -1,11 +1,13 @@
 #include "application.hpp"
 
 #include "core/diagnostics.hpp"
+#include "core/events/engine_state_events.hpp"
 #include "core/events/event_dispatcher.hpp"
 #include "core/events/window_event.hpp"
 #include "core/input/input.hpp"
+#include "graphics/dummy_view_provider.hpp"
 #include "graphics/resources/texture2d.hpp"
-#include "scene/camera.hpp"
+#include "scene/camera_data.hpp"
 #include "scene/ecs/component.hpp"
 #include "scene/ecs/entity.hpp"
 
@@ -153,7 +155,7 @@ namespace pxt {
                                    .setIndexOfRefraction(1.3f)
                                    .build();
 
-        ResourceManager::defaultMaterial = defaultMaterial;
+        ResourceManager::s_defaultMaterial = defaultMaterial;
 
         m_resourceManagerPtr->add(defaultMaterial, DEFAULT_MATERIAL);
 
@@ -172,6 +174,9 @@ namespace pxt {
             blueNoiseFile = BLUE_NOISE_FILE + std::to_string(i) + BLUE_NOISE_FILE_EXT;
             m_resourceManagerPtr->get<Image>(blueNoiseFile, &blueNoiseInfo);
         }
+
+        // create default cube mesh obj
+        ResourceManager::s_defaultObjMesh = m_resourceManagerPtr->get<Mesh>(DEFAULT_CUBE_MESH_OBJ);
     }
 
     void Application::registerResources() {
@@ -198,16 +203,25 @@ namespace pxt {
     }
 
     void Application::run() {
+        if (m_viewProviderPtr == nullptr) {
+            auto dummyViewProvider = DummyViewProvider();
+            m_viewProviderPtr = &dummyViewProvider;
+            PXT_WARN("Engine View Provider is set to NULL. Make sure to set a valid implementation of IViewProvider to "
+                     "the Engine using the setViewProvider() API. Defaulting to DummyViewProvider now.");
+        }
+
         auto currentTime = std::chrono::high_resolution_clock::now();
 
+        // set the initial state of the engine to EDIT
+        // this will not be hardcoded in the future
+        queueEvent(core::EngineModeChangedEvent(core::EngineMode::EDIT));
+
         m_scene.onStart();
-        // TODO: pay attention to reference
-        Camera& mainCamera = m_scene.getMainCameraEntity().get<CameraComponent>().camera;
-        
+
         uint32_t frameCount = 0;
         while (isRunning()) {
             // reset temporary inputs
-            core::Input::getState().beginFrame();
+            core::Input::getState().reset();
             // then poll events to update input state
             glfwPollEvents();
             m_eventQueue.pollEvents();
@@ -216,19 +230,25 @@ namespace pxt {
             float elapsedTime = std::chrono::duration<float>(newTime - currentTime).count();
             currentTime = newTime;
 
-            m_scene.onUpdate(elapsedTime);
-
-            updateMainCamera();
+            m_layerStack.onBeginFrame(elapsedTime);
 
             if (auto commandBuffer = m_renderer.beginFrame()) {
                 int frameIndex = m_renderer.getFrameIndex();
 
+                // if we are in PLAY/RUNTIME mode we want to run game scripts
+                if (m_engineMode == core::EngineMode::PLAY || m_engineMode == core::EngineMode::RUNTIME) {
+                    m_scene.onUpdate(elapsedTime);
+                }
+
+                float aspectRatio = m_renderLayerPtr->getSceneAspectRatio();
+                CameraMatrices cameraMatrices = m_viewProviderPtr->getCameraMatrices(aspectRatio);
+
                 FrameInfo frameInfo = {
                     frameIndex,
                     elapsedTime,
-                    m_renderer.getAspectRatio(),
+                    aspectRatio,
                     commandBuffer,
-                    mainCamera,
+                    cameraMatrices,
                     m_globalDescriptorSets[frameIndex],
                     m_renderLayerPtr->getImGuiSceneDescriptorSet(),
                     m_scene,
@@ -281,18 +301,19 @@ namespace pxt {
             return true;
         });
 
+        dispatcher.dispatch<core::RequestEngineModeChangeEvent>([this](auto& event) {
+            // TODO: here we should check if the engine is ready or can switch mode, if yes, we trigger the event
+            queueEvent<core::EngineModeChangedEvent>(core::EngineModeChangedEvent(event.getNewEngineMode()));
+            return false;
+        });
+
+        dispatcher.dispatch<core::EngineModeChangedEvent>([this](auto& event) {
+            m_engineMode = event.getNewEngineMode();
+            return false;
+        });
+
         m_layerStack.onEvent(event);
+
+        m_scene.onEvent(event);
     }
-
-    void Application::updateMainCamera() {
-        Entity mainCameraEntity = m_scene.getMainCameraEntity();
-        auto& cameraComponent = mainCameraEntity.get<CameraComponent>();
-
-        if (cameraComponent.camera.isPerspective()) {
-            cameraComponent.camera.setPerspective(m_renderLayerPtr->getSceneAspectRatio());
-        } else {
-            cameraComponent.camera.setOrthographic();
-        }
-    }
-
 } // namespace pxt

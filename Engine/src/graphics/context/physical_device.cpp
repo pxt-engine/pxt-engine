@@ -192,7 +192,7 @@ namespace pxt {
             deviceExtensions = extensionsToCheck;
         }
 
-        PXT_WARN(ss.str());
+        PXT_WARN("{}", ss.str());
 
         return allRequiredSupported;
     }

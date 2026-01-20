@@ -31,6 +31,23 @@ namespace pxt {
             Material,
         };
 
+        const std::string typeToString() { return Resource::typeToString(getType()); }
+
+        static const std::string typeToString(Type resourceType) {
+            switch (resourceType) {
+            case Type::Image:
+                return "Image";
+            case Type::Model:
+                return "Model";
+            case Type::Mesh:
+                return "Mesh";
+            case Type::Material:
+                return "Material";
+            default:
+                return "Unknown";
+            }
+        }
+
         Resource() = default;
         virtual ~Resource() = default;
 

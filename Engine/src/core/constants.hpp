@@ -1,10 +1,13 @@
 #pragma once
 
+#include "core/pch.hpp"
+
 const std::string SPV_SHADERS_PATH = "../out/shaders/";
 const std::string SHADERS_PATH = "../assets/shaders/";
 const std::string MODELS_PATH = "../assets/models/";
 const std::string TEXTURES_PATH = "../assets/textures/";
 const std::string SCENES_PATH = "../assets/scenes/";
+const std::string FONTS_PATH = "../assets/fonts/";
 
 const std::string IMGUI_INI_FILEPATH = "../assets/imgui_config/imgui.ini";
 
@@ -15,6 +18,7 @@ const std::string BLACK_PIXEL_LINEAR = "pixel_0xFF000000_RGBA8_LINEAR";
 const std::string NORMAL_PIXEL_LINEAR = "pixel_0xFFFF8080_RGBA8_LINEAR";
 
 const std::string DEFAULT_MATERIAL = "default_material";
+const std::string DEFAULT_CUBE_MESH_OBJ = MODELS_PATH + "cube_hd.obj";
 
 const std::string BLUE_NOISE_PATH = TEXTURES_PATH + "blue_noise/";
 const std::string BLUE_NOISE_FILE = BLUE_NOISE_PATH + "stbn_unitvec2_2Dx1D_128x128x64_";

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/events/event.hpp"
 #include "core/obj_picking_id.hpp"
 #include "core/pch.hpp"
 #include "core/uuid.hpp"
@@ -58,9 +59,16 @@ namespace pxt {
 
         /**
          * @brief Destroys an entity and removes it from the scene.
-         * @param entity The entity to be destroyed.
+         * @param uuid The uuid of the entity to be destroyed.
          */
-        void destroyEntity(Entity entity);
+        void destroyEntity(core::UUID uuid);
+
+        /**
+         * @brief Copy an entity and adds the copy to the scene.
+         * @param uuid The uuid of the entity to copy.
+         * @return The copied entity.
+         */
+        Entity duplicateEntity(core::UUID uuid);
 
         /**
          * @brief Called when the scene starts.
@@ -74,6 +82,8 @@ namespace pxt {
          * @param delta Time elapsed since the last update.
          */
         void onUpdate(float delta);
+
+        void onEvent(core::Event& event);
 
         /**
          * @brief Retrieves all entities that have the specified components.
@@ -89,7 +99,15 @@ namespace pxt {
          * @brief Gets the entity designated as the main camera.
          * @return The main camera entity or an empty entity if none exist.
          */
-        Entity getMainCameraEntity();
+        std::optional<Entity> getActiveCameraEntity();
+
+        core::UUID getActiveCameraEntityUUID();
+
+        void setActiveCameraEntity(core::UUID newActiveCameraID);
+
+        void updateCamerasAspectRatio(float newAspect);
+
+        std::optional<Entity> tryFindCamera();
 
         /**
          * @brief Retrieves the environment settings for the scene.
@@ -98,6 +116,8 @@ namespace pxt {
         Shared<Environment> getEnvironment() const { return m_environment; }
 
     private:
+        std::string getUniqueEntityName(const std::string& baseName);
+
         std::string m_name = "Unnamed-Scene";
         std::unordered_map<core::UUID, entt::entity> m_entityMap;
         std::unordered_map<uint32_t, core::UUID> m_objPickingIdToUUID;
@@ -107,6 +127,7 @@ namespace pxt {
         entt::registry m_registry;
 
         Shared<Environment> m_environment = createShared<Environment>();
+        core::UUID m_activeCameraEntityID = core::UUID::s_invalidId;
 
         friend class Entity;
     };

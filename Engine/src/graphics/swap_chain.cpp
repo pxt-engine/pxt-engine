@@ -36,7 +36,7 @@ namespace pxt {
             m_swapChain = nullptr;
         }
 
-        for (int i = 0; i < m_depthImages.size(); i++) {
+        for (size_t i = 0; i < m_depthImages.size(); i++) {
             vkDestroyImageView(m_context.getDevice(), m_depthImageViews[i], nullptr);
             vkDestroyImage(m_context.getDevice(), m_depthImages[i], nullptr);
             vkFreeMemory(m_context.getDevice(), m_depthImageMemorys[i], nullptr);
@@ -207,7 +207,7 @@ namespace pxt {
     void SwapChain::createImageViews() {
         m_swapChainImageViews.resize(m_swapChainImages.size());
 
-        for (uint32_t i = 0; i < m_swapChainImages.size(); i++) {
+        for (size_t i = 0; i < m_swapChainImages.size(); i++) {
             VkImageViewCreateInfo viewInfo{};
             viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
             viewInfo.image = m_swapChainImages[i];
@@ -314,7 +314,7 @@ namespace pxt {
         m_depthImageMemorys.resize(imageCount());
         m_depthImageViews.resize(imageCount());
 
-        for (int i = 0; i < m_depthImages.size(); i++) {
+        for (size_t i = 0; i < m_depthImages.size(); i++) {
             VkImageCreateInfo imageInfo{};
             imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
             imageInfo.imageType = VK_IMAGE_TYPE_2D;

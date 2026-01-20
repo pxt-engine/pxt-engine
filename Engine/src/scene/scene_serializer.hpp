@@ -4,8 +4,6 @@
 #include "resources/resource_manager.hpp"
 #include "scene/scene.hpp"
 
-#include "yaml-cpp/yaml.h"
-
 namespace pxt {
 
     class SceneSerializer {

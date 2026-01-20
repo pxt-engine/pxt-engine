@@ -1,0 +1,52 @@
+#pragma once
+
+#include "editor_camera_controller.hpp"
+#include "graphics/camera_matrices.hpp"
+#include "graphics/view_provider.hpp"
+
+namespace pxt::editor {
+    class EditorViewProvider : public IViewProvider {
+    public:
+        explicit EditorViewProvider(EditorCameraController editorCameraController, glm::vec3& position,
+                                    glm::vec3& rotation);
+
+        CameraMatrices getCameraMatrices(float aspectRatio) override;
+
+        const EditorCameraController& getEditorCameraController() const { return m_editorCameraController; };
+
+        void resetState();
+
+        void updateActiveCamera(const CameraData& editorCameraData, glm::vec3& editorCameraPosition,
+                                glm::vec3& editorCameraRotation);
+
+        void setCameraNavigationState(CameraNavigationState newCameraNavState) { m_camNavState = newCameraNavState; };
+
+        void setActiveCameraData(const CameraData& camData) { m_activeCameraData = camData; };
+
+        void setActiveCameraPosition(glm::vec3& position) { m_activeCameraPosition = &position; };
+
+        void setActiveCameraRotation(glm::vec3& rotation) { m_activeCameraRotation = &rotation; };
+
+        void setAspectRatioOverride(const float aspectRatioOverride) {
+            m_aspectRatioOverride = aspectRatioOverride;
+            m_overrideAspectRatio = true;
+        };
+
+        void onUpdateCameraController(float deltaTime);
+
+    private:
+        EditorCameraController m_editorCameraController;
+        CameraNavigationState m_camNavState{};
+
+        CameraData m_activeCameraData{};
+        glm::vec3* m_activeCameraRotation;
+        glm::vec3* m_activeCameraPosition;
+
+        //! this could be bad design
+        //! (to override a method parameter of the interface method "getCameraMatrices" without the caller knowing)
+        //! for now its simpler like that.
+        // TODO: change this
+        float m_aspectRatioOverride = 1.f;
+        bool m_overrideAspectRatio = false;
+    };
+} // namespace pxt::editor

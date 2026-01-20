@@ -67,15 +67,14 @@ namespace pxt {
     void PointLightSystem::update(FrameInfo& frameInfo, GlobalUbo& ubo) {
         int lightIndex = 0;
 
-        auto view = frameInfo.scene.getEntitiesWith<PointLightComponent, ColorComponent, TransformComponent>();
+        auto view = frameInfo.scene.getEntitiesWith<PointLightComponent, TransformComponent>();
         for (auto entity : view) {
 
-            const auto& [light, color, transform] =
-                view.get<PointLightComponent, ColorComponent, TransformComponent>(entity);
+            const auto& [light, transform] = view.get<PointLightComponent, TransformComponent>(entity);
 
             // update lights in the ubo
             ubo.pointLights[lightIndex].position = glm::vec4(transform.translation, 1.f);
-            ubo.pointLights[lightIndex].color = glm::vec4((glm::vec3)color, light.lightIntensity);
+            ubo.pointLights[lightIndex].color = glm::vec4(light.lightColor, light.lightIntensity);
 
             lightIndex += 1;
         }
@@ -88,14 +87,13 @@ namespace pxt {
         // TODO: WE SHOULD DO THIS FOR EVERY TRANSPARENT OBJECT or use order independent transparency
         std::map<float, entt::entity> sorted;
 
-        auto view = frameInfo.scene.getEntitiesWith<PointLightComponent, ColorComponent, TransformComponent>();
+        auto view = frameInfo.scene.getEntitiesWith<PointLightComponent, TransformComponent>();
         for (auto entity : view) {
 
-            const auto& [light, color, transform] =
-                view.get<PointLightComponent, ColorComponent, TransformComponent>(entity);
+            const auto& [light, transform] = view.get<PointLightComponent, TransformComponent>(entity);
 
             glm::vec3 lightPos = transform.translation;
-            glm::vec3 cameraPos = frameInfo.camera.getPosition();
+            glm::vec3 cameraPos = CameraMath::getCameraPos(frameInfo.cameraMatrices.inverseViewMatrix);
 
             glm::vec3 lightToCamera = cameraPos - lightPos;
 
@@ -111,12 +109,11 @@ namespace pxt {
                                 &frameInfo.globalDescriptorSet, 0, nullptr);
 
         for (auto& [_, entity] : std::ranges::reverse_view(sorted)) {
-            const auto& [light, color, transform] =
-                view.get<PointLightComponent, ColorComponent, TransformComponent>(entity);
+            const auto& [light, transform] = view.get<PointLightComponent, TransformComponent>(entity);
 
             PointLightPushConstants push{};
             push.position = glm::vec4(transform.translation, 1.f);
-            push.color = glm::vec4((glm::vec3)color, light.lightIntensity);
+            push.color = glm::vec4(light.lightColor, light.lightIntensity);
             push.radius = transform.scale.x;
 
             vkCmdPushConstants(frameInfo.commandBuffer, m_pipelineLayout,

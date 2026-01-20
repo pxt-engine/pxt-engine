@@ -10,6 +10,7 @@ namespace pxt::core {
         LayerStack() = default;
         ~LayerStack();
 
+        void onBeginFrame(float deltaTime);
         void onEvent(Event& event);
         void onUpdate(FrameInfo& frameInfo, GlobalUbo& ubo);
         void onPostFrameUpdate(FrameInfo& frameInfo);

@@ -5,8 +5,8 @@
 namespace pxt {
     // --- MaterialComponent ---
     MaterialComponent::MaterialComponent() : tilingFactor(1.0f), tint(1.0f) {
-        auto rm = Application::get().getResourceManager();
-        material = rm->get<Material>(DEFAULT_MATERIAL);
+        auto& rm = Application::get().getResourceManager();
+        material = rm.get<Material>(DEFAULT_MATERIAL);
     }
 
     // --- Transform2dComponent ---
@@ -39,7 +39,8 @@ namespace pxt {
         return glm::transpose(glm::inverse(glm::mat3(modelMatrix)));
     }
 
-    // --- CameraComponent ---
-    CameraComponent::CameraComponent() : isMainCamera(true) { camera = Camera{}; }
+    MeshComponent::MeshComponent() { mesh = ResourceManager::s_defaultObjMesh; }
 
+    // --- CameraComponent ---
+    CameraComponent::CameraComponent() { cameraData = CameraData(); }
 } // namespace pxt

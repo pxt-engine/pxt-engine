@@ -26,8 +26,8 @@ namespace pxt {
 
     private:
         void initImGui(VkRenderPass& renderPass);
+        void setImGuiStyle();
 
-        void saveSceneUi(Scene& scene);
         void buildUi(Scene& scene);
 
         Context& m_context;

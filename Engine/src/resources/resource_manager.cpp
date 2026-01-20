@@ -3,11 +3,37 @@
 
 namespace pxt {
 
-    Shared<Material> ResourceManager::defaultMaterial = nullptr;
+    Shared<Material> ResourceManager::s_defaultMaterial = nullptr;
+    Shared<Mesh> ResourceManager::s_defaultObjMesh = nullptr;
 
     ResourceManager::ResourceManager() : Layer("ResourceManager") {}
 
-    ResourceManager::~ResourceManager() { defaultMaterial = nullptr; }
+    ResourceManager::~ResourceManager() {
+        s_defaultMaterial = nullptr;
+        s_defaultObjMesh = nullptr;
+    }
+
+    const std::vector<Shared<Resource>> ResourceManager::getResourcesByType(Resource::Type type) const {
+        std::vector<Shared<Resource>> resourcesOfType;
+        for (const auto& [uuid, resource] : m_resources) {
+            if (resource->getType() == type) {
+                resourcesOfType.push_back(resource);
+            }
+        }
+        return resourcesOfType;
+    }
+
+    Shared<Resource> ResourceManager::get(const core::UUID uuid, ResourceInfo* resourceInfo) {
+        const auto it = m_resources.find(uuid);
+        if (it != m_resources.end()) {
+            return it->second;
+        }
+        
+        PXT_ERROR("Resource {} not found! this should be impossible!", uuid.toString());
+
+        //TODO: use std::optional
+        return nullptr;
+    }
 
     Shared<Resource> ResourceManager::get(const std::string& alias, ResourceInfo* resourceInfo) {
 

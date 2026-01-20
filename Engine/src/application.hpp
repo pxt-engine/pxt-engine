@@ -1,5 +1,7 @@
 #pragma once
 
+#include "core/engine_mode.hpp"
+#include "concurrency/job_system.hpp"
 #include "core/events/event.hpp"
 #include "core/events/event_queue.hpp"
 #include "core/layer/layer_stack.hpp"
@@ -13,6 +15,7 @@
 #include "graphics/resources/blas_registry.hpp"
 #include "graphics/resources/material_registry.hpp"
 #include "graphics/resources/texture_registry.hpp"
+#include "graphics/view_provider.hpp"
 #include "graphics/window.hpp"
 #include "resources/resource_manager.hpp"
 #include "resources/types/material.hpp"
@@ -36,9 +39,11 @@ namespace pxt {
 
         Window& getWindow() { return m_window; }
 
-        ResourceManager* getResourceManager() { return m_resourceManagerPtr; }
+        ResourceManager& getResourceManager() { return *m_resourceManagerPtr; }
 
         DescriptorAllocatorGrowable* getDescriptorAllocator() { return m_descriptorAllocator.get(); }
+
+        const core::EngineMode getEngineMode() { return m_engineMode; }
 
         // LAYERS
 
@@ -90,6 +95,8 @@ namespace pxt {
             m_eventQueue.queueEvent(std::forward<E>(event));
         }
 
+        void setViewProvider(IViewProvider* viewProvider) { m_viewProviderPtr = viewProvider; }
+
     protected:
         virtual void loadScene() {}
 
@@ -102,13 +109,17 @@ namespace pxt {
 
         void onEvent(core::Event& event);
         bool isRunning();
-        void updateMainCamera();
 
         bool m_running = true;
+
+        concurrency::JobSystem m_jobSystem{};
 
         Window m_window{WindowData()};
         Context m_context{m_window};
 
+        core::EngineMode m_engineMode = core::EngineMode::EDIT;
+
+        IViewProvider* m_viewProviderPtr = nullptr;
         Renderer m_renderer{m_window, m_context};
 
         core::LayerStack m_layerStack{};

@@ -97,11 +97,25 @@ namespace pxt {
         core::UUID getUUID() { return get<IDComponent>().uuid; }
 
         /**
+         * @brief Get the name of the entity
+         *
+         * @return name of the entity
+         */
+        std::string getName() { return get<NameComponent>().name; }
+
+        /**
          * @brief Get the Object Picking ID of the entity
          *
          * @return Object Picking ID of the entity
          */
         uint32_t getObjPickingId() { return get<ObjPickingIdComponent>().objPickingId.getObjPickingId(); }
+
+        std::optional<std::reference_wrapper<Scene>> tryGetScene() {
+            if (!m_scene) {
+                return std::nullopt;
+            }
+            return std::ref(*m_scene);
+        }
 
     private:
         entt::entity m_enttEntity{entt::null};

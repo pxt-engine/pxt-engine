@@ -2,9 +2,14 @@
 
 #include "application.hpp"
 
+#include "core/logging/console_logger_sink.hpp"
+#include "core/logging/file_logger_sink.hpp"
+
 int main() {
 
-    pxt::core::Logger::init();
+    // Register logger sinks
+    pxt::core::Logger::registerSink(pxt::createShared<pxt::core::ConsoleLoggerSink>());
+    pxt::core::Logger::registerSink(pxt::createShared<pxt::core::FileLoggerSink>());
 
     try {
         pxt::Unique<pxt::Application> app(pxt::initApplication());

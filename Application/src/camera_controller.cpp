@@ -3,10 +3,14 @@
 using namespace pxt::core;
 
 void CameraController::onUpdate(float deltaTime) {
+    if (!Input::isViewportFocused() || !Input::isViewportHovered()) {
+        return;
+    }
+
     auto& transform = get<TransformComponent>();
 
     // can look with mouse when Space is Hold
-    bool is_mouse_move_enabled = Input::isKeyDown(KeyCode::Space);
+    bool isFreeLookModeEnabled = Input::isMouseButtonDown(MouseButton::Button1) || Input::isKeyDown(KeyCode::Space);
 
     // --- Keyboard Rotation ---
     glm::vec3 rotate{0};
@@ -24,7 +28,7 @@ void CameraController::onUpdate(float deltaTime) {
     }
 
     // --- Mouse Movement for Rotation ---
-    if (is_mouse_move_enabled) {
+    if (isFreeLookModeEnabled) {
         glm::vec2 offset = Input::getMouseDelta();
 
         // Invert the Y offset so that moving the mouse up (decreasing y)
@@ -56,24 +60,23 @@ void CameraController::onUpdate(float deltaTime) {
 
     // --- Keyboard Translation ---
     glm::vec3 moveDir{0.f};
-    if (Input::isKeyDown(KeyCode::W))
-        moveDir += forward;
-    if (Input::isKeyDown(KeyCode::S))
-        moveDir -= forward;
-    if (Input::isKeyDown(KeyCode::D))
-        moveDir += rightDir;
-    if (Input::isKeyDown(KeyCode::A))
-        moveDir -= rightDir;
-    if (Input::isKeyDown(KeyCode::E))
-        moveDir += worldUp;
-    if (Input::isKeyDown(KeyCode::Q))
-        moveDir -= worldUp;
+
+    if (isFreeLookModeEnabled) {
+        if (Input::isKeyDown(KeyCode::W))
+            moveDir += forward;
+        if (Input::isKeyDown(KeyCode::S))
+            moveDir -= forward;
+        if (Input::isKeyDown(KeyCode::D))
+            moveDir += rightDir;
+        if (Input::isKeyDown(KeyCode::A))
+            moveDir -= rightDir;
+        if (Input::isKeyDown(KeyCode::E))
+            moveDir += worldUp;
+        if (Input::isKeyDown(KeyCode::Q))
+            moveDir -= worldUp;
+    }
 
     if (glm::dot(moveDir, moveDir) > std::numeric_limits<float>::epsilon()) {
         transform.translation += m_moveSpeed * deltaTime * glm::normalize(moveDir);
     }
-
-    // update camera view matrix
-    auto& camera = get<CameraComponent>().camera;
-    camera.setViewDirection(transform.translation, forward, worldUp);
 }

@@ -5,6 +5,8 @@
 
 #include <typeindex>
 
+#include "yaml-cpp/yaml.h"
+
 namespace pxt {
 
     using SerializerFunction = std::function<void(Entity, YAML::Emitter&)>;
@@ -126,13 +128,17 @@ namespace pxt {
         {typeid(CameraComponent), makeSerializer<CameraComponent>([](auto& c, YAML::Emitter& out) {
              out << YAML::Key << "CameraComponent";
              out << YAML::BeginMap;
-             out << YAML::Key << "isMainCamera" << YAML::Value << c.isMainCamera;
-             out << YAML::Key << "isPerspective" << YAML::Value << c.camera.isPerspective();
-             out << YAML::Key << "nearPlane" << YAML::Value << c.camera.getNearPlane();
-             out << YAML::Key << "farPlane" << YAML::Value << c.camera.getFarPlane();
-             out << YAML::Key << "fovYDegrees" << YAML::Value << c.camera.getFovYDegrees();
-             out << YAML::Key << "orthoParams" << YAML::Value << YAML::Flow << YAML::BeginSeq << c.camera.getOrthoLeft()
-                 << c.camera.getOrthoRight() << c.camera.getOrthoTop() << c.camera.getOrthoBottom() << YAML::EndSeq;
+             out << YAML::Key << "useViewportAspectRatio" << YAML::Value << c.useViewportAspectRatio;
+             if (!c.useViewportAspectRatio) {
+                 out << YAML::Key << "aspectRatio" << YAML::Value << c.aspectRatio;
+             }
+             out << YAML::Key << "isPerspective" << YAML::Value << c.cameraData.isPerspective();
+             out << YAML::Key << "nearPlane" << YAML::Value << c.cameraData.getNearPlane();
+             out << YAML::Key << "farPlane" << YAML::Value << c.cameraData.getFarPlane();
+             out << YAML::Key << "fovYDegrees" << YAML::Value << c.cameraData.getFovYDegrees();
+             out << YAML::Key << "orthoParams" << YAML::Value << YAML::Flow << YAML::BeginSeq
+                 << c.cameraData.getOrthoLeft() << c.cameraData.getOrthoRight() << c.cameraData.getOrthoTop()
+                 << c.cameraData.getOrthoBottom() << YAML::EndSeq;
              out << YAML::EndMap;
          })},
 
@@ -141,6 +147,8 @@ namespace pxt {
              out << YAML::Key << "PointLightComponent";
              out << YAML::BeginMap;
              out << YAML::Key << "lightIntensity" << YAML::Value << c.lightIntensity;
+             out << YAML::Key << "lightColor" << YAML::Value << YAML::Flow << YAML::BeginSeq << c.lightColor.r
+                 << c.lightColor.g << c.lightColor.b << YAML::EndSeq;
              out << YAML::EndMap;
          })},
     };
@@ -174,6 +182,9 @@ namespace pxt {
 
         // Scene name
         out << YAML::Key << "scene" << YAML::Value << m_scene->getName();
+
+        // main camera
+        out << YAML::Key << "activeCameraEntity" << YAML::Value << m_scene->getActiveCameraEntityUUID().toString();
 
         serializeEnvironment(m_scene, out);
 
@@ -224,6 +235,7 @@ namespace pxt {
         }
 
         std::string sceneName = data["scene"].as<std::string>();
+        core::UUID activeCameraUUID = core::UUID(data["activeCameraEntity"].as<std::string>());
 
         auto entities = data["entities"];
 
@@ -251,7 +263,7 @@ namespace pxt {
         // ----------------
 
         for (auto entityNode : entities) {
-            std::string uuid = entityNode["entity"].as<std::string>();
+            std::string uuidString = entityNode["entity"].as<std::string>();
 
             // Deserialize NameComponent
             std::string name = "Unnamed-Entity";
@@ -259,7 +271,11 @@ namespace pxt {
                 name = nameComponentNode.as<std::string>();
             }
 
-            Entity entity = m_scene->createEntity(name, core::UUID(uuid));
+            core::UUID uuid = core::UUID(uuidString);
+            Entity entity = m_scene->createEntity(name, uuid);
+
+            // check if its main camera
+            bool isActiveCamera = uuid == activeCameraUUID;
 
             // Deserialize TransformComponent
             if (auto transformComponentNode = entityNode["TransformComponent"]) {
@@ -378,24 +394,34 @@ namespace pxt {
 
             // Deserialize CameraComponent
             if (auto cameraComponentNode = entityNode["CameraComponent"]) {
-                bool isMainCamera = cameraComponentNode["isMainCamera"].as<bool>();
+                bool useViewportAspectRatio = cameraComponentNode["useViewportAspectRatio"].as<bool>();
                 bool isPerspective = cameraComponentNode["isPerspective"].as<bool>();
                 float nearPlane = cameraComponentNode["nearPlane"].as<float>();
                 float farPlane = cameraComponentNode["farPlane"].as<float>();
                 float fovYDegrees = cameraComponentNode["fovYDegrees"].as<float>();
                 auto orthoParams = cameraComponentNode["orthoParams"].as<std::vector<float>>();
-                Camera camera;
-                camera.setPerspectiveParams(fovYDegrees, nearPlane, farPlane);
-                camera.setOrthographicParams(orthoParams[0], orthoParams[1], orthoParams[2], orthoParams[3], nearPlane,
-                                             farPlane);
-                camera.setIsPerspective(isPerspective);
-                entity.add<CameraComponent>(camera);
+                CameraData cameraData;
+                cameraData.setPerspectiveParams(fovYDegrees, nearPlane, farPlane);
+                cameraData.setOrthographicParams(orthoParams[0], orthoParams[1], orthoParams[2], orthoParams[3],
+                                                 nearPlane, farPlane);
+                cameraData.setIsPerspective(isPerspective);
+
+                auto& cameraComp = entity.addAndGet<CameraComponent>(cameraData);
+                cameraComp.useViewportAspectRatio = useViewportAspectRatio;
+                cameraComp.aspectRatio = useViewportAspectRatio ? 1.f : cameraComponentNode["aspectRatio"].as<float>();
+
+                if (isActiveCamera) {
+                    m_scene->setActiveCameraEntity(uuid);
+                }
             }
 
             // Deserialize PointLightComponent
             if (auto pointLightComponentNode = entityNode["PointLightComponent"]) {
                 float lightIntensity = pointLightComponentNode["lightIntensity"].as<float>();
-                entity.add<PointLightComponent>(lightIntensity);
+                auto lightColor = pointLightComponentNode["lightColor"].as<std::vector<float>>();
+                auto& plc = entity.addAndGet<PointLightComponent>(lightIntensity);
+
+                plc.lightColor = glm::vec3(lightColor[0], lightColor[1], lightColor[2]);
             }
         }
 

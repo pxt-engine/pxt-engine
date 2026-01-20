@@ -16,7 +16,7 @@ namespace pxt::core {
      * The Input class provides static methods for querying input events such as key presses,
      * mouse button presses, and mouse movement.
      */
-    class Input {
+    struct Input {
     public:
         static InputState& getState() {
             static InputState s_inputState;
@@ -85,7 +85,10 @@ namespace pxt::core {
          */
         static glm::vec2 getMouseDelta();
 
-    private:
-        static GLFWwindow* getWindow() { return Application::get().getWindow().getBaseWindow(); }
+        static bool isViewportFocused();
+
+        static bool isViewportHovered();
+
+        static bool isCursorOverUI();
     };
 } // namespace pxt::core

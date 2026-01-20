@@ -6,7 +6,6 @@
 #include "core/events/window_event.hpp"
 #include "core/input/input.hpp"
 #include "core/input/mapper/glfw_input_mapper.hpp"
-#include "core/logger.hpp"
 
 #include <ImGuizmo.h>
 
@@ -122,7 +121,9 @@ namespace pxt {
 
             core::MouseButton button = core::mapGLFWMouseButton(glfwButton);
 
-            bool imguiBlocksInput = ImGuizmo::IsUsing() || ImGuizmo::IsOver();
+            // we block the mouse left button if ImGuizmo is using or hovering, because that is what ImGuizmo uses in
+            // his gizmos
+            bool imguiBlocksInput = (ImGuizmo::IsUsing() || ImGuizmo::IsOver()) && button == core::MouseButton::Button0;
 
             switch (action) {
             case GLFW_PRESS: {
@@ -147,6 +148,9 @@ namespace pxt {
             WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
 
             ImGui_ImplGlfw_ScrollCallback(window, xOffset, yOffset);
+
+            if (ImGuizmo::IsUsingAny())
+                return;
 
             core::Input::getState().onScroll(xOffset, yOffset);
             core::MouseScrollEvent event(xOffset, yOffset);
