@@ -114,7 +114,7 @@ namespace pxt::editor {
 
             float innerSpacing = 4.0f;
             float groupSpacing = 8.0f;
-            float lineHeight = GImGui->Font->FontSize + GImGui->Style.FramePadding.y * 2.0f;
+            float lineHeight = ImGui::GetFontSize() + GImGui->Style.FramePadding.y * 2.0f;
             ImVec2 buttonSize = {lineHeight + 3.0f, lineHeight};
 
             // --- X ---
@@ -236,11 +236,8 @@ namespace pxt::editor {
 
         // MeshComponent
         RegisterComponent<MeshComponent>("MeshComponent", [](MeshComponent& c, Entity entity) {
-            DragAndDrop::EnginePayload payload = {
-                c.mesh->id,
-                DragAndDrop::PayloadSource::AssetBrowser,
-                Resource::Type::Mesh
-            };
+            DragAndDrop::EnginePayload payload = {c.mesh->id, DragAndDrop::PayloadSource::AssetBrowser,
+                                                  Resource::Type::Mesh};
 
             ResourceManager& rm = Application::get().getResourceManager();
 

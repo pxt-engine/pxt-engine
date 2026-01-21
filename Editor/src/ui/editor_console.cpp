@@ -8,10 +8,6 @@ namespace pxt::editor {
         m_consoleFont = io.Fonts->AddFontFromFileTTF((FONTS_PATH + "RobotoMono-VariableFont_wght.ttf").c_str(), 16.5f);
 
         io.Fonts->Build();
-
-        // Need to recreate fonts texture atlas after modifying fonts
-        ImGui_ImplVulkan_DestroyFontsTexture();
-        ImGui_ImplVulkan_CreateFontsTexture();
     }
 
     void EditorConsole::push(EditorLogEntry entry) {

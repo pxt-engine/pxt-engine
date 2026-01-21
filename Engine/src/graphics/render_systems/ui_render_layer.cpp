@@ -55,8 +55,8 @@ namespace pxt {
         initInfo.Device = m_context.getDevice();
         initInfo.QueueFamily = m_context.findPhysicalQueueFamilies().graphicsFamily;
         initInfo.Queue = m_context.getGraphicsQueue();
-        initInfo.RenderPass = renderPass;
-        initInfo.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
+        initInfo.PipelineInfoMain.RenderPass = renderPass;
+        initInfo.PipelineInfoMain.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
         initInfo.PipelineCache = VK_NULL_HANDLE;
         initInfo.DescriptorPool = m_imGuiPool->getDescriptorPool();
         initInfo.Allocator = nullptr;
@@ -70,7 +70,7 @@ namespace pxt {
         };
         ImGui_ImplVulkan_Init(&initInfo);
 
-        ImGui_ImplVulkan_CreateFontsTexture();
+        // ImGui_ImplVulkan_CreateFontsTexture();
     }
 
     void UiRenderLayer::setImGuiStyle() {
@@ -183,11 +183,10 @@ namespace pxt {
         style.GrabRounding = 0.0f;      // Radius of grabs
 
         // Tabs
-        style.TabRounding = 8.0f;               // Radius of tab corners
-        style.TabBorderSize = 0.0f;             // Thickness of tab border
-        style.TabMinWidthForCloseButton = 0.0f; // Minimum width before close button appears
-        style.TabBarBorderSize = 1.0f;          // Thickness of tab bar border
-        style.TabBarOverlineSize = 0.0f;        // Thickness of tab overline
+        style.TabRounding = 8.0f;        // Radius of tab corners
+        style.TabBorderSize = 0.0f;      // Thickness of tab border
+        style.TabBarBorderSize = 1.0f;   // Thickness of tab bar border
+        style.TabBarOverlineSize = 0.0f; // Thickness of tab overline
 
         // Alignment
         style.ButtonTextAlign = ImVec2(0.5f, 0.5f);     // Button text alignment

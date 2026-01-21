@@ -15,32 +15,32 @@ target_sources(PXT_Engine PRIVATE ${ENGINE_SOURCES})
 target_include_directories(PXT_Engine
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/src
-        ${CMAKE_CURRENT_SOURCE_DIR}/vendor/entt/single_include
+        ${CMAKE_CURRENT_SOURCE_DIR}/external/entt/single_include
 )
 
-# Third-party vendor libraries with CMake support
-add_subdirectory(vendor/glfw)
-add_subdirectory(vendor/glm)
-add_subdirectory(vendor/tinyobjloader)
-add_subdirectory(vendor/entt)
-add_subdirectory(vendor/spdlog)
-add_subdirectory(vendor/yaml-cpp)
+# Third-party external libraries with CMake support
+add_subdirectory(external/glfw)
+add_subdirectory(external/glm)
+add_subdirectory(external/tinyobjloader)
+add_subdirectory(external/entt)
+add_subdirectory(external/spdlog)
+add_subdirectory(external/yaml-cpp)
 
 option(TRACY_ENABLE "" ON)
-add_subdirectory(vendor/tracy)
+add_subdirectory(external/tracy)
 
 # stb is a header-only library; we create an 'interface' target for it
 add_library(stb INTERFACE)
-target_include_directories(stb INTERFACE vendor/stb)
+target_include_directories(stb INTERFACE external/stb)
 
 # tinyfiledialogs is a single-file C library
 add_library(tinyfiledialogs STATIC
-    vendor/tinyfiledialogs/tinyfiledialogs.c
+    external/tinyfiledialogs/tinyfiledialogs.c
 )
-target_include_directories(tinyfiledialogs PUBLIC vendor/tinyfiledialogs)
+target_include_directories(tinyfiledialogs PUBLIC external/tinyfiledialogs)
 
 # Dear ImGui setup
-set(IMGUI_DIR vendor/imgui)
+set(IMGUI_DIR external/imgui)
 add_library(imgui STATIC
     ${IMGUI_DIR}/imgui.cpp
     ${IMGUI_DIR}/imgui_draw.cpp
@@ -65,8 +65,8 @@ target_link_libraries(imgui
 )
 
 # ImGuizmo depends on the base ImGui target
-add_library(imguizmo STATIC vendor/imguizmo/ImGuizmo.cpp)
-target_include_directories(imguizmo PUBLIC vendor/imguizmo)
+add_library(imguizmo STATIC external/imguizmo/ImGuizmo.cpp)
+target_include_directories(imguizmo PUBLIC external/imguizmo)
 target_link_libraries(imguizmo PUBLIC imgui)
 
 # Final linking
