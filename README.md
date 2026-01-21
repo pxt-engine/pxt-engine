@@ -24,6 +24,8 @@ A modern C++20 game engine based on Vulkan, with a hybrid rendering pipeline. De
 - **Scene Serialization**
 - **Resource Management**
 
+![Editor Preview](./assets/imgs/editor_example.png "Editor Preview")
+
 ### Roadmap
 - **Job System**: (WIP)
 - **Resource & Asset managing improvements**: (WIP)
