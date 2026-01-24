@@ -164,15 +164,38 @@ namespace pxt::editor {
             memset(textBuffer.data(), 0, textBuffer.size());
             strncpy(textBuffer.data(), c.name.c_str(), textBuffer.size() - 1);
 
+            bool shouldUpdate = false;
+
             // The if returns true when Enter is pressed
             if (ImGui::InputText("Name (max 25 chars)", textBuffer.data(), textBuffer.size(),
                                  ImGuiInputTextFlags_EnterReturnsTrue)) {
-                c.name = textBuffer.data();
+                shouldUpdate = true;
             }
 
             // The if returns true when the input field loses focus after an edit
             if (ImGui::IsItemDeactivatedAfterEdit()) {
-                c.name = textBuffer.data();
+                shouldUpdate = true;
+            }
+
+            if (shouldUpdate) {
+                std::string newName = textBuffer.data();
+
+                if (newName.empty()) {
+                    newName = "Unnamed Entity";
+                }
+
+                auto sceneOpt = entity.tryGetScene();
+                if (!sceneOpt.has_value()) [[unlikely]] {
+                    PXT_WARN("Entity \"{}\" has no scene!", entity.getUID().toString());
+                    return;
+                }
+
+                Scene& scene = sceneOpt->get();
+                // here we ensure the new name is unique in the scene, else we append a number
+                newName = scene.getUniqueEntityName(newName);
+                
+                PXT_INFO("Renamed Entity \"{}\" to \"{}\"", c.name, newName);
+                c.name = newName;
             }
         });
 
