@@ -44,10 +44,10 @@ namespace pxt {
             Shared<Image> m_ambientOcclusionMap{nullptr};
             glm::vec4 m_emissiveColor{0.0f};
             Shared<Image> m_emissiveMap{nullptr};
-            float m_transmission = 0.0;
-            float m_ior = 1.3;
-            float m_blinnPhongSpecularIntensity = 0.0;
-            float m_blinnPhongSpecularShininess = 1.0;
+            float m_transmission = 0.0f;
+            float m_ior = 1.3f;
+            float m_blinnPhongSpecularIntensity = 0.0f;
+            float m_blinnPhongSpecularShininess = 1.0f;
 
         private:
             bool m_useMetallicWeight = false;

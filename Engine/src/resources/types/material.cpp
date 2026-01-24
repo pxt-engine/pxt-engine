@@ -129,8 +129,8 @@ namespace pxt {
         if (!m_normalMap)
             m_normalMap = ResourceManager::s_defaultMaterial->getNormalMap();
 
-        m_metallic = m_useMetallicWeight ? m_metallic : 1.0;
-        m_roughness = m_useRoughnessWeight ? m_roughness : 1.0;
+        m_metallic = m_useMetallicWeight ? m_metallic : 1.0f;
+        m_roughness = m_useRoughnessWeight ? m_roughness : 1.0f;
 
         // if (!m_metallicMap) m_metallicMap = ResourceManager::s_defaultMaterial->getMetallicMap();
         // if (!m_roughnessMap) m_roughnessMap = ResourceManager::s_defaultMaterial->getRoughnessMap();

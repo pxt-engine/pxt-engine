@@ -201,18 +201,18 @@ namespace pxt {
             float tilingFactor = 1.0f;
             glm::vec3 tint{1.0f};
 
-            Builder& setMaterial(const Shared<Material>& material) {
-                this->material = material;
+            Builder& setMaterial(const Shared<Material>& mat) {
+                material = mat;
                 return *this;
             }
 
-            Builder& setTilingFactor(float tilingFactor) {
-                this->tilingFactor = tilingFactor;
+            Builder& setTilingFactor(float factor) {
+                tilingFactor = factor;
                 return *this;
             }
 
-            Builder& setTint(const glm::vec3& tint) {
-                this->tint = tint;
+            Builder& setTint(const glm::vec3& color) {
+                tint = color;
                 return *this;
             }
 
