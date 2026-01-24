@@ -13,15 +13,15 @@ namespace pxt::core {
 
         virtual void onDetach() {}
 
-        virtual void onBeginFrame(float deltaTime) {}
+        virtual void onBeginFrame([[maybe_unused]] float deltaTime) {}
 
-        virtual void onUpdate(FrameInfo& frameInfo, GlobalUbo& ubo) {}
+        virtual void onUpdate([[maybe_unused]] FrameInfo& frameInfo, [[maybe_unused]] GlobalUbo& ubo) {}
 
-        virtual void onPostFrameUpdate(FrameInfo& frameInfo) {}
+        virtual void onPostFrameUpdate([[maybe_unused]] FrameInfo& frameInfo) {}
 
-        virtual void onUpdateUi(FrameInfo& frameInfo) {}
+        virtual void onUpdateUi([[maybe_unused]] FrameInfo& frameInfo) {}
 
-        virtual void onEvent(Event& event) {}
+        virtual void onEvent([[maybe_unused]] Event& event) {}
 
         [[nodiscard]] const std::string& getName() const { return m_name; }
 

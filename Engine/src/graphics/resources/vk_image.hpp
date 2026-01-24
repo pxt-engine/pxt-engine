@@ -6,6 +6,8 @@
 #include "resources/types/image.hpp"
 
 namespace pxt {
+
+    [[maybe_unused]]
     static VkFormat pxtToVulkanImageFormat(const ImageFormat format) {
         switch (format) {
         case RGB8_LINEAR:
@@ -23,6 +25,7 @@ namespace pxt {
         return VK_FORMAT_R8G8B8A8_SRGB;
     }
 
+    [[maybe_unused]]
     static ImageFormat vulkanToPxtImageFormat(const VkFormat format) {
         switch (format) {
         case VK_FORMAT_R8G8B8_UNORM:
@@ -40,6 +43,7 @@ namespace pxt {
         }
     }
 
+    [[maybe_unused]]
     static VkFilter pxtToVulkanImageFiltering(const ImageFiltering filtering) {
         switch (filtering) {
         case ImageFiltering::Nearest:
@@ -50,6 +54,7 @@ namespace pxt {
         return VK_FILTER_LINEAR; // Default to linear filtering
     }
 
+    [[maybe_unused]]
     static ImageFiltering vulkanToPxtImageFiltering(const VkFilter filtering) {
         switch (filtering) {
         case VK_FILTER_NEAREST:

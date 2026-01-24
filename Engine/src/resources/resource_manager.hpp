@@ -21,10 +21,9 @@ namespace pxt {
         ResourceManager();
         ~ResourceManager();
 
-        
-       /**
-        * @brief Retrieves all resources.
-        */
+        /**
+         * @brief Retrieves all resources.
+         */
         const std::unordered_map<ResourceId, Shared<Resource>>& getAllResources() const { return m_resources; };
 
         const std::vector<Shared<Resource>> getResourcesByType(Resource::Type type) const;
@@ -40,7 +39,7 @@ namespace pxt {
          * @return A shared pointer to the requested resource of type T.
          */
         template <typename T>
-        Shared<T> get(const core::UUID uuid, ResourceInfo* resourceInfo = nullptr) {
+        Shared<T> get(const core::UUID uuid, [[maybe_unused]] ResourceInfo* resourceInfo = nullptr) {
             return std::static_pointer_cast<T>(get(uuid, resourceInfo));
         }
 

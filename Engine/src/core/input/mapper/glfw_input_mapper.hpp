@@ -6,6 +6,7 @@
 
 namespace pxt::core {
 
+    [[maybe_unused]]
     static KeyCode mapGLFWKey(int glfwKey) {
         switch (glfwKey) {
         // Letters
@@ -164,6 +165,7 @@ namespace pxt::core {
         }
     }
 
+    [[maybe_unused]]
     static int mapToGLFWKey(KeyCode key) {
         switch (key) {
         // Letters
