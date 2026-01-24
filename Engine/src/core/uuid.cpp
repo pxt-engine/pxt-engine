@@ -24,7 +24,7 @@ namespace pxt::core {
             m_high = std::stoull(hexString.substr(0, 16), nullptr, 16);
             // The next 16 hex characters represent the low 64 bits.
             m_low = std::stoull(hexString.substr(16, 16), nullptr, 16);
-        } catch (const std::exception& _) {
+        } catch ([[maybe_unused]] const std::exception& _) {
             return;
         }
     }

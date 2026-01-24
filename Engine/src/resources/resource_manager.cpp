@@ -23,7 +23,7 @@ namespace pxt {
         return resourcesOfType;
     }
 
-    Shared<Resource> ResourceManager::get(const core::UUID uuid, ResourceInfo* resourceInfo) {
+    Shared<Resource> ResourceManager::get(const core::UUID uuid, [[maybe_unused]] ResourceInfo* resourceInfo) {
         const auto it = m_resources.find(uuid);
         if (it != m_resources.end()) {
             return it->second;

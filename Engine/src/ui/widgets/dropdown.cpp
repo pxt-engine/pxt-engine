@@ -6,7 +6,7 @@ namespace pxt::ui {
             for (size_t n = 0; n < itemsName.size(); n++) {
                 const bool isSelected = (currentItem == n);
                 if (ImGui::Selectable(itemsName[n], isSelected)) {
-                    currentItem = n;
+                    currentItem = static_cast<int32_t>(n);
                 }
                 if (isSelected) {
                     ImGui::SetItemDefaultFocus();

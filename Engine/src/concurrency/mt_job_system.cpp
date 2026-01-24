@@ -37,7 +37,6 @@ namespace pxt::concurrency {
             uint32_t bufferIdx = firstJobIdx + i;
             size_t idx = m_nextWorker.fetch_add(1, std::memory_order_relaxed) % m_workers.size();
 
-            Job& job = m_jobBuffer[bufferIdx];
             m_jobBuffer.updateJobState(bufferIdx, JobState::Ready);
 
             m_workers[idx]->deque.push(bufferIdx);
@@ -48,7 +47,7 @@ namespace pxt::concurrency {
 
     JobHandle MultiThreadedJobSystem::submit(JobDescription desc) {
         JobHandle handle = acquireSlot(1);
-        uint32_t jobIdx = m_jobBuffer.reserve(1);
+        uint32_t jobIdx = static_cast<uint32_t>(m_jobBuffer.reserve(1));
 
         auto& slot = m_jobRegistry[handle.index()];
         slot.firstJobIndex = jobIdx;
@@ -75,7 +74,7 @@ namespace pxt::concurrency {
         }
 
         JobHandle handle = acquireSlot(batchSize);
-        uint32_t jobIdx = m_jobBuffer.reserve(batchSize);
+        uint32_t jobIdx = static_cast<uint32_t>(m_jobBuffer.reserve(batchSize));
 
         auto& slot = m_jobRegistry[handle.index()];
         slot.firstJobIndex = jobIdx;
@@ -104,7 +103,7 @@ namespace pxt::concurrency {
         uint32_t batchSize = static_cast<uint32_t>((totalItems + desc.grainSize - 1) / desc.grainSize);
 
         JobHandle handle = acquireSlot(batchSize);
-        uint32_t jobIdx = m_jobBuffer.reserve(batchSize);
+        uint32_t jobIdx = static_cast<uint32_t>(m_jobBuffer.reserve(batchSize));
 
         auto& slot = m_jobRegistry[handle.index()];
         slot.firstJobIndex = jobIdx;
@@ -154,7 +153,6 @@ namespace pxt::concurrency {
         for (uint32_t i = 1; i < slot.numJobs; ++i) {
             uint32_t jobBufferIdx = slot.firstJobIndex + i;
 
-            Job& job = m_jobBuffer[jobBufferIdx];
             m_jobBuffer.updateJobState(jobBufferIdx, JobState::Pending);
         }
 
@@ -394,7 +392,7 @@ namespace pxt::concurrency {
             bool foundWork = false;
 
             // Fast spinning: check frequently (every iteration)
-            for (int spin = 0; spin < FAST_SPIN_ITERATIONS + jitter; ++spin) {
+            for (uint32_t spin = 0; spin < FAST_SPIN_ITERATIONS + jitter; ++spin) {
                 if (hasWork(index)) {
                     foundWork = true;
                     break;
@@ -419,7 +417,7 @@ namespace pxt::concurrency {
 
                 // Progressive backoff: pause longer as we spin more
                 // This reduces CPU usage while maintaining some responsiveness
-                for (int pause = 0; pause < pauseCount; ++pause) {
+                for (uint32_t pause = 0; pause < pauseCount; ++pause) {
                     cpuRelax();
                 }
             }

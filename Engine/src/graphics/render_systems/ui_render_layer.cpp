@@ -210,7 +210,7 @@ namespace pxt {
         renderer.endSwapChainRenderPass(frameInfo.commandBuffer);
     }
 
-    void UiRenderLayer::onEvent(core::Event& event) {
+    void UiRenderLayer::onEvent([[maybe_unused]] core::Event& event) {
         // here we can add custom events (not glfw) like appRender, etc.
         // normal inputs are handled with glfw callbacks (see window.cpp)
     }

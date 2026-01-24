@@ -25,8 +25,6 @@ namespace pxt {
     }
 
     void RayTracingSceneManagerSystem::createTLAS(FrameInfo& frameInfo) {
-        int frameIndex = frameInfo.frameIndex;
-
         VkAccelerationStructureKHR newTlas = VK_NULL_HANDLE;
 
         //  Create a acceleration structure instance vector

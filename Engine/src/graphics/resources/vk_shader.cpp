@@ -179,7 +179,7 @@ namespace pxt {
                                                shaderc_shader_kind shaderKind) {
         auto result = m_compiler.PreprocessGlsl(source, shaderKind, fileName.data(), m_compileOptions);
         if (result.GetCompilationStatus() != shaderc_compilation_status_success) {
-            shaderc_compilation_status status = result.GetCompilationStatus();
+            // shaderc_compilation_status status = result.GetCompilationStatus();
             PXT_FATAL("{}", result.GetErrorMessage().data());
             return "";
         }
@@ -216,7 +216,7 @@ namespace pxt {
     class string_piece {
     public:
         typedef const char* iterator;
-        static const size_t npos = -1;
+        static const size_t npos = std::numeric_limits<size_t>::max();
 
         string_piece() {}
 

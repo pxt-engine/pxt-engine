@@ -170,7 +170,7 @@ namespace pxt {
         out << YAML::EndMap;
     }
 
-    static void serializeEnvironment(Scene* scene, YAML::Emitter& out) {
+    static void serializeEnvironment([[maybe_unused]] Scene* scene, [[maybe_unused]] YAML::Emitter& out) {
         // TODO:
     }
 

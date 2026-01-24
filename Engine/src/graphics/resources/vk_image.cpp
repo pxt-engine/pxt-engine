@@ -1,7 +1,7 @@
 #include "graphics/resources/vk_image.hpp"
 
 namespace pxt {
-    VulkanImage::VulkanImage(Context& context, const ImageInfo& info, const std::span<uint8_t> buffer)
+    VulkanImage::VulkanImage(Context& context, const ImageInfo& info, [[maybe_unused]] const std::span<uint8_t> buffer)
         : m_context(context), m_info(info) {
         // set other members as VK_NULL_HANDLE
         m_vkImage = VK_NULL_HANDLE;
