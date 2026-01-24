@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.20)
 set(PROJECT_NAME "PXT")
 set(VERSION "0.0.1")
 
-project(${PROJECT_NAME} VERSION ${VERSION} LANGUAGES CXX)
+project(${PROJECT_NAME} VERSION ${VERSION} LANGUAGES C CXX)
 
 # Global C++ settings
 set(CMAKE_CXX_STANDARD 20)
@@ -39,4 +39,7 @@ if (MSVC)
     # If compiling with MSVC, we ignore warning 4099 which is about debug information for PDB files.
     # This is because the shaderc library does not provide pdb files, and MSVC will complain about it.
     target_link_options(${PROJECT_NAME} PRIVATE /IGNORE:4099)
+
+    # Enable static analysis
+    target_compile_options(${PROJECT_NAME} PRIVATE /analyze)
 endif()
