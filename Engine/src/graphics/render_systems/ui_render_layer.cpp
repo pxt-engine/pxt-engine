@@ -215,7 +215,7 @@ namespace pxt {
         // normal inputs are handled with glfw callbacks (see window.cpp)
     }
 
-    void UiRenderLayer::beginFrame(Scene& scene, Renderer& renderer, FrameInfo& frameInfo) {
+    void UiRenderLayer::beginFrame([[maybe_unused]] Scene& scene, Renderer& renderer, FrameInfo& frameInfo) {
         renderer.beginSwapChainRenderPass(frameInfo.commandBuffer);
 
         ImGui_ImplVulkan_NewFrame();
@@ -229,7 +229,7 @@ namespace pxt {
         ImGuizmo::BeginFrame();
     }
 
-    void UiRenderLayer::buildUi(Scene& scene) {
+    void UiRenderLayer::buildUi([[maybe_unused]] Scene& scene) {
         ImGui::ShowMetricsWindow();
         // ImGui::ShowDemoWindow();
     }

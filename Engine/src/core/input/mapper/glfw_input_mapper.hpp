@@ -325,6 +325,7 @@ namespace pxt::core {
         }
     }
 
+    [[maybe_unused]]
     static MouseButton mapGLFWMouseButton(int glfwButton) {
         switch (glfwButton) {
         case GLFW_MOUSE_BUTTON_LEFT:
@@ -349,6 +350,7 @@ namespace pxt::core {
         }
     }
 
+    [[maybe_unused]]
     static int mapToGLFWMouseButton(MouseButton button) {
         switch (button) {
         case LeftMouseButton:

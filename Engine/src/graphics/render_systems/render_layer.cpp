@@ -574,7 +574,7 @@ namespace pxt {
             .updateSet(m_finalImageDescriptorSet);
     }
 
-    void RenderLayer::onUpdateUi(FrameInfo& frameInfo) {
+    void RenderLayer::onUpdateUi([[maybe_unused]] FrameInfo& frameInfo) {
         ImGui::Begin("Raytracing Renderer");
         ImGui::Checkbox("Enable Raytracing", &m_isRaytracingEnabled);
 

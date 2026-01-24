@@ -28,10 +28,10 @@ namespace pxt {
         if (it != m_resources.end()) {
             return it->second;
         }
-        
+
         PXT_ERROR("Resource {} not found! this should be impossible!", uuid.toString());
 
-        //TODO: use std::optional
+        // TODO: use std::optional
         return nullptr;
     }
 
@@ -77,7 +77,7 @@ namespace pxt {
         }
     }
 
-    void ResourceManager::onUpdateUi(FrameInfo& frameInfo) {
+    void ResourceManager::onUpdateUi([[maybe_unused]] FrameInfo& frameInfo) {
         // probably call ui code for imports and asset browser?
         // Asset browser could be a "view" class of all resources given
         // by the resource manager

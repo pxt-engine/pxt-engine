@@ -34,7 +34,7 @@ namespace pxt {
          *
          * @param deltaTime Time in seconds since the last frame update.
          */
-        virtual void onUpdate(float deltaTime) {}
+        virtual void onUpdate([[maybe_unused]] float deltaTime) {}
 
         /**
          * @brief Called when the script is removed or the entity is destroyed.
@@ -44,7 +44,7 @@ namespace pxt {
          */
         virtual void onDestroy() {}
 
-        virtual void onEvent(core::Event& event) {}
+        virtual void onEvent([[maybe_unused]] core::Event& event) {}
 
         /**
          * @brief Retrieves a component attached to the entity that owns this script.

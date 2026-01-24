@@ -146,7 +146,7 @@ namespace pxt {
     }
 
     void Scene::onUpdate(float delta) {
-        getEntitiesWith<ScriptComponent>().each([=](auto entity, auto& scriptComponent) {
+        getEntitiesWith<ScriptComponent>().each([=]([[maybe_unused]] auto entity, auto& scriptComponent) {
             if (!scriptComponent.script) {
                 return;
             }
@@ -194,7 +194,7 @@ namespace pxt {
     }
 
     void Scene::updateCamerasAspectRatio(float newAspect) {
-        getEntitiesWith<CameraComponent>().each([=](auto entity, auto& cameraComponent) {
+        getEntitiesWith<CameraComponent>().each([=]([[maybe_unused]] auto entity, auto& cameraComponent) {
             if (cameraComponent.useViewportAspectRatio) {
                 cameraComponent.aspectRatio = newAspect;
             }
@@ -221,7 +221,7 @@ namespace pxt {
             return false;
         });
 
-        getEntitiesWith<ScriptComponent>().each([&](auto entity, auto& scriptComponent) {
+        getEntitiesWith<ScriptComponent>().each([&]([[maybe_unused]] auto entity, auto& scriptComponent) {
             if (!scriptComponent.script) {
                 return;
             }

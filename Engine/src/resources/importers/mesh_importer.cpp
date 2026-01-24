@@ -8,7 +8,8 @@
 
 namespace pxt {
 
-    Shared<Mesh> MeshImporter::importObj(const std::filesystem::path& filePath, ResourceInfo* resourceInfo) {
+    Shared<Mesh> MeshImporter::importObj(const std::filesystem::path& filePath,
+                                         [[maybe_unused]] ResourceInfo* resourceInfo) {
 
         std::vector<Mesh::Vertex> vertices{}; // List of vertices in the model.
         std::vector<uint32_t> indices{};      // List of indices for indexed rendering.
@@ -120,5 +121,7 @@ namespace pxt {
         return VulkanMesh::create(vertices, indices);
     }
 
-    void MeshImporter::updateUi(ResourceInfo* resourceInfo) { ImGui::SeparatorText("Mesh Importer Settings"); }
+    void MeshImporter::updateUi([[maybe_unused]] ResourceInfo* resourceInfo) {
+        ImGui::SeparatorText("Mesh Importer Settings");
+    }
 } // namespace pxt

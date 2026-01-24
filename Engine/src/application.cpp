@@ -291,12 +291,12 @@ namespace pxt {
     void Application::onEvent(core::Event& event) {
         core::EventDispatcher dispatcher(event);
 
-        dispatcher.dispatch<core::WindowCloseEvent>([this](auto& event) {
+        dispatcher.dispatch<core::WindowCloseEvent>([this]([[maybe_unused]] auto& event) {
             m_running = false;
             return true; // TODO: this should be false to allow other layers to handle close event
         });
 
-        dispatcher.dispatch<core::WindowResizeEvent>([this](auto& event) {
+        dispatcher.dispatch<core::WindowResizeEvent>([this]([[maybe_unused]] auto& event) {
             m_renderer.onWindowResize();
             return true;
         });

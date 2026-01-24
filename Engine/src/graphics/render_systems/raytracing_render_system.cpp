@@ -328,7 +328,7 @@ namespace pxt {
                                             VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR);
     }
 
-    void RayTracingRenderSystem::render(FrameInfo& frameInfo, Renderer& renderer) {
+    void RayTracingRenderSystem::render(FrameInfo& frameInfo, [[maybe_unused]] Renderer& renderer) {
         m_pipeline->bind(frameInfo.commandBuffer);
 
         std::array<VkDescriptorSet, 11> descriptorSets = {
