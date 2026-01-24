@@ -17,8 +17,6 @@ namespace pxt::core {
 
     // Keyboard
     void InputState::onKey(KeyCode key, bool down) {
-        size_t i = (size_t)key;
-
         if (down) {
             onKeyPress(key);
         } else {
@@ -48,8 +46,6 @@ namespace pxt::core {
 
     // Mouse
     void InputState::onMouseButton(MouseButton btn, bool down) {
-        size_t i = (size_t)btn;
-
         if (down) {
             onMousePress(btn);
         } else {
