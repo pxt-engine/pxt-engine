@@ -579,11 +579,11 @@ namespace pxt {
         ImGui::Checkbox("Enable Raytracing", &m_isRaytracingEnabled);
 
         ImGui::TextColored(
-            ImVec4(0.8, 0.6, 0.1, 1.0),
+            ImVec4(0.8f, 0.6f, 0.1f, 1.0f),
             "If changes were made to the %s shaders\n(prior of switching render type), you need to reload them!",
             m_isRaytracingEnabled ? "Raytracing" : "Rasterization");
 
-        ui::Space::render(0.0, 10.0);
+        ui::Space::render(0.0f, 10.0f);
 
         if (m_isRaytracingEnabled) {
             m_rayTracingRenderSystem->updateUi();

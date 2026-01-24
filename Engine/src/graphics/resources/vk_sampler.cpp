@@ -13,7 +13,7 @@ namespace pxt {
         m_info.addressModeV = addressMode;
         m_info.addressModeW = addressMode;
         m_info.anisotropyEnable = unnormalizedCoordinates ? VK_FALSE : m_context.supportsAnisotropy();
-        m_info.maxAnisotropy = unnormalizedCoordinates ? 0.0 : m_context.getMaxSamplerAnisotropy();
+        m_info.maxAnisotropy = unnormalizedCoordinates ? 0.0f : m_context.getMaxSamplerAnisotropy();
         m_info.borderColor = borderColor;
         m_info.unnormalizedCoordinates = unnormalizedCoordinates ? VK_TRUE : VK_FALSE;
         m_info.compareEnable = VK_FALSE;

@@ -25,7 +25,7 @@ namespace pxt {
     static VKAPI_ATTR VkBool32 VKAPI_CALL gpuDebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
                                                            VkDebugUtilsMessageTypeFlagsEXT messageType,
                                                            const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-                                                           void* pUserData) {
+                                                           [[maybe_unused]] void* pUserData) {
 
         std::stringstream ss;
 

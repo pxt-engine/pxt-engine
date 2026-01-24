@@ -49,7 +49,7 @@ namespace pxt {
                                VK_COMPONENT_SWIZZLE_A};
         viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
         viewInfo.subresourceRange.baseMipLevel = 0;
-        viewInfo.subresourceRange.levelCount = 1.0;
+        viewInfo.subresourceRange.levelCount = 1;
         viewInfo.subresourceRange.baseArrayLayer = 0;
         viewInfo.subresourceRange.layerCount = 6;
         viewInfo.image = m_vkImage;
