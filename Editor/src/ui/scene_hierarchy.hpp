@@ -8,7 +8,7 @@ namespace pxt::editor {
         SceneHierarchy() = default;
         ~SceneHierarchy() = default;
 
-        void onUpdateUi(FrameInfo& frameInfo, core::UUID& selectedEntityId);
-        void drawSceneEntityList(Scene& scene, core::UUID& selectedEntityId);
+        void onUpdateUi(FrameInfo& frameInfo, core::UID& selectedEntityId);
+        void drawSceneEntityList(Scene& scene, core::UID& selectedEntityId);
     };
 } // namespace pxt::editor

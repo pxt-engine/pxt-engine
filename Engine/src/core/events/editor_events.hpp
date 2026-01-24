@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/events/event.hpp"
+#include "core/uid.hpp"
 #include "core/pch.hpp"
 
 namespace pxt::core {
@@ -24,9 +25,9 @@ namespace pxt::core {
 
     class SelectedEntityChangedEvent : public Event {
     public:
-        SelectedEntityChangedEvent(UUID selectedEntityUUID) : m_selectedEntityUUID(selectedEntityUUID) {}
+        SelectedEntityChangedEvent(UID selectedEntityUID) : m_selectedEntityUID(selectedEntityUID) {}
 
-        [[nodiscard]] UUID getSelectedEntityUUID() const { return m_selectedEntityUUID; }
+        [[nodiscard]] UID getSelectedEntityUID() const { return m_selectedEntityUID; }
 
         Event::Type getEventType() const override { return Event::Type::SelectedEntityChanged; }
 
@@ -35,7 +36,7 @@ namespace pxt::core {
         static Event::Type getStaticType() { return Event::Type::SelectedEntityChanged; }
 
     private:
-        UUID m_selectedEntityUUID;
+        UID m_selectedEntityUID;
     };
 
     class ViewportResizeEvent : public Event {

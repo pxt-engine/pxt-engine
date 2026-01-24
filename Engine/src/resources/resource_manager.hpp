@@ -29,30 +29,30 @@ namespace pxt {
         const std::vector<Shared<Resource>> getResourcesByType(Resource::Type type) const;
 
         /**
-         * @brief Retrieves a resource by its UUID and casts it to the specified type.
+         * @brief Retrieves a resource by its UID and casts it to the specified type.
          * If the resource is not found, it returns a nullptr.
          *
          * @tparam T The type of the resource to retrieve.
-         * @param uuid The UUID of the resource to retrieve.
+         * @param uid The UID of the resource to retrieve.
          * @param resourceInfo Optional pointer to store additional resource information.
          *
          * @return A shared pointer to the requested resource of type T.
          */
         template <typename T>
-        Shared<T> get(const core::UUID uuid, [[maybe_unused]] ResourceInfo* resourceInfo = nullptr) {
-            return std::static_pointer_cast<T>(get(uuid, resourceInfo));
+        Shared<T> get(const core::UID uid, [[maybe_unused]] ResourceInfo* resourceInfo = nullptr) {
+            return std::static_pointer_cast<T>(get(uid, resourceInfo));
         }
 
         /**
-         * @brief Retrieves a resource by its UUID.
+         * @brief Retrieves a resource by its UID.
          * If the resource is not found, it returns a nullptr.
          *
-         * @param uuid The UUID of the resource to retrieve.
+         * @param uid The UID of the resource to retrieve.
          * @param resourceInfo Optional pointer to store additional resource information.
          *
          * @return A shared pointer to the requested resource.
          */
-        Shared<Resource> get(const core::UUID uuid, ResourceInfo* resourceInfo = nullptr);
+        Shared<Resource> get(const core::UID uid, ResourceInfo* resourceInfo = nullptr);
 
         /**
          * @brief Retrieves a resource by its alias and casts it to the specified type.

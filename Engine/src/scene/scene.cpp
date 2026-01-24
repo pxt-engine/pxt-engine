@@ -8,9 +8,9 @@
 
 namespace pxt {
     Scene::Scene() {
-        // put invalid ids into m_objPickingIdToUUID map
-        m_objPickingIdToUUID[core::ObjPickingId::s_invalidId] = core::UUID::s_invalidId;
-        m_uuidToObjPickingId[core::UUID::s_invalidId] = core::ObjPickingId::s_invalidId;
+        // put invalid ids into m_objPickingIdToUID map
+        m_objPickingIdToUID[core::ObjPickingId::s_invalidId] = core::UID::s_invalidId;
+        m_uidToObjPickingId[core::UID::s_invalidId] = core::ObjPickingId::s_invalidId;
     }
 
     std::string Scene::getUniqueEntityName(const std::string& baseName) {
@@ -36,7 +36,7 @@ namespace pxt {
         return candidate;
     }
 
-    Entity Scene::createEntity(const std::string& name, core::UUID id, core::ObjPickingId objPickingId) {
+    Entity Scene::createEntity(const std::string& name, core::UID id, core::ObjPickingId objPickingId) {
         Entity entity = {m_registry.create(), this};
 
         std::string newEntityName = name.empty() ? "Unnamed-Entity" : name;
@@ -48,47 +48,47 @@ namespace pxt {
         entity.add<ObjPickingIdComponent>(objPickingId);
         entity.add<NameComponent>(newEntityName);
 
-        m_entityMap[entity.getUUID()] = entity;
-        m_objPickingIdToUUID[objPickingId.getObjPickingId()] = entity.getUUID();
-        m_uuidToObjPickingId[entity.getUUID()] = objPickingId.getObjPickingId();
+        m_entityMap[entity.getUID()] = entity;
+        m_objPickingIdToUID[objPickingId.getObjPickingId()] = entity.getUID();
+        m_uidToObjPickingId[entity.getUID()] = objPickingId.getObjPickingId();
 
         return entity;
     }
 
-    Entity Scene::getEntity(core::UUID uuid) {
-        PXT_ASSERT(m_entityMap.contains(uuid), "Entity not found in Scene!");
+    Entity Scene::getEntity(core::UID uid) {
+        PXT_ASSERT(m_entityMap.contains(uid), "Entity not found in Scene!");
 
-        return {m_entityMap.at(uuid), this};
+        return {m_entityMap.at(uid), this};
     }
 
-    core::UUID Scene::getEntityUUIDFromObjPickingId(uint32_t objPickingId) {
-        PXT_ASSERT(m_objPickingIdToUUID.contains(objPickingId), "UUID not found in map!");
+    core::UID Scene::getEntityUIDFromObjPickingId(uint32_t objPickingId) {
+        PXT_ASSERT(m_objPickingIdToUID.contains(objPickingId), "UID not found in map!");
 
-        return m_objPickingIdToUUID.at(objPickingId);
+        return m_objPickingIdToUID.at(objPickingId);
     }
 
-    uint32_t Scene::getObjPickingIdFromEntityUUID(core::UUID uuid) {
-        PXT_ASSERT(m_uuidToObjPickingId.contains(uuid), "ObjPickingId not found in map!");
+    uint32_t Scene::getObjPickingIdFromEntityUID(core::UID uid) {
+        PXT_ASSERT(m_uidToObjPickingId.contains(uid), "ObjPickingId not found in map!");
 
-        return m_uuidToObjPickingId.at(uuid);
+        return m_uidToObjPickingId.at(uid);
     }
 
-    void Scene::destroyEntity(core::UUID uuid) {
-        PXT_ASSERT(m_entityMap.contains(uuid), "Trying to destroy non-existent entity!");
+    void Scene::destroyEntity(core::UID uid) {
+        PXT_ASSERT(m_entityMap.contains(uid), "Trying to destroy non-existent entity!");
 
         // Reset active camera if it's being deleted
-        if (uuid == m_activeCameraEntityID) {
-            m_activeCameraEntityID = core::UUID::s_invalidId;
+        if (uid == m_activeCameraEntityID) {
+            m_activeCameraEntityID = core::UID::s_invalidId;
         }
 
-        entt::entity handle = m_entityMap.at(uuid);
+        entt::entity handle = m_entityMap.at(uid);
         Entity entity = {handle, this};
 
         // Clean up maps
-        const uint32_t pickingId = getObjPickingIdFromEntityUUID(uuid);
-        m_objPickingIdToUUID.erase(pickingId);
-        m_uuidToObjPickingId.erase(uuid);
-        m_entityMap.erase(uuid);
+        const uint32_t pickingId = getObjPickingIdFromEntityUID(uid);
+        m_objPickingIdToUID.erase(pickingId);
+        m_uidToObjPickingId.erase(uid);
+        m_entityMap.erase(uid);
 
         // Final registry destruction
         m_registry.destroy(handle);
@@ -106,10 +106,10 @@ namespace pxt {
             ...);
     }
 
-    Entity Scene::duplicateEntity(core::UUID uuid) {
-        PXT_ASSERT(m_entityMap.contains(uuid), "Source entity not found!");
+    Entity Scene::duplicateEntity(core::UID uid) {
+        PXT_ASSERT(m_entityMap.contains(uid), "Source entity not found!");
 
-        Entity source = getEntity(uuid);
+        Entity source = getEntity(uid);
 
         std::string originalName = source.getName();
 
@@ -156,19 +156,19 @@ namespace pxt {
     }
 
     std::optional<Entity> Scene::getActiveCameraEntity() {
-        if (m_activeCameraEntityID == core::UUID::s_invalidId) {
+        if (m_activeCameraEntityID == core::UID::s_invalidId) {
             return std::nullopt;
         }
 
         Entity activeCameraEntity = getEntity(m_activeCameraEntityID);
 
-        //! this could happen because the scene saves the uuid of the entity
+        //! this could happen because the scene saves the uid of the entity
         //! so if the user sets a camera to be active but then removes its
         //! CameraComponent or TransformComponent, this method would return
         //! an entity which does not contain a CameraComponent anymore, leading to bugs.
         if (!activeCameraEntity.has<CameraComponent, TransformComponent>()) {
             // so here we set the active camera to invalid and return nullopt
-            setActiveCameraEntity(core::UUID::s_invalidId);
+            setActiveCameraEntity(core::UID::s_invalidId);
 
             return std::nullopt;
         }
@@ -176,12 +176,12 @@ namespace pxt {
         return activeCameraEntity;
     }
 
-    core::UUID Scene::getActiveCameraEntityUUID() { return m_activeCameraEntityID; }
+    core::UID Scene::getActiveCameraEntityUID() { return m_activeCameraEntityID; }
 
-    void Scene::setActiveCameraEntity(core::UUID newActiveCameraID) {
+    void Scene::setActiveCameraEntity(core::UID newActiveCameraID) {
         // if the entity exists and does not have a cameraComponent and a TransformComponent it cannot be the active
         // camera
-        if (newActiveCameraID != core::UUID::s_invalidId &&
+        if (newActiveCameraID != core::UID::s_invalidId &&
             !getEntity(newActiveCameraID).has<CameraComponent, TransformComponent>()) {
             PXT_WARN("Cannot select Entity \"{}\" as active camera because it does not contain a CameraComponent or "
                      "TransformComponent!",

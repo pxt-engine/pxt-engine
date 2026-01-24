@@ -15,7 +15,7 @@ namespace pxt {
 
     const std::vector<Shared<Resource>> ResourceManager::getResourcesByType(Resource::Type type) const {
         std::vector<Shared<Resource>> resourcesOfType;
-        for (const auto& [uuid, resource] : m_resources) {
+        for (const auto& [uid, resource] : m_resources) {
             if (resource->getType() == type) {
                 resourcesOfType.push_back(resource);
             }
@@ -23,13 +23,13 @@ namespace pxt {
         return resourcesOfType;
     }
 
-    Shared<Resource> ResourceManager::get(const core::UUID uuid, [[maybe_unused]] ResourceInfo* resourceInfo) {
-        const auto it = m_resources.find(uuid);
+    Shared<Resource> ResourceManager::get(const core::UID uid, [[maybe_unused]] ResourceInfo* resourceInfo) {
+        const auto it = m_resources.find(uid);
         if (it != m_resources.end()) {
             return it->second;
         }
 
-        PXT_ERROR("Resource {} not found! this should be impossible!", uuid.toString());
+        PXT_ERROR("Resource {} not found! this should be impossible!", uid.toString());
 
         // TODO: use std::optional
         return nullptr;
@@ -40,7 +40,7 @@ namespace pxt {
         auto aliasIt = m_aliases.find(alias);
 
         const ResourceId id = aliasIt != m_aliases.end() ? aliasIt->second    // Retrieve the ID from the alias map.
-                                                         : ResourceId(alias); // Try using the alias as a UUID string.
+                                                         : ResourceId(alias); // Try using the alias as a UID string.
 
         const auto it = m_resources.find(id);
         if (it != m_resources.end()) {

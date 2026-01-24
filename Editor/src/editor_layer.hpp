@@ -66,8 +66,8 @@ namespace pxt::editor {
         MainMenuBar m_mainMenuBar{};
         AssetBrowser m_assetBrowser{};
 
-        core::UUID m_selectedEntityUUID = core::UUID::s_invalidId;
-        core::UUID m_prevSelectedEntityUUID = core::UUID::s_invalidId;
+        core::UID m_selectedEntityUID = core::UID::s_invalidId;
+        core::UID m_prevSelectedEntityUID = core::UID::s_invalidId;
 
         ImVec2 m_sceneImageExtent{0.f, 0.f};
         ImVec2 m_viewportUpperLeftScreenCoord{0.f, 0.f};

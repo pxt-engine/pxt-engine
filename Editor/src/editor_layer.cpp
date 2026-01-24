@@ -89,7 +89,7 @@ namespace pxt::editor {
         core::EventDispatcher dispatcher(event);
 
         dispatcher.dispatch<core::SelectedEntityChangedEvent>([this](core::SelectedEntityChangedEvent& e) {
-            m_selectedEntityUUID = e.getSelectedEntityUUID();
+            m_selectedEntityUID = e.getSelectedEntityUID();
             return false;
         });
 
@@ -208,16 +208,16 @@ namespace pxt::editor {
         ResourceManager& rm = Application::get().getResourceManager();
 
         // first update scene hierarchy ui (an entity might be selected)
-        m_sceneHierarchy.onUpdateUi(frameInfo, m_selectedEntityUUID);
+        m_sceneHierarchy.onUpdateUi(frameInfo, m_selectedEntityUID);
 
         // only fire event if selection changed
-        if (m_prevSelectedEntityUUID != m_selectedEntityUUID) {
-            Application::get().queueEvent(core::SelectedEntityChangedEvent(m_selectedEntityUUID));
-            m_prevSelectedEntityUUID = m_selectedEntityUUID;
+        if (m_prevSelectedEntityUID != m_selectedEntityUID) {
+            Application::get().queueEvent(core::SelectedEntityChangedEvent(m_selectedEntityUID));
+            m_prevSelectedEntityUID = m_selectedEntityUID;
         }
 
         // then update entity inspector ui
-        m_entityInspector.onUpdateUi(frameInfo, m_selectedEntityUUID);
+        m_entityInspector.onUpdateUi(frameInfo, m_selectedEntityUID);
 
         // main menu bar
         m_mainMenuBar.onUpdateUi(frameInfo);
@@ -266,9 +266,9 @@ namespace pxt::editor {
         // or selected entity does not contain Transform Components: DO NOT show gizmos.
         // We currently use ImGuizmo::BOUNDS as "selection tool" placeholder
         bool canRenderGizmo =
-            m_selectedEntityUUID != core::UUID::s_invalidId && m_currentGizmoOperation != ImGuizmo::BOUNDS &&
+            m_selectedEntityUID != core::UID::s_invalidId && m_currentGizmoOperation != ImGuizmo::BOUNDS &&
             m_engineMode == core::EngineMode::EDIT &&
-            frameInfo.scene.getEntity(m_selectedEntityUUID).hasAny<Transform2dComponent, TransformComponent>();
+            frameInfo.scene.getEntity(m_selectedEntityUID).hasAny<Transform2dComponent, TransformComponent>();
 
         if (canRenderGizmo) {
             // this has to be called inside the window where ImGuizmo is used
@@ -295,7 +295,7 @@ namespace pxt::editor {
         // if flipped, an axis is decorated with black dots
         ImGuizmo::AllowAxisFlip(false);
 
-        Entity selectedEntity = frameInfo.scene.getEntity(m_selectedEntityUUID);
+        Entity selectedEntity = frameInfo.scene.getEntity(m_selectedEntityUID);
         TransformComponent& transform = selectedEntity.get<TransformComponent>();
 
         // copy - we need to modify them to adhere opengl standards (rh, y up)
@@ -414,7 +414,7 @@ namespace pxt::editor {
             ImTextureID cameraIcon = (ImTextureID)m_editorTextureRegistry->get("camera_tag_icon.png");
             if (ui::DismissableBadge::renderWithIcon(activeCameraName.c_str(), &open, cameraIcon,
                                                      ImVec2(buttonSize.x * 2.5f, 30.f))) {
-                scene.setActiveCameraEntity(core::UUID::s_invalidId);
+                scene.setActiveCameraEntity(core::UID::s_invalidId);
             }
         }
 

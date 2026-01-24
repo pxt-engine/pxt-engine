@@ -3,25 +3,25 @@
 #include "core/constants.hpp"
 #include "core/obj_picking_id.hpp"
 #include "core/pch.hpp"
-#include "core/uuid.hpp"
+#include "core/uid.hpp"
 #include "resources/types/material.hpp"
 #include "resources/types/mesh.hpp"
 #include "scene/camera_data.hpp"
 
 namespace pxt {
     struct IDComponent {
-        core::UUID uuid;
+        core::UID uid;
 
-        IDComponent() : uuid(core::UUID()) {}
+        IDComponent() : uid(core::UID()) {}
 
-        IDComponent(core::UUID uuid) : uuid(uuid) {}
+        IDComponent(core::UID uid) : uid(uid) {}
 
         IDComponent(const IDComponent&) = default;
 
         // Conversion operators
-        operator core::UUID&() { return uuid; }
+        operator core::UID&() { return uid; }
 
-        operator const core::UUID&() const { return uuid; }
+        operator const core::UID&() const { return uid; }
     };
 
     struct ObjPickingIdComponent {

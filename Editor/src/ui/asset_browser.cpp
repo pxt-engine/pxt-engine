@@ -9,15 +9,15 @@ namespace pxt::editor {
         simpleFilter.Draw("Search");
 
         // iterate through data provided by resource manager
-        for (auto& [uuid, resource] : rm.getAllResources()) {
+        for (auto& [uid, resource] : rm.getAllResources()) {
             if (simpleFilter.PassFilter(resource->alias.c_str())) {
-                if (ImGui::Selectable(resource->alias.c_str(), m_selectedResource == uuid)) {
-                    m_selectedResource = uuid;
+                if (ImGui::Selectable(resource->alias.c_str(), m_selectedResource == uid)) {
+                    m_selectedResource = uid;
                 }
 
                 // check if the item is being dragged
                 DragAndDrop::EnginePayload payload = {
-                    uuid, 
+                    uid, 
                     DragAndDrop::PayloadSource::AssetBrowser,
                     resource->getType()
                 };

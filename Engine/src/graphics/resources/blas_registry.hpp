@@ -29,6 +29,6 @@ namespace pxt {
         Shared<BLAS> createBLAS(VulkanMesh& mesh);
 
         Context& m_context;
-        std::unordered_map<core::UUID, Shared<BLAS>> m_blasRegistry;
+        std::unordered_map<core::UID, Shared<BLAS>> m_blasRegistry;
     };
 } // namespace pxt

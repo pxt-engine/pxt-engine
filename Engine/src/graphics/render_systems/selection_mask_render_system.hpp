@@ -21,7 +21,7 @@ namespace pxt {
         SelectionMaskRenderSystem(const SelectionMaskRenderSystem&) = delete;
         SelectionMaskRenderSystem& operator=(const SelectionMaskRenderSystem&) = delete;
 
-        void render(FrameInfo& frameInfo, Renderer& renderer, core::UUID selectedEntityUUID);
+        void render(FrameInfo& frameInfo, Renderer& renderer, core::UID selectedEntityUID);
 
         void updateImage(VkExtent2D newExtent);
         void reloadShaders();

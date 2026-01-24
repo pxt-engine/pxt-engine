@@ -8,10 +8,10 @@ namespace pxt::editor {
 
     EntityInspector::~EntityInspector() {}
 
-    void EntityInspector::drawEntityInspector(Scene& scene, const core::UUID& selectedEntityId) {
+    void EntityInspector::drawEntityInspector(Scene& scene, const core::UID& selectedEntityId) {
         ImGui::Begin("Entity Inspector");
 
-        if (selectedEntityId == core::UUID::s_invalidId) {
+        if (selectedEntityId == core::UID::s_invalidId) {
             ImGui::Text("No entity selected");
             ImGui::End();
 
@@ -90,7 +90,7 @@ namespace pxt::editor {
         ImGui::End();
     }
 
-    void EntityInspector::onUpdateUi(FrameInfo& frameInfo, const core::UUID& selectedEntityId) {
+    void EntityInspector::onUpdateUi(FrameInfo& frameInfo, const core::UID& selectedEntityId) {
         drawEntityInspector(frameInfo.scene, selectedEntityId);
     }
 
@@ -155,7 +155,7 @@ namespace pxt::editor {
     void EntityInspector::registerComponents() {
         // IDComponent
         RegisterComponent<IDComponent>(
-            "IDComponent", [](auto& c, Entity entity) { ImGui::Text("UUID: %s", c.uuid.toString().c_str()); });
+            "IDComponent", [](auto& c, Entity entity) { ImGui::Text("UID: %s", c.uid.toString().c_str()); });
 
         // NameComponent
         RegisterComponent<NameComponent>("NameComponent", [](auto& c, Entity entity) {
@@ -251,19 +251,19 @@ namespace pxt::editor {
         // CameraComponent
         RegisterComponent<CameraComponent>("CameraComponent", [](CameraComponent& c, Entity entity) {
             auto sceneOpt = entity.tryGetScene();
-            core::UUID entUUID = entity.getUUID();
+            core::UID entUID = entity.getUID();
 
             if (!sceneOpt.has_value()) [[unlikely]] {
-                PXT_WARN("Entity ({}) has no scene!", entUUID.toString());
+                PXT_WARN("Entity ({}) has no scene!", entUID.toString());
             }
             Scene& scene = sceneOpt->get();
-            bool isActiveCamera = scene.getActiveCameraEntityUUID() == entUUID;
+            bool isActiveCamera = scene.getActiveCameraEntityUID() == entUID;
 
             if (ImGui::Checkbox("Active", &isActiveCamera)) {
                 if (isActiveCamera) {
-                    scene.setActiveCameraEntity(entUUID);
+                    scene.setActiveCameraEntity(entUID);
                 } else {
-                    scene.setActiveCameraEntity(core::UUID::s_invalidId);
+                    scene.setActiveCameraEntity(core::UID::s_invalidId);
                 }
             }
 

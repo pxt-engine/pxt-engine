@@ -158,19 +158,19 @@ namespace pxt {
         m_pipeline = createUnique<Pipeline>(m_context, shaderFilePaths, pipelineConfig);
     }
 
-    void SelectionMaskRenderSystem::render(FrameInfo& frameInfo, Renderer& renderer, core::UUID selectedEntityUUID) {
+    void SelectionMaskRenderSystem::render(FrameInfo& frameInfo, Renderer& renderer, core::UID selectedEntityUID) {
         // black is the "no object" color
         VkClearColorValue blackClearColor = {0.f, 0.f, 0.f, 1.f};
         renderer.beginRenderPass(frameInfo.commandBuffer, *m_offscreenRenderPass, *m_offscreenFb, m_sceneExtent,
                                  blackClearColor);
 
-        if (selectedEntityUUID == core::UUID::s_invalidId) {
+        if (selectedEntityUID == core::UID::s_invalidId) {
             // no entity selected, leave black and do nothing
             renderer.endRenderPass(frameInfo.commandBuffer, *m_offscreenRenderPass, *m_offscreenFb);
             return;
         }
 
-        Entity selectedEntity = frameInfo.scene.getEntity(selectedEntityUUID);
+        Entity selectedEntity = frameInfo.scene.getEntity(selectedEntityUID);
         if (!selectedEntity.has<TransformComponent>() || !selectedEntity.has<MeshComponent>()) {
             // entity does not have required components, leave black and do nothing
             renderer.endRenderPass(frameInfo.commandBuffer, *m_offscreenRenderPass, *m_offscreenFb);

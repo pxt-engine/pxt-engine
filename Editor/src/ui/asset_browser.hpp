@@ -9,6 +9,6 @@ namespace pxt::editor {
 
     private:
         std::string m_searchFilter = "";
-        core::UUID m_selectedResource = core::UUID::s_invalidId;
+        core::UID m_selectedResource = core::UID::s_invalidId;
     };
 }

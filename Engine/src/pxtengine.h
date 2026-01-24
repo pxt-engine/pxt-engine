@@ -13,6 +13,7 @@
 #include "core/layer/layer.hpp"
 #include "core/memory.hpp"
 #include "core/uuid.hpp"
+#include "core/uid.hpp"
 
 #include "resources/resource.hpp"
 #include "resources/types/image.hpp"

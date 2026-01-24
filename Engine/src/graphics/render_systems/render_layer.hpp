@@ -122,6 +122,6 @@ namespace pxt {
         bool m_isObjectPickingRequested = false;
         u32vec2 m_objectPickPixelCoords{0, 0};
 
-        core::UUID m_selectedEntityUUID{core::UUID::s_invalidId};
+        core::UID m_selectedEntityUID{core::UID::s_invalidId};
     };
 } // namespace pxt

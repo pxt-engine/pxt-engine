@@ -3,7 +3,7 @@
 #include "core/events/event.hpp"
 #include "core/obj_picking_id.hpp"
 #include "core/pch.hpp"
-#include "core/uuid.hpp"
+#include "core/uid.hpp"
 
 #include "scene/environment.hpp"
 
@@ -30,45 +30,45 @@ namespace pxt {
         /**
          * @brief Creates a new entity in the scene.
          * @param name Optional name for the entity.
-         * @param id Optional UUID for the entity. If not provided, a new UUID is generated.
+         * @param id Optional UID for the entity. If not provided, a new UID is generated.
          * @return The created entity.
          */
-        Entity createEntity(const std::string& name = std::string(), core::UUID id = core::UUID(),
+        Entity createEntity(const std::string& name = std::string(), core::UID id = core::UID(),
                             core::ObjPickingId objPickingId = core::ObjPickingId());
 
         /**
-         * @brief Retrieves an entity by its UUID.
-         * @param UUID The UUID of the entity.
+         * @brief Retrieves an entity by its UID.
+         * @param UID The UID of the entity.
          * @return The corresponding entity.
          */
-        Entity getEntity(core::UUID uuid);
+        Entity getEntity(core::UID uid);
 
         /**
-         * @brief Retrieves the UUID of an entity based on its object picking ID.
+         * @brief Retrieves the UID of an entity based on its object picking ID.
          * @param objPickingId The object picking ID.
-         * @return The UUID of the corresponding entity.
+         * @return The UID of the corresponding entity.
          */
-        core::UUID getEntityUUIDFromObjPickingId(uint32_t objPickingId);
+        core::UID getEntityUIDFromObjPickingId(uint32_t objPickingId);
 
         /**
-         * @brief Retrieves the object picking ID of an entity based on its UUID.
-         * @param uuid The UUID of the entity.
+         * @brief Retrieves the object picking ID of an entity based on its UID.
+         * @param uid The UID of the entity.
          * @return The object picking ID of the corresponding entity.
          */
-        uint32_t getObjPickingIdFromEntityUUID(core::UUID uuid);
+        uint32_t getObjPickingIdFromEntityUID(core::UID uid);
 
         /**
          * @brief Destroys an entity and removes it from the scene.
-         * @param uuid The uuid of the entity to be destroyed.
+         * @param uid The uid of the entity to be destroyed.
          */
-        void destroyEntity(core::UUID uuid);
+        void destroyEntity(core::UID uid);
 
         /**
          * @brief Copy an entity and adds the copy to the scene.
-         * @param uuid The uuid of the entity to copy.
+         * @param uid The uid of the entity to copy.
          * @return The copied entity.
          */
-        Entity duplicateEntity(core::UUID uuid);
+        Entity duplicateEntity(core::UID uid);
 
         /**
          * @brief Called when the scene starts.
@@ -101,9 +101,9 @@ namespace pxt {
          */
         std::optional<Entity> getActiveCameraEntity();
 
-        core::UUID getActiveCameraEntityUUID();
+        core::UID getActiveCameraEntityUID();
 
-        void setActiveCameraEntity(core::UUID newActiveCameraID);
+        void setActiveCameraEntity(core::UID newActiveCameraID);
 
         void updateCamerasAspectRatio(float newAspect);
 
@@ -119,15 +119,15 @@ namespace pxt {
         std::string getUniqueEntityName(const std::string& baseName);
 
         std::string m_name = "Unnamed-Scene";
-        std::unordered_map<core::UUID, entt::entity> m_entityMap;
-        std::unordered_map<uint32_t, core::UUID> m_objPickingIdToUUID;
-        std::unordered_map<core::UUID, uint32_t> m_uuidToObjPickingId;
+        std::unordered_map<core::UID, entt::entity> m_entityMap;
+        std::unordered_map<uint32_t, core::UID> m_objPickingIdToUID;
+        std::unordered_map<core::UID, uint32_t> m_uidToObjPickingId;
 
         // The entity registry for managing components.
         entt::registry m_registry;
 
         Shared<Environment> m_environment = createShared<Environment>();
-        core::UUID m_activeCameraEntityID = core::UUID::s_invalidId;
+        core::UID m_activeCameraEntityID = core::UID::s_invalidId;
 
         friend class Entity;
     };

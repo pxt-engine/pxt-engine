@@ -1,11 +1,11 @@
 #pragma once
 
 #include "core/pch.hpp"
-#include "core/uuid.hpp"
+#include "core/uid.hpp"
 
 namespace pxt {
 
-    using ResourceId = core::UUID;
+    using ResourceId = core::UID;
 
     /**
      * @struct ResourceInfo
@@ -53,7 +53,7 @@ namespace pxt {
 
         virtual Type getType() const = 0;
 
-        // The default constructor is called and the ID is set to a new UUID.
+        // The default constructor is called and the ID is set to a new UID.
         ResourceId id;
         std::string alias = "";
     };

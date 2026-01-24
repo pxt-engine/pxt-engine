@@ -1,7 +1,7 @@
 #pragma once
 
 #include "core/filesystem.hpp"
-#include "core/uuid.hpp"
+#include "core/uid.hpp"
 #include "resources/resource.hpp"
 
 namespace pxt::editor {
@@ -12,7 +12,7 @@ namespace pxt::editor {
         enum class PayloadSource { AssetBrowser };
 
         struct EnginePayload {
-            core::UUID id;        // The UUID
+            core::UID id;        // The UID
             PayloadSource source; // Where it started
             Resource::Type type;  // What it is
         };

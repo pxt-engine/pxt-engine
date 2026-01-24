@@ -36,7 +36,7 @@ public:
 
         camera.addAndGet<ScriptComponent>().bind<CameraController>();
 
-        getScene().setActiveCameraEntity(camera.getUUID());
+        getScene().setActiveCameraEntity(camera.getUID());
     }
 
     Entity createPointLightEntity(const float intensity = 1.0f, const float radius = 0.1f,

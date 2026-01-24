@@ -90,11 +90,11 @@ namespace pxt {
         }
 
         /**
-         * @brief Get the UUID of the entity
+         * @brief Get the UID of the entity
          *
-         * @return UUID of the entity
+         * @return UID of the entity
          */
-        core::UUID getUUID() { return get<IDComponent>().uuid; }
+        core::UID getUID() { return get<IDComponent>().uid; }
 
         /**
          * @brief Get the name of the entity

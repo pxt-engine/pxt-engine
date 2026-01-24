@@ -2,11 +2,11 @@
 #include "core/events/editor_events.hpp"
 
 namespace pxt::editor {
-    void SceneHierarchy::onUpdateUi(FrameInfo& frameInfo, core::UUID& selectedEntityId) {
+    void SceneHierarchy::onUpdateUi(FrameInfo& frameInfo, core::UID& selectedEntityId) {
         drawSceneEntityList(frameInfo.scene, selectedEntityId);
     }
 
-    void SceneHierarchy::drawSceneEntityList(Scene& scene, core::UUID& selectedEntityId) {
+    void SceneHierarchy::drawSceneEntityList(Scene& scene, core::UID& selectedEntityId) {
         ImGui::Begin("Scene Entities");
 
         if (ImGui::Button("Add Entity")) {
@@ -19,29 +19,29 @@ namespace pxt::editor {
 
         // Track if an entity needs to be deleted or duplicated outside the loop
         // to avoid iterator invalidation issues while iterating the view
-        core::UUID entityToRemove = core::UUID::s_invalidId;
-        core::UUID entityToDuplicate = core::UUID::s_invalidId;
+        core::UID entityToRemove = core::UID::s_invalidId;
+        core::UID entityToDuplicate = core::UID::s_invalidId;
 
         for (auto entityHandle : view) {
             const auto& [idComponent, nameComponent] = view.get<IDComponent, NameComponent>(entityHandle);
-            bool selected = (selectedEntityId == idComponent.uuid);
+            bool selected = (selectedEntityId == idComponent.uid);
 
             if (ImGui::Selectable(nameComponent.name.c_str(), selected)) {
-                selectedEntityId = idComponent.uuid;
+                selectedEntityId = idComponent.uid;
             }
 
             // Popup menu on right click
             if (ImGui::BeginPopupContextItem()) {
-                selectedEntityId = idComponent.uuid;
+                selectedEntityId = idComponent.uid;
 
                 if (ImGui::MenuItem("Copy Entity")) {
-                    entityToDuplicate = idComponent.uuid;
+                    entityToDuplicate = idComponent.uid;
                 }
 
                 ImGui::Separator();
 
                 if (ImGui::MenuItem("Remove Entity")) {
-                    entityToRemove = idComponent.uuid;
+                    entityToRemove = idComponent.uid;
                 }
 
                 ImGui::EndPopup();
@@ -49,20 +49,20 @@ namespace pxt::editor {
         }
 
         // Execute Actions
-        if (entityToRemove != core::UUID::s_invalidId) {
+        if (entityToRemove != core::UID::s_invalidId) {
             scene.destroyEntity(entityToRemove);
             if (selectedEntityId == entityToRemove)
-                selectedEntityId = core::UUID::s_invalidId;
+                selectedEntityId = core::UID::s_invalidId;
         }
 
-        if (entityToDuplicate != core::UUID::s_invalidId) {
+        if (entityToDuplicate != core::UID::s_invalidId) {
             scene.duplicateEntity(entityToDuplicate);
         }
 
         // deselect if background clicked
         if (ImGui::IsWindowHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
             if (!ImGui::IsAnyItemHovered()) {
-                selectedEntityId = core::UUID::s_invalidId;
+                selectedEntityId = core::UID::s_invalidId;
             }
         }
 

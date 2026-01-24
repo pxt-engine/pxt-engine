@@ -160,7 +160,7 @@ namespace pxt {
         // Entity Map
         out << YAML::BeginMap;
 
-        out << YAML::Key << "entity" << YAML::Value << entity.getUUID().toString();
+        out << YAML::Key << "entity" << YAML::Value << entity.getUID().toString();
 
         // Serialize Components
         for (auto& [name, fn] : s_ComponentSerializers)
@@ -184,7 +184,7 @@ namespace pxt {
         out << YAML::Key << "scene" << YAML::Value << m_scene->getName();
 
         // main camera
-        out << YAML::Key << "activeCameraEntity" << YAML::Value << m_scene->getActiveCameraEntityUUID().toString();
+        out << YAML::Key << "activeCameraEntity" << YAML::Value << m_scene->getActiveCameraEntityUID().toString();
 
         serializeEnvironment(m_scene, out);
 
@@ -235,7 +235,7 @@ namespace pxt {
         }
 
         std::string sceneName = data["scene"].as<std::string>();
-        core::UUID activeCameraUUID = core::UUID(data["activeCameraEntity"].as<std::string>());
+        core::UID activeCameraUID = core::UID(data["activeCameraEntity"].as<std::string>());
 
         auto entities = data["entities"];
 
@@ -263,7 +263,7 @@ namespace pxt {
         // ----------------
 
         for (auto entityNode : entities) {
-            std::string uuidString = entityNode["entity"].as<std::string>();
+            std::string uidString = entityNode["entity"].as<std::string>();
 
             // Deserialize NameComponent
             std::string name = "Unnamed-Entity";
@@ -271,11 +271,11 @@ namespace pxt {
                 name = nameComponentNode.as<std::string>();
             }
 
-            core::UUID uuid = core::UUID(uuidString);
-            Entity entity = m_scene->createEntity(name, uuid);
+            core::UID uid = core::UID(uidString);
+            Entity entity = m_scene->createEntity(name, uid);
 
             // check if its main camera
-            bool isActiveCamera = uuid == activeCameraUUID;
+            bool isActiveCamera = uid == activeCameraUID;
 
             // Deserialize TransformComponent
             if (auto transformComponentNode = entityNode["TransformComponent"]) {
@@ -411,7 +411,7 @@ namespace pxt {
                 cameraComp.aspectRatio = useViewportAspectRatio ? 1.f : cameraComponentNode["aspectRatio"].as<float>();
 
                 if (isActiveCamera) {
-                    m_scene->setActiveCameraEntity(uuid);
+                    m_scene->setActiveCameraEntity(uid);
                 }
             }
 

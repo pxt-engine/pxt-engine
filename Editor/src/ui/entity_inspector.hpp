@@ -26,8 +26,8 @@ namespace pxt::editor {
 
         void registerComponents();
 
-        void drawEntityInspector(Scene& scene, const core::UUID& selectedEntityId);
-        void onUpdateUi(FrameInfo& frameInfo, const core::UUID& selectedEntityId);
+        void drawEntityInspector(Scene& scene, const core::UID& selectedEntityId);
+        void onUpdateUi(FrameInfo& frameInfo, const core::UID& selectedEntityId);
 
     private:
         std::vector<ComponentUiInfo> m_componentUiRegistry;

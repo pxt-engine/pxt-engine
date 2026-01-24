@@ -412,7 +412,7 @@ namespace pxt {
         }
 
         // object picking
-        if (m_isObjectPickingRequested || m_selectedEntityUUID != core::UUID::s_invalidId) {
+        if (m_isObjectPickingRequested || m_selectedEntityUID != core::UID::s_invalidId) {
             // here we render the scene to an offscreen buffer with object IDs as colors
             // and save the pixel color at the mouse coords inside a buffer.
             // we will read the buffer in the post frame update and reset the bool.
@@ -479,16 +479,16 @@ namespace pxt {
 
         // if we are in EDIT mode, use the true selected entity
         // else, make it think nothing is selected, to avoid selection edges
-        core::UUID currentlySelectedUUID =
-            currentEngineMode == core::EngineMode::EDIT ? m_selectedEntityUUID : core::UUID::s_invalidId;
+        core::UID currentlySelectedUID =
+            currentEngineMode == core::EngineMode::EDIT ? m_selectedEntityUID : core::UID::s_invalidId;
 
         // render selection mask
-        m_selectionMaskRenderSystem->render(frameInfo, m_renderer, currentlySelectedUUID);
+        m_selectionMaskRenderSystem->render(frameInfo, m_renderer, currentlySelectedUID);
 
         // composition pass (compute shader)
         m_compositionRenderSystem->render(frameInfo, *m_sceneImage, m_selectionMaskRenderSystem->getMaskColorImage(),
                                           m_objectPickingSystem->getObjectIdImage(), *m_finalImage,
-                                          frameInfo.scene.getObjPickingIdFromEntityUUID(currentlySelectedUUID));
+                                          frameInfo.scene.getObjPickingIdFromEntityUID(currentlySelectedUID));
     }
 
     void RenderLayer::onPostFrameUpdate(FrameInfo& frameInfo) {
@@ -496,13 +496,13 @@ namespace pxt {
 
         if (m_isObjectPickingRequested) {
             uint32_t objPickingId = m_objectPickingSystem->postFrameUpdate(frameInfo.frameFence);
-            core::UUID newSelectedEntityUUID = frameInfo.scene.getEntityUUIDFromObjPickingId(objPickingId);
+            core::UID newSelectedEntityUID = frameInfo.scene.getEntityUIDFromObjPickingId(objPickingId);
 
-            if (newSelectedEntityUUID != m_selectedEntityUUID) {
+            if (newSelectedEntityUID != m_selectedEntityUID) {
                 // notify about the new selection
-                m_selectedEntityUUID = newSelectedEntityUUID;
+                m_selectedEntityUID = newSelectedEntityUID;
 
-                Application::get().queueEvent(core::SelectedEntityChangedEvent(m_selectedEntityUUID));
+                Application::get().queueEvent(core::SelectedEntityChangedEvent(m_selectedEntityUID));
             }
 
             m_isObjectPickingRequested = false;
@@ -538,7 +538,7 @@ namespace pxt {
         });
 
         dispatcher.dispatch<core::SelectedEntityChangedEvent>([this](core::SelectedEntityChangedEvent& e) {
-            m_selectedEntityUUID = e.getSelectedEntityUUID();
+            m_selectedEntityUID = e.getSelectedEntityUID();
             return false;
         });
     }

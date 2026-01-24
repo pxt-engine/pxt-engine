@@ -1,7 +1,7 @@
 scene: sugo_funzionante
-activeCameraEntity: 00000000-0000-0000-0000-000000000000
+activeCameraEntity: 00000000-00000000
 entities:
-  - entity: 01991672-86ee-7847-81c4-18e79852cc57
+  - entity: 6976F218-A1B2C3D4
     NameComponent: point_light
     TransformComponent:
       translation: [0.49408957, 0, -0.07665177]
@@ -10,9 +10,10 @@ entities:
     PointLightComponent:
       lightIntensity: 0.5
       lightColor: [1.0, 1.0, 1.0]
-  - entity: 019977fa-e5b3-7da1-818c-0992532334c5
+
+  - entity: 6976F21A-33F109BB
     MeshComponent:
-      meshId: 019bba16-a089-7995-83c1-818ff4ba9523
+      meshId: 6976F222-7A8B9C0D
       mesh: ../assets/models/dragon.obj
     NameComponent: dragon
     TransformComponent:
@@ -24,7 +25,7 @@ entities:
       scattering: [5.882353, 1.9607843, 3.137255, 1]
       phaseFunctionG: 0.85
     MaterialComponent:
-      materialId: 019bba16-a126-72ea-82c6-a45ef5885ba4
+      materialId: 6976F21B-8812FE34
       material: mat-dragon
       albedoColor: [1, 1, 1, 1]
       albedoMap: ../assets/textures/jade/albedo.jpg
@@ -42,9 +43,10 @@ entities:
       blinnPhongSpecularShininess: 1
       tilingFactor: 5.513
       tint: [0, 0.66, 0.42]
-  - entity: 019977fa-e5b2-7792-81ac-659441aa1781
+
+  - entity: 6976F223-E5B27792
     MeshComponent:
-      meshId: 019bba16-9a2b-70d2-8215-e7954d91f9ed
+      meshId: 6976F224-9A2B70D2
       mesh: ../assets/models/cube_hd.obj
     NameComponent: glass cube
     TransformComponent:
@@ -52,7 +54,7 @@ entities:
       scale: [0.2, 0.2, 0.2]
       rotation: [0, -0.7853982, 0]
     MaterialComponent:
-      materialId: 019bba16-9a2e-766e-8106-971fa8ec6fa6
+      materialId: 6976F225-9A2E766E
       material: mat-glass cube
       albedoColor: [1, 1, 1, 1]
       albedoMap: pixel_0xFFFFFFFF_RGBA8_SRGB
@@ -70,9 +72,10 @@ entities:
       blinnPhongSpecularShininess: 1
       tilingFactor: 1
       tint: [0.9754902, 0.26778162, 0.8089707]
-  - entity: 019977fa-e0d3-7a80-814f-1c636f09d257
+
+  - entity: 6976F226-E0D37A80
     MeshComponent:
-      meshId: 019bba16-9a19-7daf-8149-bebcd79d5b27
+      meshId: 6976F227-9A197DAF
       mesh: ../assets/models/sphere.obj
     NameComponent: Glass sphere
     TransformComponent:
@@ -80,7 +83,7 @@ entities:
       scale: [0.15, 0.15, 0.15]
       rotation: [0, 0, 0]
     MaterialComponent:
-      materialId: 019bba16-9a1f-75ca-81d7-5e87c30f5c91
+      materialId: 6976F228-9A1F75CA
       material: mat-Glass sphere
       albedoColor: [1, 1, 1, 1]
       albedoMap: pixel_0xFFFFFFFF_RGBA8_SRGB
@@ -98,9 +101,10 @@ entities:
       blinnPhongSpecularShininess: 1
       tilingFactor: 1
       tint: [1, 1, 1]
-  - entity: 019977fa-e0d3-75f9-82b6-06f048360ac6
+
+  - entity: 6976F229-E0D375F9
     MeshComponent:
-      meshId: 019bba16-994a-71b9-8156-19fc51f88a0a
+      meshId: 6976F22A-994A71B9 # Quad Mesh ID
       mesh: ../assets/models/quad.obj
     NameComponent: Roof Light
     TransformComponent:
@@ -108,7 +112,7 @@ entities:
       scale: [0.45, 0.45, 0.45]
       rotation: [0, 0, 0]
     MaterialComponent:
-      materialId: 019bba16-9960-7d90-82ec-18c5de3ff2f1
+      materialId: 6976F22B-99607D90
       material: mat-Roof Light
       albedoColor: [1, 1, 1, 1]
       albedoMap: pixel_0xFFFFFFFF_RGBA8_SRGB
@@ -126,9 +130,10 @@ entities:
       blinnPhongSpecularShininess: 1
       tilingFactor: 1
       tint: [1, 1, 1]
-  - entity: 019977fa-dff0-73ff-80bb-6bd014c9974e
+
+  - entity: 6976F22C-DFF073FF
     MeshComponent:
-      meshId: 019bba16-994a-71b9-8156-19fc51f88a0a
+      meshId: 6976F22A-994A71B9 # Shared Quad Mesh
       mesh: ../assets/models/quad.obj
     NameComponent: Roof
     TransformComponent:
@@ -136,7 +141,7 @@ entities:
       scale: [1, 0.9999727, 0.9999727]
       rotation: [0, -0, 0]
     MaterialComponent:
-      materialId: 019bba16-995a-77b7-83c5-4d9fddd6ce05
+      materialId: 6976F22D-995A77B7
       material: mat-Roof
       albedoColor: [1, 1, 1, 1]
       albedoMap: pixel_0xFFFFFFFF_RGBA8_SRGB
@@ -154,9 +159,10 @@ entities:
       blinnPhongSpecularShininess: 1
       tilingFactor: 1
       tint: [1, 1, 1]
-  - entity: 019977fa-dff0-7bd7-827c-269092af0af7
+
+  - entity: 6976F22E-DFF07BD7
     MeshComponent:
-      meshId: 019bba16-994a-71b9-8156-19fc51f88a0a
+      meshId: 6976F22A-994A71B9 # Shared Quad Mesh
       mesh: ../assets/models/quad.obj
     NameComponent: Front Wall
     TransformComponent:
@@ -164,7 +170,7 @@ entities:
       scale: [1, 1, 1]
       rotation: [-1.5707964, 0, 0]
     MaterialComponent:
-      materialId: 019bba16-9957-74f3-8251-99f3317d4308
+      materialId: 6976F22F-995774F3
       material: mat-Front Wall
       albedoColor: [1, 1, 1, 1]
       albedoMap: pixel_0xFFFFFFFF_RGBA8_SRGB
@@ -182,9 +188,10 @@ entities:
       blinnPhongSpecularShininess: 1
       tilingFactor: 1
       tint: [1, 1, 1]
-  - entity: 019977fa-dff0-7754-8294-2d51b375363c
+
+  - entity: 6976F230-DFF07754
     MeshComponent:
-      meshId: 019bba16-994a-71b9-8156-19fc51f88a0a
+      meshId: 6976F22A-994A71B9 # Shared Quad Mesh
       mesh: ../assets/models/quad.obj
     NameComponent: Right Wall
     TransformComponent:
@@ -192,7 +199,7 @@ entities:
       scale: [1.0000098, 1.0000042, 0.9999937]
       rotation: [3.1415927, -2.906774e-06, 1.5707885]
     MaterialComponent:
-      materialId: 019bba16-9954-7bb8-829f-5fe99c5d592b
+      materialId: 6976F231-99547BB8
       material: mat-Right Wall
       albedoColor: [1, 1, 1, 1]
       albedoMap: pixel_0xFFFFFFFF_RGBA8_SRGB
@@ -210,9 +217,10 @@ entities:
       blinnPhongSpecularShininess: 1
       tilingFactor: 1
       tint: [0, 1, 0]
-  - entity: 019977fa-dff0-7401-80a3-cd0521a34d59
+
+  - entity: 6976F232-DFF07401
     MeshComponent:
-      meshId: 019bba16-994a-71b9-8156-19fc51f88a0a
+      meshId: 6976F22A-994A71B9 # Shared Quad Mesh
       mesh: ../assets/models/quad.obj
     NameComponent: Left Wall
     TransformComponent:
@@ -220,7 +228,7 @@ entities:
       scale: [1.0000284, 1.0000263, 1.0000333]
       rotation: [3.1415927, 2.4144533e-06, -1.5707942]
     MaterialComponent:
-      materialId: 019bba16-9951-78c7-816a-a7702d804fb1
+      materialId: 6976F233-995178C7
       material: mat-Left Wall
       albedoColor: [1, 1, 1, 1]
       albedoMap: pixel_0xFFFFFFFF_RGBA8_SRGB
@@ -238,9 +246,10 @@ entities:
       blinnPhongSpecularShininess: 1
       tilingFactor: 1
       tint: [1, 0, 0]
-  - entity: 019977fa-dfef-7830-829b-a17d48668780
+
+  - entity: 6976F234-DFEF7830
     MeshComponent:
-      meshId: 019bba16-994a-71b9-8156-19fc51f88a0a
+      meshId: 6976F22A-994A71B9 # Shared Quad Mesh
       mesh: ../assets/models/quad.obj
     NameComponent: Floor
     TransformComponent:
@@ -248,7 +257,7 @@ entities:
       scale: [1, 0.9999962, 0.9999962]
       rotation: [3.1415927, -0, 0]
     MaterialComponent:
-      materialId: 019bba16-994e-7e36-8287-bad4bb7e3b68
+      materialId: 6976F235-994E7E36
       material: mat-Floor
       albedoColor: [1, 1, 1, 1]
       albedoMap: pixel_0xFFFFFFFF_RGBA8_SRGB
@@ -266,7 +275,8 @@ entities:
       blinnPhongSpecularShininess: 1
       tilingFactor: 1
       tint: [1, 1, 1]
-  - entity: 019977fa-dd8d-7969-839e-ec32d324f976
+
+  - entity: 6976F236-DD8D7969
     NameComponent: camera2
     TransformComponent:
       translation: [0.0025612623, 0.10194536, 3.0837183]
@@ -279,7 +289,8 @@ entities:
       farPlane: 100
       fovYDegrees: 50
       orthoParams: [-1, 1, -1, 1]
-  - entity: 019977fa-dd8d-7969-839e-ec32d324f972
+
+  - entity: 6976F237-DD8D7969
     NameComponent: camera1
     TransformComponent:
       translation: [0.0025612623, 0.10194536, 3.0837183]

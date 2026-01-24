@@ -11,7 +11,7 @@ namespace pxt::editor {
 
             // get the name of the current asset for the button label
             std::string buttonText = "None (Empty)";
-            if (outPayload.id != core::UUID::s_invalidId) {
+            if (outPayload.id != core::UID::s_invalidId) {
                 if (Shared<Resource> resource = rm.get(outPayload.id)) {
                     buttonText = "Drop here: " + resource->alias;
                 }
@@ -37,11 +37,11 @@ namespace pxt::editor {
 
                 //TODO: read below
                 /* this is currently not possible because some components still use pointers
-                *    and in the code we are not checking for nullptrs. (components will hold uuids or asset handles in
+                *    and in the code we are not checking for nullptrs. (components will hold uids or asset handles in
                     the future)
 
                 if (ImGui::Selectable("Clear Slot")) {
-                    outPayload.id = core::UUID::s_invalidId;
+                    outPayload.id = core::UID::s_invalidId;
                     changed = true;
                 }
                 */

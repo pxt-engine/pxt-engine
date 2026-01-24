@@ -1,7 +1,5 @@
 #include "core/uuid.hpp"
 
-#include "core/pch.hpp"
-
 namespace pxt::core {
     UUID UUID::s_invalidId = UUID(0, 0);
 
