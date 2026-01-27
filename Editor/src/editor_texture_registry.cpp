@@ -66,7 +66,7 @@ namespace pxt::editor {
         return textureDescriptorSet;
     }
 
-    VkDescriptorSet EditorTextureRegistry::get(const std::string& alias) {
+    VkDescriptorSet EditorTextureRegistry::get(const std::string& alias) const {
         auto it = m_alias2DescriptorSet.find(alias);
         if (it != m_alias2DescriptorSet.end()) {
             return it->second;
@@ -92,8 +92,8 @@ namespace pxt::editor {
         m_textures.push_back(std::move(texture));
     }
 
-    VkDescriptorSet EditorTextureRegistry::getMissingTextureDescriptorSet() {
-        return m_alias2DescriptorSet[MISSING_TEXTURE];
+    VkDescriptorSet EditorTextureRegistry::getMissingTextureDescriptorSet() const {
+        return m_alias2DescriptorSet.at(MISSING_TEXTURE);
     }
 
 } // namespace pxt::editor

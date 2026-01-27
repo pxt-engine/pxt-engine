@@ -17,11 +17,11 @@ namespace pxt::editor {
         EditorTextureRegistry();
         ~EditorTextureRegistry();
 
-        VkDescriptorSet get(const std::string& alias);
+        VkDescriptorSet get(const std::string& alias) const;
 
         void add(Context& context, const std::string& alias, ImageInfo* imageInfo = nullptr);
 
-        VkDescriptorSet getMissingTextureDescriptorSet();
+        VkDescriptorSet getMissingTextureDescriptorSet() const;
 
     private:
         void loadEditorTextures(Context& context);
