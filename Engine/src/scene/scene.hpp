@@ -4,6 +4,7 @@
 #include "core/obj_picking_id.hpp"
 #include "core/pch.hpp"
 #include "core/uid.hpp"
+#include "scene/ecs/component.hpp"
 
 #include "scene/environment.hpp"
 
@@ -85,13 +86,18 @@ namespace pxt {
 
         void onEvent(core::Event& event);
 
+        template <typename... T>
+        auto getEntitiesWith() {
+            return m_registry.view<T...>();
+        }
+
         /**
          * @brief Retrieves all entities that have the specified components.
          * @tparam T Component types to filter entities.
          * @return A view of the entities with the specified components.
          */
         template <typename... T>
-        auto getEntitiesWith() {
+        auto getEntitiesWith(ComponentList<T...>) {
             return m_registry.view<T...>();
         }
 
