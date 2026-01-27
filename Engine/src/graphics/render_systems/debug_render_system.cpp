@@ -82,23 +82,12 @@ namespace pxt {
         m_pipelineWireframe = createUnique<Pipeline>(m_context, shaderFilePaths, pipelineConfig);
     }
 
-    void DebugRenderSystem::render(FrameInfo& frameInfo) {
-        if (m_renderMode == Wireframe) {
-            m_pipelineWireframe->bind(frameInfo.commandBuffer);
-        } else {
-            m_pipelineSolid->bind(frameInfo.commandBuffer);
-        }
-
-        std::array<VkDescriptorSet, 2> descriptorSets = {frameInfo.globalDescriptorSet,
-                                                         m_textureRegistry.getDescriptorSet()};
-
-        vkCmdBindDescriptorSets(frameInfo.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0,
-                                static_cast<uint32_t>(descriptorSets.size()), descriptorSets.data(), 0, nullptr);
-
-        auto view = frameInfo.scene
-                        .getEntitiesWith<TransformComponent, MeshComponent, MaterialComponent, ObjPickingIdComponent>();
+    // TODO: change how we do this
+    template <typename... Components>
+    void DebugRenderSystem::processEntities(ComponentList<Components...> neededComponents, FrameInfo& frameInfo) {
+        auto view = frameInfo.scene.getEntitiesWith(neededComponents);
+        
         for (auto entity : view) {
-
             const auto& [transform, meshComponent, materialComponent, objPickingIdComponent] =
                 view.get<TransformComponent, MeshComponent, MaterialComponent, ObjPickingIdComponent>(entity);
 
@@ -131,6 +120,30 @@ namespace pxt {
         }
     }
 
+    void DebugRenderSystem::render(FrameInfo& frameInfo) {
+        if (m_renderMode == Wireframe) {
+            m_pipelineWireframe->bind(frameInfo.commandBuffer);
+        } else {
+            m_pipelineSolid->bind(frameInfo.commandBuffer);
+        }
+
+        std::array<VkDescriptorSet, 2> descriptorSets = {frameInfo.globalDescriptorSet,
+                                                         m_textureRegistry.getDescriptorSet()};
+
+        vkCmdBindDescriptorSets(frameInfo.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0,
+                                static_cast<uint32_t>(descriptorSets.size()), descriptorSets.data(), 0, nullptr);
+
+        if (frameInfo.engineMode == core::EngineMode::EDIT) {
+            ComponentList<TransformComponent, MeshComponent, MaterialComponent, ObjPickingIdComponent, VisibilityTag> componentList;
+            processEntities(componentList, frameInfo);
+
+        } else {
+            ComponentList<TransformComponent, MeshComponent, MaterialComponent, ObjPickingIdComponent, RenderableTag>
+                componentList;
+            processEntities(componentList, frameInfo);
+        }
+    }
+
     void DebugRenderSystem::updateUi() {
         ImGui::Text("Render Mode:");
         ImGui::RadioButton("Wireframe", &m_renderMode, Wireframe);
@@ -148,4 +161,13 @@ namespace pxt {
         PXT_INFO("Reloading shaders...");
         createPipelines(false);
     }
+
+    // this is needed to explicitly instantiate the template functions
+    template void DebugRenderSystem::processEntities(
+        ComponentList<TransformComponent, MeshComponent, MaterialComponent, ObjPickingIdComponent, VisibilityTag>,
+        FrameInfo&);
+
+    template void DebugRenderSystem::processEntities(
+        ComponentList<TransformComponent, MeshComponent, MaterialComponent, ObjPickingIdComponent, RenderableTag>,
+        FrameInfo&);
 } // namespace pxt

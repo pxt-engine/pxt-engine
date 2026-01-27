@@ -233,21 +233,11 @@ namespace pxt {
         m_pipeline = createUnique<Pipeline>(m_context, shaderFilePaths, pipelineConfig);
     }
 
-    void ObjectPickingSystem::render(FrameInfo& frameInfo, Renderer& renderer, u32vec2 mousePixelCoords,
-                                     bool isObjectPickingRequested) {
-        // black is the "no object" color
-        VkClearColorValue blackClearColor = {0.f, 0.f, 0.f, 1.f};
-        renderer.beginRenderPass(frameInfo.commandBuffer, *m_offscreenRenderPass, *m_offscreenFb, m_sceneExtent,
-                                 blackClearColor);
-
-        m_pipeline->bind(frameInfo.commandBuffer);
-
-        std::array<VkDescriptorSet, 1> descriptorSets = {frameInfo.globalDescriptorSet};
-
-        vkCmdBindDescriptorSets(frameInfo.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0,
-                                static_cast<uint32_t>(descriptorSets.size()), descriptorSets.data(), 0, nullptr);
-
-        auto view = frameInfo.scene.getEntitiesWith<TransformComponent, MeshComponent, ObjPickingIdComponent>();
+    // TODO: change how we do this
+    template <typename... Components>
+    void ObjectPickingSystem::processEntities(ComponentList<Components...> neededComponents, FrameInfo& frameInfo) {
+        auto view = frameInfo.scene.getEntitiesWith(neededComponents);
+        
         for (auto entity : view) {
 
             const auto& [transform, meshComponent, objPickingIdComponent] =
@@ -265,6 +255,31 @@ namespace pxt {
 
             vulkanMesh->bind(frameInfo.commandBuffer);
             vulkanMesh->draw(frameInfo.commandBuffer);
+        }
+    }
+
+    void ObjectPickingSystem::render(FrameInfo& frameInfo, Renderer& renderer, u32vec2 mousePixelCoords,
+                                     bool isObjectPickingRequested) {
+        // black is the "no object" color
+        VkClearColorValue blackClearColor = {0.f, 0.f, 0.f, 1.f};
+        renderer.beginRenderPass(frameInfo.commandBuffer, *m_offscreenRenderPass, *m_offscreenFb, m_sceneExtent,
+                                 blackClearColor);
+
+        m_pipeline->bind(frameInfo.commandBuffer);
+
+        std::array<VkDescriptorSet, 1> descriptorSets = {frameInfo.globalDescriptorSet};
+
+        vkCmdBindDescriptorSets(frameInfo.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0,
+                                static_cast<uint32_t>(descriptorSets.size()), descriptorSets.data(), 0, nullptr);
+
+        if (frameInfo.engineMode == core::EngineMode::EDIT) {
+            ComponentList<TransformComponent, MeshComponent, ObjPickingIdComponent, VisibilityTag> componentList;
+            processEntities(componentList,
+                            frameInfo);
+        } else {
+            ComponentList<TransformComponent, MeshComponent, ObjPickingIdComponent, RenderableTag> componentList;
+            processEntities(componentList,
+                            frameInfo);
         }
 
         renderer.endRenderPass(frameInfo.commandBuffer, *m_offscreenRenderPass, *m_offscreenFb);
@@ -332,4 +347,13 @@ namespace pxt {
 
         return pickedObjectId;
     }
+
+    // this is needed to explicitly instantiate the template functions
+    template void ObjectPickingSystem::processEntities(
+        ComponentList<TransformComponent, MeshComponent, ObjPickingIdComponent, VisibilityTag>,
+        FrameInfo&);
+
+    template void ObjectPickingSystem::processEntities(
+        ComponentList<TransformComponent, MeshComponent, ObjPickingIdComponent, RenderableTag>,
+        FrameInfo&);
 } // namespace pxt

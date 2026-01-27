@@ -171,7 +171,10 @@ namespace pxt {
         }
 
         Entity selectedEntity = frameInfo.scene.getEntity(selectedEntityUID);
-        if (!selectedEntity.has<TransformComponent>() || !selectedEntity.has<MeshComponent>()) {
+        bool isEntityVisible = frameInfo.engineMode == core::EngineMode::EDIT ? selectedEntity.has<VisibilityTag>()
+                                   : selectedEntity.has<RenderableTag>();
+
+        if (!isEntityVisible || !selectedEntity.has<TransformComponent>() || !selectedEntity.has<MeshComponent>()) {
             // entity does not have required components, leave black and do nothing
             renderer.endRenderPass(frameInfo.commandBuffer, *m_offscreenRenderPass, *m_offscreenFb);
             return;
@@ -212,5 +215,4 @@ namespace pxt {
         PXT_INFO("Reloading shaders...");
         createPipeline(false);
     }
-
 } // namespace pxt
