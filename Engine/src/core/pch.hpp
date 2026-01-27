@@ -14,6 +14,7 @@
 #include <string>          // For std::string class, representing character sequences
 #include <string_view>     // For std::string_view, a non-owning view of a string
 #include <utility>         // For std::pair, std::move, std::forward, and other utility functions
+#include <variant>         // For std::variant, a type-safe union
 
 // Standard Library Headers - Data Structures and Containers
 #include <array> // For std::array, a fixed-size array
