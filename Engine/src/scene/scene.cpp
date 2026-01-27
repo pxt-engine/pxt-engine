@@ -47,6 +47,8 @@ namespace pxt {
         entity.add<IDComponent>(id);
         entity.add<ObjPickingIdComponent>(objPickingId);
         entity.add<NameComponent>(newEntityName);
+        entity.add<RenderableTag>();
+        entity.add<VisibilityTag>();
 
         m_entityMap[entity.getUID()] = entity;
         m_objPickingIdToUID[objPickingId.getObjPickingId()] = entity.getUID();
