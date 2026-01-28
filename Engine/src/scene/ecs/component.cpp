@@ -3,12 +3,6 @@
 #include "application.hpp"
 
 namespace pxt {
-    // --- MaterialComponent ---
-    MaterialComponent::MaterialComponent() : tilingFactor(1.0f), tint(1.0f) {
-        auto& rm = Application::get().getResourceManager();
-        material = rm.get<Material>(DEFAULT_MATERIAL);
-    }
-
     // --- Transform2dComponent ---
     glm::mat2 Transform2dComponent::mat2() const {
         const float sin = glm::sin(rotation);
@@ -38,8 +32,6 @@ namespace pxt {
         // (when casting to mat3, glm automatically takes the top-left 3x3 by value)
         return glm::transpose(glm::inverse(glm::mat3(modelMatrix)));
     }
-
-    MeshComponent::MeshComponent() { mesh = ResourceManager::s_defaultObjMesh; }
 
     // --- CameraComponent ---
     CameraComponent::CameraComponent() { cameraData = CameraData(); }

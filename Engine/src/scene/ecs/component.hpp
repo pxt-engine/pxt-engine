@@ -4,6 +4,7 @@
 #include "core/obj_picking_id.hpp"
 #include "core/pch.hpp"
 #include "core/uid.hpp"
+#include "resources/asset_handle.hpp"
 #include "resources/types/material.hpp"
 #include "resources/types/mesh.hpp"
 #include "scene/camera_data.hpp"
@@ -191,23 +192,23 @@ namespace pxt {
     };
 
     struct MaterialComponent {
-        Shared<Material> material;
+        AssetHandle material{};
         float tilingFactor = 1.0f;
         glm::vec3 tint{1.0f};
 
-        MaterialComponent();
+        MaterialComponent() = default;
 
         MaterialComponent(const MaterialComponent&) = default;
 
-        MaterialComponent(const Shared<Material>& material, float tilingFactor, const glm::vec3& tint)
+        MaterialComponent(const AssetHandle material, float tilingFactor, const glm::vec3& tint)
             : material(material), tilingFactor(tilingFactor), tint(tint) {}
 
         struct Builder {
-            Shared<Material> material;
+            AssetHandle material;
             float tilingFactor = 1.0f;
             glm::vec3 tint{1.0f};
 
-            Builder& setMaterial(const Shared<Material>& mat) {
+            Builder& setMaterial(const AssetHandle mat) {
                 material = mat;
                 return *this;
             }
@@ -227,12 +228,12 @@ namespace pxt {
     };
 
     struct MeshComponent {
-        Shared<Mesh> mesh;
+        AssetHandle mesh{};
 
-        MeshComponent();
+        MeshComponent() = default;
         MeshComponent(const MeshComponent&) = default;
 
-        MeshComponent(const Shared<Mesh>& mesh) : mesh(mesh) {}
+        MeshComponent(const AssetHandle mesh) : mesh(mesh) {}
     };
 
     struct CameraComponent {
