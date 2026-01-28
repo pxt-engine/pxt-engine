@@ -16,6 +16,7 @@ target_include_directories(PXT_Engine
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/src
         ${CMAKE_CURRENT_SOURCE_DIR}/external/entt/single_include
+        ${CMAKE_CURRENT_SOURCE_DIR}/external/yaml-cpp/include
 )
 
 # Third-party external libraries with CMake support
