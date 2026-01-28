@@ -1,9 +1,10 @@
 #include "ui/scene_hierarchy.hpp"
-#include "ui/widgets/toggle_image_button.hpp"
 #include "core/events/editor_events.hpp"
+#include "ui/widgets/toggle_image_button.hpp"
 
 namespace pxt::editor {
-    void SceneHierarchy::onUpdateUi(FrameInfo& frameInfo, core::UID& selectedEntityId, const EditorTextureRegistry* const editorTextureRegistry) {
+    void SceneHierarchy::onUpdateUi(FrameInfo& frameInfo, core::UID& selectedEntityId,
+                                    const EditorTextureRegistry* const editorTextureRegistry) {
         drawSceneEntityList(frameInfo.scene, selectedEntityId, editorTextureRegistry);
     }
 
@@ -71,6 +72,8 @@ namespace pxt::editor {
             bool isVisible = entity.has<VisibilityTag>();
             std::string eyeIconFile = isVisible ? "eye_icon.png" : "eye_slash_icon.png";
 
+            // TODO: these two icon have to also check for entity validity, probably best if we have some preferences
+            //  for eachentity inside a component or something and perform a validity check only when needed, not here
             ImTextureID eyeIcon = (ImTextureID)editorTextureRegistry->get(eyeIconFile);
             const char* eyeIconTooltip = "Hides this entity in the editor viewport";
             if (ui::ToggleImageButton::render(eyeIcon, "##eye-", eyeIconTooltip, true, false, isVisible,
@@ -91,8 +94,8 @@ namespace pxt::editor {
 
             ImTextureID renderableIcon = (ImTextureID)editorTextureRegistry->get(cameraIconFile);
             const char* renderableIconTooltip = "Hides this entity in the final render";
-            if (ui::ToggleImageButton::render(renderableIcon, "##renderable-", renderableIconTooltip, true, false, isRenderable,
-                                              ImVec2(iconSize, iconSize))) {
+            if (ui::ToggleImageButton::render(renderableIcon, "##renderable-", renderableIconTooltip, true, false,
+                                              isRenderable, ImVec2(iconSize, iconSize))) {
                 // Renderable Toggle Logic
                 if (isRenderable) {
                     entity.add<RenderableTag>();
