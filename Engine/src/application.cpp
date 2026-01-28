@@ -255,8 +255,8 @@ namespace pxt {
                     m_renderer.getSwapChainCurrentFrameFence(),       // Frame fence
                     m_renderer.getSwapChainImageAvailableSemaphore(), // Wait semaphore
                     m_renderer.getSwapChainRenderFinishedSemaphore(m_renderer.getSwapChainCurrentImageIndex()),
-                    m_engineMode
-                };
+                    m_engineMode,
+                    *m_resourceManagerPtr};
 
                 GlobalUbo ubo{};
                 ubo.ambientLightColor = m_scene.getEnvironment()->getAmbientLight();
