@@ -29,6 +29,9 @@ namespace pxt {
         void createPipelineLayout(DescriptorSetLayout& globalSetLayout);
         void createPipeline(bool useCompiledSpirvFiles = true);
 
+        template <typename... Components>
+        void processEntities(ComponentList<Components...> neededComponents, FrameInfo& frameInfo);
+
         Context& m_context;
         TextureRegistry& m_textureRegistry;
 

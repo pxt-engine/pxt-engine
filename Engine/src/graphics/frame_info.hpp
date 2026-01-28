@@ -3,6 +3,7 @@
 #include "core/pch.hpp"
 #include "graphics/camera_matrices.hpp"
 #include "scene/scene.hpp"
+#include "core/engine_mode.hpp"
 
 namespace pxt {
     struct PointLight {
@@ -33,5 +34,7 @@ namespace pxt {
         VkFence frameFence;         // The fence signaled when the command buffer is complete
         VkSemaphore imageAvailable; // The semaphore signaled when the image is available
         VkSemaphore renderFinished; // The semaphore signaled when rendering is done
+
+        core::EngineMode engineMode;
     };
 } // namespace pxt

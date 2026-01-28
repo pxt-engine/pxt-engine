@@ -118,6 +118,12 @@ namespace pxt {
         operator glm::mat4() { return mat4(); }
     };
 
+    // if an entity has this tag, it will be rendered
+    struct RenderableTag {};
+
+    // if an entity has this tag, it will be considered visible in the editor viewport
+    struct VisibilityTag {};
+
     struct ColorComponent {
         glm::vec3 color{1.f, 1.f, 1.f};
 

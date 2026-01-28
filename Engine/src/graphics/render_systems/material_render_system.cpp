@@ -90,16 +90,11 @@ namespace pxt {
         m_pipeline = createUnique<Pipeline>(m_context, shaderFilePaths, pipelineConfig);
     }
 
-    void MaterialRenderSystem::render(FrameInfo& frameInfo) {
-        m_pipeline->bind(frameInfo.commandBuffer);
-
-        std::array<VkDescriptorSet, 3> descriptorSets = {
-            frameInfo.globalDescriptorSet, m_textureRegistry.getDescriptorSet(), m_shadowMapDescriptorSet};
-
-        vkCmdBindDescriptorSets(frameInfo.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0,
-                                static_cast<uint32_t>(descriptorSets.size()), descriptorSets.data(), 0, nullptr);
-
-        auto view = frameInfo.scene.getEntitiesWith<TransformComponent, MeshComponent, MaterialComponent>();
+    //TODO: change how we do this
+    template <typename... Components>
+    void MaterialRenderSystem::processEntities(ComponentList<Components...> neededComponents, FrameInfo& frameInfo) {
+        auto view = frameInfo.scene.getEntitiesWith(neededComponents);
+        
         for (auto entity : view) {
 
             const auto& [transform, meshComponent, materialComponent] =
@@ -130,8 +125,34 @@ namespace pxt {
         }
     }
 
+    void MaterialRenderSystem::render(FrameInfo& frameInfo) {
+        m_pipeline->bind(frameInfo.commandBuffer);
+
+        std::array<VkDescriptorSet, 3> descriptorSets = {
+            frameInfo.globalDescriptorSet, m_textureRegistry.getDescriptorSet(), m_shadowMapDescriptorSet};
+
+        vkCmdBindDescriptorSets(frameInfo.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0,
+                                static_cast<uint32_t>(descriptorSets.size()), descriptorSets.data(), 0, nullptr);
+
+        if (frameInfo.engineMode == core::EngineMode::EDIT) {
+            ComponentList<TransformComponent, MeshComponent, MaterialComponent, VisibilityTag> componentList;
+            processEntities(componentList, frameInfo);
+
+        } else {
+            ComponentList<TransformComponent, MeshComponent, MaterialComponent, RenderableTag> componentList;
+            processEntities(componentList, frameInfo);
+        }
+    }
+
     void MaterialRenderSystem::reloadShaders() {
         PXT_INFO("Reloading shaders...");
         createPipeline(false);
     }
+
+    // this is needed to explicitly instantiate the template functions
+    template void MaterialRenderSystem::processEntities(
+        ComponentList<TransformComponent, MeshComponent, MaterialComponent, VisibilityTag>, FrameInfo&);
+
+    template void MaterialRenderSystem::processEntities(
+        ComponentList<TransformComponent, MeshComponent, MaterialComponent, RenderableTag>, FrameInfo&);
 } // namespace pxt

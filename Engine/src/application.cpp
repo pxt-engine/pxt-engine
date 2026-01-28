@@ -255,6 +255,7 @@ namespace pxt {
                     m_renderer.getSwapChainCurrentFrameFence(),       // Frame fence
                     m_renderer.getSwapChainImageAvailableSemaphore(), // Wait semaphore
                     m_renderer.getSwapChainRenderFinishedSemaphore(m_renderer.getSwapChainCurrentImageIndex()),
+                    m_engineMode
                 };
 
                 GlobalUbo ubo{};

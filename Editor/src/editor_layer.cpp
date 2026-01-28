@@ -208,7 +208,7 @@ namespace pxt::editor {
         ResourceManager& rm = Application::get().getResourceManager();
 
         // first update scene hierarchy ui (an entity might be selected)
-        m_sceneHierarchy.onUpdateUi(frameInfo, m_selectedEntityUID);
+        m_sceneHierarchy.onUpdateUi(frameInfo, m_selectedEntityUID, m_editorTextureRegistry.get());
 
         // only fire event if selection changed
         if (m_prevSelectedEntityUID != m_selectedEntityUID) {

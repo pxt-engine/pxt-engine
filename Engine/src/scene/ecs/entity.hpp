@@ -61,7 +61,7 @@ namespace pxt {
          */
         template <typename Component, typename... Args>
         Entity& add(Args&&... args) {
-            m_scene->m_registry.emplace<Component>(m_enttEntity, std::forward<Args>(args)...);
+            m_scene->m_registry.emplace_or_replace<Component>(m_enttEntity, std::forward<Args>(args)...);
             return *this;
         }
 
@@ -73,7 +73,7 @@ namespace pxt {
          */
         template <typename Component, typename... Args>
         Component& addAndGet(Args&&... args) {
-            return m_scene->m_registry.emplace<Component>(m_enttEntity, std::forward<Args>(args)...);
+            return m_scene->m_registry.emplace_or_replace<Component>(m_enttEntity, std::forward<Args>(args)...);
         }
 
         /**
