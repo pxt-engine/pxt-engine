@@ -56,8 +56,8 @@ namespace pxt {
         Context& m_context;
         std::string m_name; // Name for logging
         VkRenderPassCreateInfo m_createInfo;
-        VkAttachmentDescription m_colorAttachmentDescription;
-        VkAttachmentDescription m_depthAttachmentDescription;
+        VkAttachmentDescription m_colorAttachmentDescription{};
+        VkAttachmentDescription m_depthAttachmentDescription{};
         VkRenderPass m_renderPass = VK_NULL_HANDLE; // renderPass Vulkan handle
 
         bool m_hasDepth = true;

@@ -103,7 +103,7 @@ namespace pxt {
                                 VK_SHADER_STAGE_MISS_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR)
                 .build();
 
-        for (int i = 0; i < m_globalDescriptorSets.size(); i++) {
+        for (size_t i = 0; i < m_globalDescriptorSets.size(); i++) {
             auto bufferInfo = m_uboBuffers[i]->descriptorInfo();
 
             m_descriptorAllocator->allocate(m_globalSetLayout->getDescriptorSetLayout(), m_globalDescriptorSets[i]);

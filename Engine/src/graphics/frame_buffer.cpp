@@ -3,7 +3,7 @@
 namespace pxt {
     FrameBuffer::FrameBuffer(Context& context, VkFramebufferCreateInfo& createInfo, std::string name,
                              Shared<VulkanImage> colorAttachment, Shared<VulkanImage> depthAttachment)
-        : m_context(context), m_createInfo(createInfo), m_name(name), m_colorAttachment(colorAttachment),
+        : m_context(context), m_name(name), m_createInfo(createInfo), m_colorAttachment(colorAttachment),
           m_depthAttachment(depthAttachment) {
 
         PXT_DEBUG("Creating VkFrameBuffer: {}", m_name);

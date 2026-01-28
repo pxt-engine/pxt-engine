@@ -12,7 +12,7 @@ namespace pxt {
     VulkanBuffer::VulkanBuffer(Context& context, VkDeviceSize instanceSize, uint32_t instanceCount,
                                VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryPropertyFlags,
                                VkDeviceSize minOffsetAlignment)
-        : m_context{context}, m_instanceSize{instanceSize}, m_instanceCount{instanceCount}, m_usageFlags{usageFlags},
+        : m_context{context}, m_instanceCount{instanceCount}, m_instanceSize{instanceSize}, m_usageFlags{usageFlags},
           m_memoryPropertyFlags{memoryPropertyFlags} {
         m_alignmentSize = getAlignment(instanceSize, minOffsetAlignment);
         m_bufferSize = m_alignmentSize * instanceCount;
