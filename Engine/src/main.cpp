@@ -1,5 +1,3 @@
-#pragma once
-
 #include "application.hpp"
 
 #include "core/logging/console_logger_sink.hpp"
