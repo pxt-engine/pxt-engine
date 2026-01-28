@@ -50,6 +50,9 @@ namespace pxt {
         entity.add<RenderableTag>();
         entity.add<VisibilityTag>();
 
+        // we add a TransformComponent by default
+        entity.add<TransformComponent>();
+
         m_entityMap[entity.getUID()] = entity;
         m_objPickingIdToUID[objPickingId.getObjPickingId()] = entity.getUID();
         m_uidToObjPickingId[entity.getUID()] = objPickingId.getObjPickingId();
