@@ -2,27 +2,33 @@
     "version": 3,
     "configurePresets": [
         {
-          "name": "x64-Debug",
-          "generator": "Visual Studio 17 2022",
-          "binaryDir": "${sourceDir}/out/build/${presetName}",
-          "cacheVariables": {
-              "CMAKE_BUILD_TYPE": "Debug"
-          },
-          "environment": {
-            "NV_ALLOW_RAYTRACING_VALIDATION": "1",
-            "ENABLE_VALIDATION_LAYERS": "1",
-            "VK_LAYER_PRINTF_TO_STDOUT": "1",
-            "VK_LAYER_PRINTF_BUFFER_SIZE": "1048576"
-          }
+            "name": "x64-Debug",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/out/build/${presetName}",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug"
+            },
+            "environment": {
+                "NV_ALLOW_RAYTRACING_VALIDATION": "1",
+                "ENABLE_VALIDATION_LAYERS": "1",
+                "VK_LAYER_PRINTF_TO_STDOUT": "1",
+                "VK_LAYER_PRINTF_BUFFER_SIZE": "1048576"
+            },
+            "vendor": {
+                "microsoft.com/VisualStudioSettings/CMake/1.0": {
+                    "enableMicrosoftCodeAnalysis": true,
+                    "enableClangTidyCodeAnalysis": true
+                }
+            }
         },
-      {
-        "name": "x64-Release",
-        "generator": "Visual Studio 17 2022",
-        "binaryDir": "${sourceDir}/out/build/${presetName}",
-        "cacheVariables": {
-          "CMAKE_BUILD_TYPE": "Release"
+        {
+            "name": "x64-Release",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/out/build/${presetName}",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release"
+            }
         }
-      }
     ],
     "buildPresets": [
         {
@@ -34,8 +40,8 @@
         {
             "name": "x64-Release",
             "configurePreset": "x64-Release",
-          "configuration": "Release",
-          "jobs": 4
+            "configuration": "Release",
+            "jobs": 4
         }
     ]
 }
