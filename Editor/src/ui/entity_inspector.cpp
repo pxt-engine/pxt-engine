@@ -193,7 +193,7 @@ namespace pxt::editor {
                 Scene& scene = sceneOpt->get();
                 // here we ensure the new name is unique in the scene, else we append a number
                 newName = scene.getUniqueEntityName(newName);
-                
+
                 PXT_INFO("Renamed Entity \"{}\" to \"{}\"", c.name, newName);
                 c.name = newName;
             }
@@ -246,9 +246,12 @@ namespace pxt::editor {
 
         // MaterialComponent
         RegisterComponent<MaterialComponent>("MaterialComponent", [](auto& c, Entity entity) {
-            if (c.material) {
-                ImGui::Text("Material: %s", c.material->alias.c_str());
-                c.material->drawMaterialUi();
+            ResourceManager& rm = Application::get().getResourceManager();
+
+            if (c.material.isValid()) {
+                auto material = rm.get<Material>(c.material);
+                ImGui::Text("Material: %s", material->alias.c_str());
+                material->drawMaterialUi();
             } else {
                 ImGui::Text("No Material assigned");
             }
@@ -259,15 +262,17 @@ namespace pxt::editor {
 
         // MeshComponent
         RegisterComponent<MeshComponent>("MeshComponent", [](MeshComponent& c, Entity entity) {
-            DragAndDrop::EnginePayload payload = {c.mesh->id, DragAndDrop::PayloadSource::AssetBrowser,
+            DragAndDrop::EnginePayload payload = {c.mesh, DragAndDrop::PayloadSource::AssetBrowser,
                                                   Resource::Type::Mesh};
 
             ResourceManager& rm = Application::get().getResourceManager();
 
             if (ResourceSlot::render("##entity-inspector-mesh-component-resource-slot", payload, rm)) {
-                c.mesh = rm.get<Mesh>(payload.id);
+                c.mesh = payload.id;
 
-                PXT_INFO("Changed Mesh of Entity \"{}\" to Mesh \"{}\"", entity.getName(), c.mesh->alias);
+                std::string newMeshAlias = c.mesh.isValid() ? rm.get<Mesh>(c.mesh)->alias : "No Mesh Assigned";
+
+                PXT_INFO("Changed Mesh of Entity \"{}\" to Mesh \"{}\"", entity.getName(), newMeshAlias);
             }
         });
 

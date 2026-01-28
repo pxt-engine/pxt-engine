@@ -1,6 +1,7 @@
 #include "graphics/render_systems/debug_render_system.hpp"
 
 #include "graphics/resources/vk_mesh.hpp"
+#include "resources/resource_manager.hpp"
 #include "scene/ecs/entity.hpp"
 
 namespace pxt {
@@ -86,13 +87,18 @@ namespace pxt {
     template <typename... Components>
     void DebugRenderSystem::processEntities(ComponentList<Components...> neededComponents, FrameInfo& frameInfo) {
         auto view = frameInfo.scene.getEntitiesWith(neededComponents);
-        
+
         for (auto entity : view) {
             const auto& [transform, meshComponent, materialComponent, objPickingIdComponent] =
                 view.get<TransformComponent, MeshComponent, MaterialComponent, ObjPickingIdComponent>(entity);
 
-            auto material = materialComponent.material;
-            auto vulkanMesh = std::static_pointer_cast<VulkanMesh>(meshComponent.mesh);
+            if (!materialComponent.material.isValid() || !meshComponent.mesh.isValid()) {
+                // we have an empty mesh or material
+                continue;
+            }
+
+            auto material = frameInfo.rm.get<Material>(materialComponent.material);
+            auto vulkanMesh = frameInfo.rm.get<VulkanMesh>(meshComponent.mesh);
 
             DebugPushConstantData push{};
             push.modelMatrix = transform.mat4();
@@ -134,7 +140,8 @@ namespace pxt {
                                 static_cast<uint32_t>(descriptorSets.size()), descriptorSets.data(), 0, nullptr);
 
         if (frameInfo.engineMode == core::EngineMode::EDIT) {
-            ComponentList<TransformComponent, MeshComponent, MaterialComponent, ObjPickingIdComponent, VisibilityTag> componentList;
+            ComponentList<TransformComponent, MeshComponent, MaterialComponent, ObjPickingIdComponent, VisibilityTag>
+                componentList;
             processEntities(componentList, frameInfo);
 
         } else {

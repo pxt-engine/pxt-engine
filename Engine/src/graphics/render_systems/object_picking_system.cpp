@@ -1,6 +1,7 @@
 #include "graphics/render_systems/object_picking_system.hpp"
 #include "core/obj_picking_id.hpp"
 #include "graphics/resources/vk_mesh.hpp"
+#include "resources/resource_manager.hpp"
 #include "scene/ecs/component.hpp"
 
 namespace pxt {
@@ -237,13 +238,18 @@ namespace pxt {
     template <typename... Components>
     void ObjectPickingSystem::processEntities(ComponentList<Components...> neededComponents, FrameInfo& frameInfo) {
         auto view = frameInfo.scene.getEntitiesWith(neededComponents);
-        
+
         for (auto entity : view) {
 
             const auto& [transform, meshComponent, objPickingIdComponent] =
                 view.get<TransformComponent, MeshComponent, ObjPickingIdComponent>(entity);
 
-            auto vulkanMesh = std::static_pointer_cast<VulkanMesh>(meshComponent.mesh);
+            if (!meshComponent.mesh.isValid()) {
+                // we have an empty mesh
+                continue;
+            }
+
+            auto vulkanMesh = frameInfo.rm.get<VulkanMesh>(meshComponent.mesh);
 
             ObjPickingPushConstantData push{};
             push.modelMatrix = transform.mat4();
@@ -274,12 +280,10 @@ namespace pxt {
 
         if (frameInfo.engineMode == core::EngineMode::EDIT) {
             ComponentList<TransformComponent, MeshComponent, ObjPickingIdComponent, VisibilityTag> componentList;
-            processEntities(componentList,
-                            frameInfo);
+            processEntities(componentList, frameInfo);
         } else {
             ComponentList<TransformComponent, MeshComponent, ObjPickingIdComponent, RenderableTag> componentList;
-            processEntities(componentList,
-                            frameInfo);
+            processEntities(componentList, frameInfo);
         }
 
         renderer.endRenderPass(frameInfo.commandBuffer, *m_offscreenRenderPass, *m_offscreenFb);
@@ -310,8 +314,8 @@ namespace pxt {
 
             // then transition to shader read only optimal for composition pass use
             m_sceneWithColorIds->transitionImageLayout(
-                frameInfo.commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+                frameInfo.commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_PIPELINE_STAGE_TRANSFER_BIT,
+                VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
         } else {
             // just transition back to shader read only optimal otherwise
             m_sceneWithColorIds->transitionImageLayout(
@@ -350,10 +354,8 @@ namespace pxt {
 
     // this is needed to explicitly instantiate the template functions
     template void ObjectPickingSystem::processEntities(
-        ComponentList<TransformComponent, MeshComponent, ObjPickingIdComponent, VisibilityTag>,
-        FrameInfo&);
+        ComponentList<TransformComponent, MeshComponent, ObjPickingIdComponent, VisibilityTag>, FrameInfo&);
 
     template void ObjectPickingSystem::processEntities(
-        ComponentList<TransformComponent, MeshComponent, ObjPickingIdComponent, RenderableTag>,
-        FrameInfo&);
+        ComponentList<TransformComponent, MeshComponent, ObjPickingIdComponent, RenderableTag>, FrameInfo&);
 } // namespace pxt

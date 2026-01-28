@@ -1,5 +1,6 @@
 #include "graphics/render_systems/selection_mask_render_system.hpp"
 #include "graphics/resources/vk_mesh.hpp"
+#include "resources/resource_manager.hpp"
 #include "scene/ecs/component.hpp"
 #include "scene/ecs/entity.hpp"
 
@@ -172,9 +173,18 @@ namespace pxt {
 
         Entity selectedEntity = frameInfo.scene.getEntity(selectedEntityUID);
         bool isEntityVisible = frameInfo.engineMode == core::EngineMode::EDIT ? selectedEntity.has<VisibilityTag>()
-                                   : selectedEntity.has<RenderableTag>();
+                                                                              : selectedEntity.has<RenderableTag>();
 
         if (!isEntityVisible || !selectedEntity.has<TransformComponent>() || !selectedEntity.has<MeshComponent>()) {
+            // entity does not have required components, leave black and do nothing
+            renderer.endRenderPass(frameInfo.commandBuffer, *m_offscreenRenderPass, *m_offscreenFb);
+            return;
+        }
+
+        const auto& transform = selectedEntity.get<TransformComponent>();
+        const auto& meshComponent = selectedEntity.get<MeshComponent>();
+
+        if (!meshComponent.mesh.isValid()) {
             // entity does not have required components, leave black and do nothing
             renderer.endRenderPass(frameInfo.commandBuffer, *m_offscreenRenderPass, *m_offscreenFb);
             return;
@@ -187,10 +197,7 @@ namespace pxt {
         vkCmdBindDescriptorSets(frameInfo.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0,
                                 static_cast<uint32_t>(descriptorSets.size()), descriptorSets.data(), 0, nullptr);
 
-        const auto& transform = selectedEntity.get<TransformComponent>();
-        const auto& meshComponent = selectedEntity.get<MeshComponent>();
-
-        auto vulkanMesh = std::static_pointer_cast<VulkanMesh>(meshComponent.mesh);
+        auto vulkanMesh = frameInfo.rm.get<VulkanMesh>(meshComponent.mesh);
 
         SelectionMaskPush push{};
         push.modelMatrix = transform.mat4();

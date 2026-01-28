@@ -1,5 +1,6 @@
 #include "graphics/render_systems/raytracing_scene_manager_system.hpp"
 
+#include "resources/resource_manager.hpp"
 #include "scene/ecs/component.hpp"
 #include "scene/ecs/entity.hpp"
 
@@ -30,7 +31,7 @@ namespace pxt {
         //  Create a acceleration structure instance vector
         std::vector<VkAccelerationStructureInstanceKHR> instances;
 
-        //TODO: decide if we want to do this like this
+        // TODO: decide if we want to do this like this
         using EditorView = entt::view<entt::get_t<TransformComponent, MeshComponent, VisibilityTag>>;
         using PlayView = entt::view<entt::get_t<TransformComponent, MeshComponent, RenderableTag>>;
         std::variant<EditorView, PlayView> activeView;
@@ -48,110 +49,121 @@ namespace pxt {
 
         uint32_t instanceIndex = 0;
         uint32_t volumeIndex = 0; // for now just iterative increase
-        
-        std::visit([&](auto& view) {
-            for (auto entityHandle : view) {
-                Entity entity(entityHandle, &frameInfo.scene);
 
-                if (!entity.hasAny<MaterialComponent, VolumeComponent>())
-                    continue;
+        std::visit(
+            [&](auto& view) {
+                for (auto entityHandle : view) {
+                    Entity entity(entityHandle, &frameInfo.scene);
 
-                const auto& [transformComponent, meshComponent] =
-                    view.get<TransformComponent, MeshComponent>(entityHandle);
+                    if (!entity.hasAny<MaterialComponent, VolumeComponent>())
+                        continue;
 
-                auto mesh = meshComponent.mesh;
+                    const auto& [transformComponent, meshComponent] =
+                        view.get<TransformComponent, MeshComponent>(entityHandle);
 
-                Shared<BLAS> blas = m_blasRegistry.getOrCreateBLAS(mesh);
-
-                VkAccelerationStructureDeviceAddressInfoKHR addressInfo{};
-                addressInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_DEVICE_ADDRESS_INFO_KHR;
-                addressInfo.accelerationStructure = blas->handle;
-                VkDeviceAddress blasAddress = blas->buffer->getDeviceAddress();
-
-                // convert glm::mat4 to VkTransformMatrixKHR
-                VkTransformMatrixKHR transformMatrix = glmToVkTransformMatrix(transformComponent.mat4());
-
-                // Define the instance
-                VkAccelerationStructureInstanceKHR instance{};
-                instance.transform = transformMatrix;
-
-                auto vkMesh = static_pointer_cast<VulkanMesh>(mesh);
-
-                constexpr uint32_t invalidIndex = std::numeric_limits<uint32_t>::max();
-
-                MeshInstanceData meshInstanceData{};
-                meshInstanceData.vertexBufferAddress = vkMesh->getVertexBufferDeviceAddress();
-                meshInstanceData.indexBufferAddress = vkMesh->getIndexBufferDeviceAddress();
-                meshInstanceData.materialIndex = invalidIndex;
-                meshInstanceData.emitterIndex = invalidIndex;
-                meshInstanceData.volumeIndex = invalidIndex;
-
-                instance.mask = 0xFF;
-
-                // Add material properties to the instance data
-                if (entity.has<MaterialComponent>()) {
-                    auto& materialComponent = entity.get<MaterialComponent>();
-
-                    meshInstanceData.materialIndex = m_materialRegistry.getIndex(materialComponent.material->id);
-                    meshInstanceData.textureTintColor = glm::vec4(materialComponent.tint, 1.0f);
-                    meshInstanceData.textureTilingFactor = materialComponent.tilingFactor;
-
-                    // register entities with emissive materials
-                    if (materialComponent.material->isEmissive()) {
-                        meshInstanceData.emitterIndex = static_cast<uint32_t>(m_emitters.size());
-
-                        EmitterData emitterData{};
-                        emitterData.instanceIndex = instanceIndex;
-                        emitterData.numberOfFaces = vkMesh->getIndexCount() / 3;
-                        m_emitters.push_back(emitterData);
+                    if (!meshComponent.mesh.isValid()) {
+                        continue;
                     }
+
+                    auto mesh = frameInfo.rm.get<Mesh>(meshComponent.mesh);
+
+                    Shared<BLAS> blas = m_blasRegistry.getOrCreateBLAS(mesh);
+
+                    VkAccelerationStructureDeviceAddressInfoKHR addressInfo{};
+                    addressInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_DEVICE_ADDRESS_INFO_KHR;
+                    addressInfo.accelerationStructure = blas->handle;
+                    VkDeviceAddress blasAddress = blas->buffer->getDeviceAddress();
+
+                    // convert glm::mat4 to VkTransformMatrixKHR
+                    VkTransformMatrixKHR transformMatrix = glmToVkTransformMatrix(transformComponent.mat4());
+
+                    // Define the instance
+                    VkAccelerationStructureInstanceKHR instance{};
+                    instance.transform = transformMatrix;
+
+                    auto vkMesh = static_pointer_cast<VulkanMesh>(mesh);
+
+                    constexpr uint32_t invalidIndex = std::numeric_limits<uint32_t>::max();
+
+                    MeshInstanceData meshInstanceData{};
+                    meshInstanceData.vertexBufferAddress = vkMesh->getVertexBufferDeviceAddress();
+                    meshInstanceData.indexBufferAddress = vkMesh->getIndexBufferDeviceAddress();
+                    meshInstanceData.materialIndex = invalidIndex;
+                    meshInstanceData.emitterIndex = invalidIndex;
+                    meshInstanceData.volumeIndex = invalidIndex;
+
+                    instance.mask = 0xFF;
+
+                    // Add material properties to the instance data
+                    if (entity.has<MaterialComponent>()) {
+                        auto& materialComponent = entity.get<MaterialComponent>();
+
+                        // i hate this indent but its good for now
+                        if (materialComponent.material.isValid()) {
+                            meshInstanceData.materialIndex = m_materialRegistry.getIndex(materialComponent.material);
+                            meshInstanceData.textureTintColor = glm::vec4(materialComponent.tint, 1.0f);
+                            meshInstanceData.textureTilingFactor = materialComponent.tilingFactor;
+
+                            auto material = frameInfo.rm.get<Material>(materialComponent.material);
+
+                            // register entities with emissive materials
+                            if (material->isEmissive()) {
+                                meshInstanceData.emitterIndex = static_cast<uint32_t>(m_emitters.size());
+
+                                EmitterData emitterData{};
+                                emitterData.instanceIndex = instanceIndex;
+                                emitterData.numberOfFaces = vkMesh->getIndexCount() / 3;
+                                m_emitters.push_back(emitterData);
+                            }
+                        }
+                    }
+
+                    // Add volume properties to the instance data
+                    if (entity.has<VolumeComponent>()) {
+                        VolumeComponent::Volume volume = entity.get<VolumeComponent>().volume;
+
+                        meshInstanceData.volumeIndex = volumeIndex++;
+
+                        uint32_t densityTextureId = invalidIndex;
+                        uint32_t detailTextureId = invalidIndex;
+
+                        if (volume.densityTexture.get() != nullptr) {
+                            densityTextureId = m_textureRegistry.getIndex(volume.densityTexture->id);
+                        }
+
+                        if (volume.detailTexture.get() != nullptr) {
+                            detailTextureId = m_textureRegistry.getIndex(volume.detailTexture->id);
+                        }
+
+                        m_volumes.push_back(VolumeData{.absorption = volume.absorption,
+                                                       .scattering = volume.scattering,
+                                                       .phaseFunctionG = volume.phaseFunctionG,
+                                                       .densityTextureId = densityTextureId,
+                                                       .detailTextureId = detailTextureId,
+                                                       .instanceIndex = instanceIndex});
+                    }
+
+                    // TODO: may be passed as mat4x3 in the shader for memory bandwidth optimization
+                    glm::mat4 transform = transformComponent.mat4();
+
+                    meshInstanceData.objectToWorldMatrix = transform;
+                    meshInstanceData.worldToObjectMatrix = glm::inverse(transform);
+
+                    m_meshInstanceData.push_back(meshInstanceData);
+
+                    // we can get it in the shader via InstanceCustomIndexKHR
+                    instance.instanceCustomIndex = instanceIndex++; // Unique index for each instance
+
+                    instance.instanceShaderBindingTableRecordOffset = 0; // this is 0 for every instance for now
+                                                                         // it is the offset in the SBT hit region
+                                                                         // (which hit shader the instance should use)
+                    instance.flags = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR; // Example flags
+                    instance.accelerationStructureReference = blasAddress;
+
+                    instances.push_back(instance);
                 }
-
-                // Add volume properties to the instance data
-                if (entity.has<VolumeComponent>()) {
-                    VolumeComponent::Volume volume = entity.get<VolumeComponent>().volume;
-
-                    meshInstanceData.volumeIndex = volumeIndex++;
-
-                    uint32_t densityTextureId = invalidIndex;
-                    uint32_t detailTextureId = invalidIndex;
-
-                    if (volume.densityTexture.get() != nullptr) {
-                        densityTextureId = m_textureRegistry.getIndex(volume.densityTexture->id);
-                    }
-
-                    if (volume.detailTexture.get() != nullptr) {
-                        detailTextureId = m_textureRegistry.getIndex(volume.detailTexture->id);
-                    }
-
-                    m_volumes.push_back(VolumeData{.absorption = volume.absorption,
-                                                   .scattering = volume.scattering,
-                                                   .phaseFunctionG = volume.phaseFunctionG,
-                                                   .densityTextureId = densityTextureId,
-                                                   .detailTextureId = detailTextureId,
-                                                   .instanceIndex = instanceIndex});
-                }
-
-                // TODO: may be passed as mat4x3 in the shader for memory bandwidth optimization
-                glm::mat4 transform = transformComponent.mat4();
-
-                meshInstanceData.objectToWorldMatrix = transform;
-                meshInstanceData.worldToObjectMatrix = glm::inverse(transform);
-
-                m_meshInstanceData.push_back(meshInstanceData);
-
-                // we can get it in the shader via InstanceCustomIndexKHR
-                instance.instanceCustomIndex = instanceIndex++; // Unique index for each instance
-
-                instance.instanceShaderBindingTableRecordOffset = 0; // this is 0 for every instance for now
-                                                                     // it is the offset in the SBT hit region
-                                                                     // (which hit shader the instance should use)
-                instance.flags = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR; // Example flags
-                instance.accelerationStructureReference = blasAddress;
-
-                instances.push_back(instance);
-            }
-        }, activeView);
+            },
+            activeView);
 
         // TODO: maybe move from here?
         updateMeshInstanceDescriptorSets(frameInfo.frameIndex);

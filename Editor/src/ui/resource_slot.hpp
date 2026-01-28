@@ -18,7 +18,7 @@ namespace pxt::editor {
             }
 
             ImGui::PushID(label); // Prevent ID conflicts if using multiple slots
-          
+
             // A square-ish button to act as the "Target Icon"
             if (ImGui::Button(buttonText.c_str(), ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
                 ImGui::OpenPopup("AssetSelectionPopup");
@@ -31,20 +31,14 @@ namespace pxt::editor {
 
             // handle Manual Selection Popup
             if (ImGui::BeginPopup("AssetSelectionPopup")) {
-                static  ImGuiTextFilter filter;
+                static ImGuiTextFilter filter;
 
                 filter.Draw("Search");
-
-                //TODO: read below
-                /* this is currently not possible because some components still use pointers
-                *    and in the code we are not checking for nullptrs. (components will hold uids or asset handles in
-                    the future)
 
                 if (ImGui::Selectable("Clear Slot")) {
                     outPayload.id = core::UID::s_invalidId;
                     changed = true;
                 }
-                */
 
                 // List all resources of the specified type
                 for (auto& resource : rm.getResourcesByType(outPayload.type)) {
@@ -65,4 +59,4 @@ namespace pxt::editor {
             return changed;
         }
     };
-}
+} // namespace pxt::editor

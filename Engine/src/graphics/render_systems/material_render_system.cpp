@@ -1,6 +1,7 @@
 #include "graphics/render_systems/material_render_system.hpp"
 
 #include "graphics/resources/vk_mesh.hpp"
+#include "resources/resource_manager.hpp"
 #include "scene/ecs/entity.hpp"
 
 namespace pxt {
@@ -90,18 +91,23 @@ namespace pxt {
         m_pipeline = createUnique<Pipeline>(m_context, shaderFilePaths, pipelineConfig);
     }
 
-    //TODO: change how we do this
+    // TODO: change how we do this
     template <typename... Components>
     void MaterialRenderSystem::processEntities(ComponentList<Components...> neededComponents, FrameInfo& frameInfo) {
         auto view = frameInfo.scene.getEntitiesWith(neededComponents);
-        
+
         for (auto entity : view) {
 
             const auto& [transform, meshComponent, materialComponent] =
                 view.get<TransformComponent, MeshComponent, MaterialComponent>(entity);
 
-            auto material = materialComponent.material;
-            auto vulkanMesh = std::static_pointer_cast<VulkanMesh>(meshComponent.mesh);
+            if (!materialComponent.material.isValid() || !meshComponent.mesh.isValid()) {
+                // we have an empty mesh or material
+                continue;
+            }
+
+            auto material = frameInfo.rm.get<Material>(materialComponent.material);
+            auto vulkanMesh = frameInfo.rm.get<VulkanMesh>(meshComponent.mesh);
 
             MaterialPushConstantData push{};
             push.modelMatrix = transform.mat4();

@@ -1,6 +1,7 @@
 #include "graphics/render_systems/shadow_map_render_system.hpp"
 
 #include "graphics/resources/vk_mesh.hpp"
+#include "resources/resource_manager.hpp"
 #include "scene/ecs/entity.hpp"
 
 namespace pxt {
@@ -280,8 +281,17 @@ namespace pxt {
         vkCmdBindDescriptorSets(frameInfo.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1,
                                 &m_lightDescriptorSets[frameInfo.frameIndex], 0, nullptr);
 
+        using EditView = entt::view<entt::get_t<TransformComponent, MeshComponent, VisibilityTag>>;
+        using PlayView = entt::view<entt::get_t<TransformComponent, MeshComponent, RenderableTag>>;
+
+        std::variant<EditView, PlayView> activeView;
+
         // get all the entities with a transform and model component (for later)
-        auto view = frameInfo.scene.getEntitiesWith<TransformComponent, MeshComponent>();
+        if (frameInfo.engineMode == core::EngineMode::EDIT) {
+            activeView = frameInfo.scene.getEntitiesWith<TransformComponent, MeshComponent, VisibilityTag>();
+        } else {
+            activeView = frameInfo.scene.getEntitiesWith<TransformComponent, MeshComponent, RenderableTag>();
+        }
 
         // Loop through each face of the cube map and render the scene from that perspective
         // we need one render pass per face of the cube map, each time we modify the view matrix
@@ -293,20 +303,28 @@ namespace pxt {
             ShadowMapPushConstantData push{};
             push.cubeFaceView = this->getFaceViewMatrix(face);
 
-            for (auto entity : view) {
+            std::visit(
+                [&](auto& view) {
+                    for (auto entity : view) {
 
-                const auto& [transform, meshComponent] = view.get<TransformComponent, MeshComponent>(entity);
+                        const auto& [transform, meshComponent] = view.get<TransformComponent, MeshComponent>(entity);
 
-                push.modelMatrix = transform.mat4();
+                        push.modelMatrix = transform.mat4();
 
-                vkCmdPushConstants(frameInfo.commandBuffer, m_pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0,
-                                   sizeof(ShadowMapPushConstantData), &push);
+                        vkCmdPushConstants(frameInfo.commandBuffer, m_pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0,
+                                           sizeof(ShadowMapPushConstantData), &push);
 
-                auto vulkanModel = std::static_pointer_cast<VulkanMesh>(meshComponent.mesh);
+                        if (!meshComponent.mesh.isValid()) {
+                            continue;
+                        }
 
-                vulkanModel->bind(frameInfo.commandBuffer);
-                vulkanModel->draw(frameInfo.commandBuffer);
-            }
+                        auto vulkanModel = frameInfo.rm.get<VulkanMesh>(meshComponent.mesh);
+
+                        vulkanModel->bind(frameInfo.commandBuffer);
+                        vulkanModel->draw(frameInfo.commandBuffer);
+                    }
+                },
+                activeView);
 
             renderer.endRenderPass(frameInfo.commandBuffer, *m_renderPass, this->getCubeFaceFramebuffer(face));
         }

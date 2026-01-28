@@ -1,176 +1,168 @@
 #include "scene/scene_serializer.hpp"
 
 #include "scene/ecs/component.hpp"
-#include "scene/ecs/entity.hpp"
-
-#include <typeindex>
-
-#include "yaml-cpp/yaml.h"
 
 namespace pxt {
+    SceneSerializer::SceneSerializer(Scene* scene, ResourceManager& resourceManager)
+        : m_scene(scene), m_resourceManager(resourceManager) {
+        init();
+    }
 
-    using SerializerFunction = std::function<void(Entity, YAML::Emitter&)>;
+    void SceneSerializer::init() {
+        m_ComponentSerializers = {
+            // Name Component
+            {typeid(NameComponent), makeSerializer<NameComponent>([](auto& c, YAML::Emitter& out) {
+                 out << YAML::Key << "NameComponent" << YAML::Value << c.name;
+             })},
 
-    template <typename T, typename Fn>
-    static SerializerFunction makeSerializer(Fn&& fn) {
-        return [func = std::forward<Fn>(fn)](Entity entity, YAML::Emitter& out) {
-            if (!entity.has<T>())
-                return;
-            auto& component = entity.get<T>();
-            func(component, out);
+            // Color Component
+            {typeid(ColorComponent), makeSerializer<ColorComponent>([](auto& c, YAML::Emitter& out) {
+                 out << YAML::Key << "ColorComponent";
+                 out << YAML::BeginMap;
+                 out << YAML::Key << "color" << YAML::Value << YAML::Flow << YAML::BeginSeq << c.color.x << c.color.y
+                     << c.color.z << YAML::EndSeq;
+                 out << YAML::EndMap;
+             })},
+
+            // Transform Component
+            {typeid(TransformComponent), makeSerializer<TransformComponent>([](auto& c, YAML::Emitter& out) {
+                 out << YAML::Key << "TransformComponent";
+                 out << YAML::BeginMap;
+                 out << YAML::Key << "translation" << YAML::Value << YAML::Flow << YAML::BeginSeq << c.translation.x
+                     << c.translation.y << c.translation.z << YAML::EndSeq;
+                 out << YAML::Key << "scale" << YAML::Value << YAML::Flow << YAML::BeginSeq << c.scale.x << c.scale.y
+                     << c.scale.z << YAML::EndSeq;
+                 out << YAML::Key << "rotation" << YAML::Value << YAML::Flow << YAML::BeginSeq << c.rotation.x
+                     << c.rotation.y << c.rotation.z << YAML::EndSeq;
+                 out << YAML::EndMap;
+             })},
+
+            // Transform2d Component
+            {typeid(Transform2dComponent), makeSerializer<Transform2dComponent>([](auto& c, YAML::Emitter& out) {
+                 out << YAML::Key << "Transform2dComponent";
+                 out << YAML::BeginMap;
+                 out << YAML::Key << "translation" << YAML::Value << YAML::Flow << YAML::BeginSeq << c.translation.x
+                     << c.translation.y << YAML::EndSeq;
+                 out << YAML::Key << "scale" << YAML::Value << YAML::Flow << YAML::BeginSeq << c.scale.x << c.scale.y
+                     << YAML::EndSeq;
+                 out << YAML::Key << "rotation" << YAML::Value << c.rotation;
+                 out << YAML::EndMap;
+             })},
+
+            // Volume Component
+            {typeid(VolumeComponent), makeSerializer<VolumeComponent>([](auto& c, YAML::Emitter& out) {
+                 out << YAML::Key << "VolumeComponent";
+                 out << YAML::BeginMap;
+                 out << YAML::Key << "absorption" << YAML::Value << YAML::Flow << YAML::BeginSeq
+                     << c.volume.absorption.r << c.volume.absorption.g << c.volume.absorption.b << c.volume.absorption.a
+                     << YAML::EndSeq;
+                 out << YAML::Key << "scattering" << YAML::Value << YAML::Flow << YAML::BeginSeq
+                     << c.volume.scattering.r << c.volume.scattering.g << c.volume.scattering.b << c.volume.scattering.a
+                     << YAML::EndSeq;
+                 out << YAML::Key << "phaseFunctionG" << YAML::Value << c.volume.phaseFunctionG;
+                 // TODO: volume textures
+                 // out << YAML::Key << "densityTextureId" << YAML::Value << c.volume.densityTextureId;
+                 // out << YAML::Key << "detailTextureId" << YAML::Value << c.volume.detailTextureId;
+                 out << YAML::EndMap;
+             })},
+
+            // Mesh Component
+            {typeid(MeshComponent), makeSerializer<MeshComponent>([this](auto& c, YAML::Emitter& out) {
+                 auto mesh = m_resourceManager.get<Mesh>(c.mesh);
+
+                 out << YAML::Key << "MeshComponent";
+                 out << YAML::BeginMap;
+                 out << YAML::Key << "meshId" << YAML::Value << mesh->id.toString();
+                 out << YAML::Key << "mesh" << YAML::Value << mesh->alias;
+                 out << YAML::EndMap;
+             })},
+
+            // Material Component
+            // TODO: maybe reuse material if different entities use the same params
+            {typeid(MaterialComponent), makeSerializer<MaterialComponent>([this](auto& c, YAML::Emitter& out) {
+                 auto material = m_resourceManager.get<Material>(c.material);
+
+                 out << YAML::Key << "MaterialComponent";
+                 out << YAML::BeginMap;
+                 out << YAML::Key << "materialId" << YAML::Value << material->id.toString();
+                 out << YAML::Key << "material" << YAML::Value << material->alias;
+                 auto albedoColor = material->getAlbedoColor();
+                 out << YAML::Key << "albedoColor" << YAML::Value << YAML::Flow << YAML::BeginSeq << albedoColor.r
+                     << albedoColor.g << albedoColor.b << albedoColor.a << YAML::EndSeq;
+                 out << YAML::Key << "albedoMap" << YAML::Value
+                     << (material->getAlbedoMap() ? material->getAlbedoMap()->alias : "null");
+                 out << YAML::Key << "metallic" << YAML::Value << material->getMetallic();
+                 out << YAML::Key << "metallicMap" << YAML::Value
+                     << (material->getMetallicMap() ? material->getMetallicMap()->alias : "null");
+                 out << YAML::Key << "roughness" << YAML::Value << material->getRoughness();
+                 out << YAML::Key << "roughnessMap" << YAML::Value
+                     << (material->getRoughnessMap() ? material->getRoughnessMap()->alias : "null");
+                 out << YAML::Key << "normalMap" << YAML::Value
+                     << (material->getNormalMap() ? material->getNormalMap()->alias : "null");
+                 out << YAML::Key << "ambientOcclusionMap" << YAML::Value
+                     << (material->getAmbientOcclusionMap() ? material->getAmbientOcclusionMap()->alias : "null");
+                 auto emissiveColor = material->getEmissiveColor();
+                 out << YAML::Key << "emissiveColor" << YAML::Value << YAML::Flow << YAML::BeginSeq << emissiveColor.r
+                     << emissiveColor.g << emissiveColor.b << emissiveColor.a << YAML::EndSeq;
+                 out << YAML::Key << "emissiveMap" << YAML::Value
+                     << (material->getEmissiveMap() ? material->getEmissiveMap()->alias : "null");
+                 out << YAML::Key << "transmission" << YAML::Value << material->getTransmission();
+                 out << YAML::Key << "indexOfRefraction" << YAML::Value << material->getIndexOfRefraction();
+                 out << YAML::Key << "blinnPhongSpecularIntensity" << YAML::Value
+                     << material->getBlinnPhongSpecularIntensity();
+                 out << YAML::Key << "blinnPhongSpecularShininess" << YAML::Value
+                     << material->getBlinnPhongSpecularShininess();
+                 out << YAML::Key << "tilingFactor" << YAML::Value << c.tilingFactor;
+                 out << YAML::Key << "tint" << YAML::Value << YAML::Flow << YAML::BeginSeq << c.tint.r << c.tint.g
+                     << c.tint.b << YAML::EndSeq;
+                 out << YAML::EndMap;
+             })},
+
+            // Camera Component
+            {typeid(CameraComponent), makeSerializer<CameraComponent>([](auto& c, YAML::Emitter& out) {
+                 out << YAML::Key << "CameraComponent";
+                 out << YAML::BeginMap;
+                 out << YAML::Key << "useViewportAspectRatio" << YAML::Value << c.useViewportAspectRatio;
+                 if (!c.useViewportAspectRatio) {
+                     out << YAML::Key << "aspectRatio" << YAML::Value << c.aspectRatio;
+                 }
+                 out << YAML::Key << "isPerspective" << YAML::Value << c.cameraData.isPerspective();
+                 out << YAML::Key << "nearPlane" << YAML::Value << c.cameraData.getNearPlane();
+                 out << YAML::Key << "farPlane" << YAML::Value << c.cameraData.getFarPlane();
+                 out << YAML::Key << "fovYDegrees" << YAML::Value << c.cameraData.getFovYDegrees();
+                 out << YAML::Key << "orthoParams" << YAML::Value << YAML::Flow << YAML::BeginSeq
+                     << c.cameraData.getOrthoLeft() << c.cameraData.getOrthoRight() << c.cameraData.getOrthoTop()
+                     << c.cameraData.getOrthoBottom() << YAML::EndSeq;
+                 out << YAML::EndMap;
+             })},
+
+            // PointLight Component
+            {typeid(PointLightComponent), makeSerializer<PointLightComponent>([](auto& c, YAML::Emitter& out) {
+                 out << YAML::Key << "PointLightComponent";
+                 out << YAML::BeginMap;
+                 out << YAML::Key << "lightIntensity" << YAML::Value << c.lightIntensity;
+                 out << YAML::Key << "lightColor" << YAML::Value << YAML::Flow << YAML::BeginSeq << c.lightColor.r
+                     << c.lightColor.g << c.lightColor.b << YAML::EndSeq;
+                 out << YAML::EndMap;
+             })},
         };
     }
 
-    static std::unordered_map<std::type_index, SerializerFunction> s_ComponentSerializers = {
-        // Name Component
-        {typeid(NameComponent), makeSerializer<NameComponent>([](auto& c, YAML::Emitter& out) {
-             out << YAML::Key << "NameComponent" << YAML::Value << c.name;
-         })},
-
-        // Color Component
-        {typeid(ColorComponent), makeSerializer<ColorComponent>([](auto& c, YAML::Emitter& out) {
-             out << YAML::Key << "ColorComponent";
-             out << YAML::BeginMap;
-             out << YAML::Key << "color" << YAML::Value << YAML::Flow << YAML::BeginSeq << c.color.x << c.color.y
-                 << c.color.z << YAML::EndSeq;
-             out << YAML::EndMap;
-         })},
-
-        // Transform Component
-        {typeid(TransformComponent), makeSerializer<TransformComponent>([](auto& c, YAML::Emitter& out) {
-             out << YAML::Key << "TransformComponent";
-             out << YAML::BeginMap;
-             out << YAML::Key << "translation" << YAML::Value << YAML::Flow << YAML::BeginSeq << c.translation.x
-                 << c.translation.y << c.translation.z << YAML::EndSeq;
-             out << YAML::Key << "scale" << YAML::Value << YAML::Flow << YAML::BeginSeq << c.scale.x << c.scale.y
-                 << c.scale.z << YAML::EndSeq;
-             out << YAML::Key << "rotation" << YAML::Value << YAML::Flow << YAML::BeginSeq << c.rotation.x
-                 << c.rotation.y << c.rotation.z << YAML::EndSeq;
-             out << YAML::EndMap;
-         })},
-
-        // Transform2d Component
-        {typeid(Transform2dComponent), makeSerializer<Transform2dComponent>([](auto& c, YAML::Emitter& out) {
-             out << YAML::Key << "Transform2dComponent";
-             out << YAML::BeginMap;
-             out << YAML::Key << "translation" << YAML::Value << YAML::Flow << YAML::BeginSeq << c.translation.x
-                 << c.translation.y << YAML::EndSeq;
-             out << YAML::Key << "scale" << YAML::Value << YAML::Flow << YAML::BeginSeq << c.scale.x << c.scale.y
-                 << YAML::EndSeq;
-             out << YAML::Key << "rotation" << YAML::Value << c.rotation;
-             out << YAML::EndMap;
-         })},
-
-        // Volume Component
-        {typeid(VolumeComponent), makeSerializer<VolumeComponent>([](auto& c, YAML::Emitter& out) {
-             out << YAML::Key << "VolumeComponent";
-             out << YAML::BeginMap;
-             out << YAML::Key << "absorption" << YAML::Value << YAML::Flow << YAML::BeginSeq << c.volume.absorption.r
-                 << c.volume.absorption.g << c.volume.absorption.b << c.volume.absorption.a << YAML::EndSeq;
-             out << YAML::Key << "scattering" << YAML::Value << YAML::Flow << YAML::BeginSeq << c.volume.scattering.r
-                 << c.volume.scattering.g << c.volume.scattering.b << c.volume.scattering.a << YAML::EndSeq;
-             out << YAML::Key << "phaseFunctionG" << YAML::Value << c.volume.phaseFunctionG;
-             // TODO: volume textures
-             // out << YAML::Key << "densityTextureId" << YAML::Value << c.volume.densityTextureId;
-             // out << YAML::Key << "detailTextureId" << YAML::Value << c.volume.detailTextureId;
-             out << YAML::EndMap;
-         })},
-
-        // Mesh Component
-        {typeid(MeshComponent), makeSerializer<MeshComponent>([](auto& c, YAML::Emitter& out) {
-             out << YAML::Key << "MeshComponent";
-             out << YAML::BeginMap;
-             out << YAML::Key << "meshId" << YAML::Value << c.mesh->id.toString();
-             out << YAML::Key << "mesh" << YAML::Value << c.mesh->alias;
-             out << YAML::EndMap;
-         })},
-
-        // Material Component
-        // TODO: maybe reuse material if different entities use the same params
-        {typeid(MaterialComponent), makeSerializer<MaterialComponent>([](auto& c, YAML::Emitter& out) {
-             out << YAML::Key << "MaterialComponent";
-             out << YAML::BeginMap;
-             out << YAML::Key << "materialId" << YAML::Value << c.material->id.toString();
-             out << YAML::Key << "material" << YAML::Value << c.material->alias;
-             auto albedoColor = c.material->getAlbedoColor();
-             out << YAML::Key << "albedoColor" << YAML::Value << YAML::Flow << YAML::BeginSeq << albedoColor.r
-                 << albedoColor.g << albedoColor.b << albedoColor.a << YAML::EndSeq;
-             out << YAML::Key << "albedoMap" << YAML::Value
-                 << (c.material->getAlbedoMap() ? c.material->getAlbedoMap()->alias : "null");
-             out << YAML::Key << "metallic" << YAML::Value << c.material->getMetallic();
-             out << YAML::Key << "metallicMap" << YAML::Value
-                 << (c.material->getMetallicMap() ? c.material->getMetallicMap()->alias : "null");
-             out << YAML::Key << "roughness" << YAML::Value << c.material->getRoughness();
-             out << YAML::Key << "roughnessMap" << YAML::Value
-                 << (c.material->getRoughnessMap() ? c.material->getRoughnessMap()->alias : "null");
-             out << YAML::Key << "normalMap" << YAML::Value
-                 << (c.material->getNormalMap() ? c.material->getNormalMap()->alias : "null");
-             out << YAML::Key << "ambientOcclusionMap" << YAML::Value
-                 << (c.material->getAmbientOcclusionMap() ? c.material->getAmbientOcclusionMap()->alias : "null");
-             auto emissiveColor = c.material->getEmissiveColor();
-             out << YAML::Key << "emissiveColor" << YAML::Value << YAML::Flow << YAML::BeginSeq << emissiveColor.r
-                 << emissiveColor.g << emissiveColor.b << emissiveColor.a << YAML::EndSeq;
-             out << YAML::Key << "emissiveMap" << YAML::Value
-                 << (c.material->getEmissiveMap() ? c.material->getEmissiveMap()->alias : "null");
-             out << YAML::Key << "transmission" << YAML::Value << c.material->getTransmission();
-             out << YAML::Key << "indexOfRefraction" << YAML::Value << c.material->getIndexOfRefraction();
-             out << YAML::Key << "blinnPhongSpecularIntensity" << YAML::Value
-                 << c.material->getBlinnPhongSpecularIntensity();
-             out << YAML::Key << "blinnPhongSpecularShininess" << YAML::Value
-                 << c.material->getBlinnPhongSpecularShininess();
-             out << YAML::Key << "tilingFactor" << YAML::Value << c.tilingFactor;
-             out << YAML::Key << "tint" << YAML::Value << YAML::Flow << YAML::BeginSeq << c.tint.r << c.tint.g
-                 << c.tint.b << YAML::EndSeq;
-             out << YAML::EndMap;
-         })},
-
-        // Camera Component
-        {typeid(CameraComponent), makeSerializer<CameraComponent>([](auto& c, YAML::Emitter& out) {
-             out << YAML::Key << "CameraComponent";
-             out << YAML::BeginMap;
-             out << YAML::Key << "useViewportAspectRatio" << YAML::Value << c.useViewportAspectRatio;
-             if (!c.useViewportAspectRatio) {
-                 out << YAML::Key << "aspectRatio" << YAML::Value << c.aspectRatio;
-             }
-             out << YAML::Key << "isPerspective" << YAML::Value << c.cameraData.isPerspective();
-             out << YAML::Key << "nearPlane" << YAML::Value << c.cameraData.getNearPlane();
-             out << YAML::Key << "farPlane" << YAML::Value << c.cameraData.getFarPlane();
-             out << YAML::Key << "fovYDegrees" << YAML::Value << c.cameraData.getFovYDegrees();
-             out << YAML::Key << "orthoParams" << YAML::Value << YAML::Flow << YAML::BeginSeq
-                 << c.cameraData.getOrthoLeft() << c.cameraData.getOrthoRight() << c.cameraData.getOrthoTop()
-                 << c.cameraData.getOrthoBottom() << YAML::EndSeq;
-             out << YAML::EndMap;
-         })},
-
-        // PointLight Component
-        {typeid(PointLightComponent), makeSerializer<PointLightComponent>([](auto& c, YAML::Emitter& out) {
-             out << YAML::Key << "PointLightComponent";
-             out << YAML::BeginMap;
-             out << YAML::Key << "lightIntensity" << YAML::Value << c.lightIntensity;
-             out << YAML::Key << "lightColor" << YAML::Value << YAML::Flow << YAML::BeginSeq << c.lightColor.r
-                 << c.lightColor.g << c.lightColor.b << YAML::EndSeq;
-             out << YAML::EndMap;
-         })},
-    };
-
-    SceneSerializer::SceneSerializer(Scene* scene, ResourceManager* resourceManager)
-        : m_scene(scene), m_resourceManager(resourceManager) {}
-
-    static void serializeEntity(Entity entity, YAML::Emitter& out) {
+    void SceneSerializer::serializeEntity(Entity entity, YAML::Emitter& out) {
         // Entity Map
         out << YAML::BeginMap;
 
         out << YAML::Key << "entity" << YAML::Value << entity.getUID().toString();
 
         // Serialize Components
-        for (auto& [name, fn] : s_ComponentSerializers)
+        for (auto& [name, fn] : m_ComponentSerializers)
             fn(entity, out);
 
         // End Entity Map
         out << YAML::EndMap;
     }
 
-    static void serializeEnvironment([[maybe_unused]] Scene* scene, [[maybe_unused]] YAML::Emitter& out) {
+    void serializeEnvironment([[maybe_unused]] Scene* scene, [[maybe_unused]] YAML::Emitter& out) {
         // TODO:
     }
 
@@ -244,7 +236,7 @@ namespace pxt {
             return false;
         }
 
-        auto rm = m_resourceManager;
+        auto& rm = m_resourceManager;
 
         // TODO: environment
         //  ----------------
@@ -318,9 +310,7 @@ namespace pxt {
             }
             // Deserialize MeshComponent
             if (auto meshComponentNode = entityNode["MeshComponent"]) {
-                std::string meshAlias = meshComponentNode["mesh"].as<std::string>();
-
-                auto mesh = rm->get<Mesh>(meshAlias);
+                AssetHandle mesh = rm.get<Mesh>(meshComponentNode["mesh"].as<std::string>())->id;
 
                 entity.add<MeshComponent>(mesh);
             }
@@ -350,11 +340,11 @@ namespace pxt {
                 auto materialBuilder =
                     Material::Builder()
                         .setAlbedoColor({albedoColor[0], albedoColor[1], albedoColor[2], albedoColor[3]})
-                        .setAlbedoMap(rm->get<Image>(albedoMapName, &albedoInfo))
-                        .setNormalMap(rm->get<Image>(normalMapName))
-                        .setAmbientOcclusionMap(rm->get<Image>(ambientOcclusionMapName))
+                        .setAlbedoMap(rm.get<Image>(albedoMapName, &albedoInfo))
+                        .setNormalMap(rm.get<Image>(normalMapName))
+                        .setAmbientOcclusionMap(rm.get<Image>(ambientOcclusionMapName))
                         .setEmissiveColor({emissiveColor[0], emissiveColor[1], emissiveColor[2], emissiveColor[3]})
-                        .setEmissiveMap(rm->get<Image>(emissiveMapName))
+                        .setEmissiveMap(rm.get<Image>(emissiveMapName))
                         .setTransmission(transmission)
                         .setIndexOfRefraction(indexOfRefraction)
                         .setBlinnPhongSpecularIntensity(blinnPhongSpecularIntensity)
@@ -363,16 +353,16 @@ namespace pxt {
                 if (metallicMapName == "null") {
                     materialBuilder.setMetallic(metallic);
                 } else {
-                    materialBuilder.setMetallicMap(rm->get<Image>(metallicMapName));
+                    materialBuilder.setMetallicMap(rm.get<Image>(metallicMapName));
                 }
                 if (roughnessMapName == "null") {
                     materialBuilder.setRoughness(roughness);
                 } else {
-                    materialBuilder.setRoughnessMap(rm->get<Image>(roughnessMapName));
+                    materialBuilder.setRoughnessMap(rm.get<Image>(roughnessMapName));
                 }
                 auto material = materialBuilder.build();
 
-                rm->add(material, "mat-" + name);
+                rm.add(material, "mat-" + name);
 
                 float tilingFactor = 1.0f;
                 if (auto tilingFactorNode = materialComponentNode["tilingFactor"]) {
@@ -386,7 +376,7 @@ namespace pxt {
                 }
 
                 entity.add<MaterialComponent>(MaterialComponent::Builder()
-                                                  .setMaterial(material)
+                                                  .setMaterial(material->id)
                                                   .setTilingFactor(tilingFactor)
                                                   .setTint(tint)
                                                   .build());
