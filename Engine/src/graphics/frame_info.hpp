@@ -1,9 +1,9 @@
 #pragma once
 
+#include "core/engine_mode.hpp"
 #include "core/pch.hpp"
 #include "graphics/camera_matrices.hpp"
 #include "scene/scene.hpp"
-#include "core/engine_mode.hpp"
 
 namespace pxt {
     struct PointLight {
@@ -22,6 +22,8 @@ namespace pxt {
         uint32_t frameCount;
     };
 
+    class ResourceManager; // Forward declaration
+
     struct FrameInfo {
         int frameIndex;
         float frameTime;
@@ -36,5 +38,6 @@ namespace pxt {
         VkSemaphore renderFinished; // The semaphore signaled when rendering is done
 
         core::EngineMode engineMode;
+        ResourceManager& rm;
     };
 } // namespace pxt
