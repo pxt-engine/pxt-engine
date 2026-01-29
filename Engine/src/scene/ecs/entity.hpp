@@ -79,14 +79,30 @@ namespace pxt {
         /**
          * @brief Remove a component from entity
          *
-         * @tparam Component type
+         * @tparam Component component to remove
+         * @return size_t number of removed components (0 or 1)
          */
         template <typename Component>
-        void remove() {
-            PXT_STATIC_ASSERT((!std::is_same_v<Component, IDComponent>), "Cannot remove ID component");
-            PXT_ASSERT(has<Component>(), "Entity does not have component");
+        size_t remove() {
+            PXT_STATIC_ASSERT(!IsCoreComponent<Component>::value, "Cannot remove a Core component");
+            
+            if (has<Component>()) {
+                PXT_WARN("Trying to remove a component the entity doesn't have (when calling registry.remove() this "
+                         "could be intended behavior)");
+            }
+            return m_scene->m_registry.remove<Component>(m_enttEntity);
+        }
 
-            m_scene->m_registry.remove<Component>(m_enttEntity);
+        /*
+         * @brief Update a component of the entity using a provided function
+         * 
+         * @tparam Component type
+         * @tparam Func function type
+         */
+        template <typename Component, typename Func>
+        void update(Func&& func) {
+            // Assuming m_Scene is a pointer to your Scene class
+            m_scene->updateComponent<Component>(m_enttEntity, std::forward<Func>(func));
         }
 
         /**
@@ -116,6 +132,8 @@ namespace pxt {
             }
             return std::ref(*m_scene);
         }
+
+
 
     private:
         entt::entity m_enttEntity{entt::null};
