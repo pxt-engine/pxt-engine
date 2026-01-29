@@ -184,6 +184,8 @@ namespace pxt {
         const auto& transform = selectedEntity.get<TransformComponent>();
         const auto& meshComponent = selectedEntity.get<MeshComponent>();
 
+        // this is still required, because we are not excluding entities with invalid mesh handles
+        // through the view lookup (see material_render_system.cpp render for an example)
         if (!meshComponent.mesh.isValid()) {
             // entity does not have required components, leave black and do nothing
             renderer.endRenderPass(frameInfo.commandBuffer, *m_offscreenRenderPass, *m_offscreenFb);

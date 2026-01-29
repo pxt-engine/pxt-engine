@@ -244,11 +244,6 @@ namespace pxt {
             const auto& [transform, meshComponent, objPickingIdComponent] =
                 view.get<TransformComponent, MeshComponent, ObjPickingIdComponent>(entity);
 
-            if (!meshComponent.mesh.isValid()) {
-                // we have an empty mesh
-                continue;
-            }
-
             auto vulkanMesh = frameInfo.rm.get<VulkanMesh>(meshComponent.mesh);
 
             ObjPickingPushConstantData push{};

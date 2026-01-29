@@ -61,10 +61,6 @@ namespace pxt {
                     const auto& [transformComponent, meshComponent] =
                         view.get<TransformComponent, MeshComponent>(entityHandle);
 
-                    if (!meshComponent.mesh.isValid()) {
-                        continue;
-                    }
-
                     auto mesh = frameInfo.rm.get<Mesh>(meshComponent.mesh);
 
                     Shared<BLAS> blas = m_blasRegistry.getOrCreateBLAS(mesh);

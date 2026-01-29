@@ -101,11 +101,6 @@ namespace pxt {
             const auto& [transform, meshComponent, materialComponent] =
                 view.get<TransformComponent, MeshComponent, MaterialComponent>(entity);
 
-            if (!materialComponent.material.isValid() || !meshComponent.mesh.isValid()) {
-                // we have an empty mesh or material
-                continue;
-            }
-
             auto material = frameInfo.rm.get<Material>(materialComponent.material);
             auto vulkanMesh = frameInfo.rm.get<VulkanMesh>(meshComponent.mesh);
 

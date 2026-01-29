@@ -314,10 +314,6 @@ namespace pxt {
                         vkCmdPushConstants(frameInfo.commandBuffer, m_pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0,
                                            sizeof(ShadowMapPushConstantData), &push);
 
-                        if (!meshComponent.mesh.isValid()) {
-                            continue;
-                        }
-
                         auto vulkanModel = frameInfo.rm.get<VulkanMesh>(meshComponent.mesh);
 
                         vulkanModel->bind(frameInfo.commandBuffer);
