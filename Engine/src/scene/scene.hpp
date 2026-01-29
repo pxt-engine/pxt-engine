@@ -79,6 +79,21 @@ namespace pxt {
         void onStart();
 
         /**
+         * @brief Update a component of an entity using a provided function.
+         * 
+         * @tparam Component type
+         * @tparam Func function type
+         * @param entity The entity whose component is to be updated.
+         * @param func The function to apply to the component.
+         */
+        template <typename Component, typename Func>
+        void updateComponent(entt::entity entity, Func&& func) {
+            // .patch<Component> takes the entity and one or more functions
+            // to apply to the component, and then signals the listeners of the update
+            m_registry.patch<Component>(entity, std::forward<Func>(func));
+        }
+
+        /**
          * @brief Called every frame to update the scene.
          * @param delta Time elapsed since the last update.
          */
@@ -124,6 +139,11 @@ namespace pxt {
         std::string getUniqueEntityName(const std::string& baseName);
 
     private:
+        void onTransformCreate(entt::registry& registry, entt::entity enttEntity);
+        void onTransform2dCreate(entt::registry& registry, entt::entity enttEntity);
+        void onMeshUpdate(entt::registry& registry, entt::entity entity);
+        void onPropertiesUpdate(entt::registry& registry, entt::entity enttEntity);
+
         std::string m_name = "Unnamed-Scene";
         std::unordered_map<core::UID, entt::entity> m_entityMap;
         std::unordered_map<uint32_t, core::UID> m_objPickingIdToUID;

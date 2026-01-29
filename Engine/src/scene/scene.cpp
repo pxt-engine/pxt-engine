@@ -5,12 +5,92 @@
 #include "scene/ecs/component.hpp"
 #include "scene/ecs/entity.hpp"
 #include "scene/script/script.hpp"
+#include "core/filesystem.hpp"
 
 namespace pxt {
     Scene::Scene() {
         // put invalid ids into m_objPickingIdToUID map
         m_objPickingIdToUID[core::ObjPickingId::s_invalidId] = core::UID::s_invalidId;
         m_uidToObjPickingId[core::UID::s_invalidId] = core::ObjPickingId::s_invalidId;
+
+        m_registry.on_construct<TransformComponent>().connect<&Scene::onTransformCreate>(this);
+        m_registry.on_construct<Transform2dComponent>().connect<&Scene::onTransform2dCreate>(this);
+
+        m_registry.on_update<MeshComponent>().connect<&Scene::onMeshUpdate>(this);
+        m_registry.on_update<PropertiesComponent>().connect<&Scene::onPropertiesUpdate>(this);
+    }
+
+    void Scene::onTransformCreate(entt::registry& registry, entt::entity enttEntity) {
+        // for now we just check if the entity already has a transform2d,
+        // in that case we remove the newly created transform3d component
+        Entity entity = {enttEntity, this};
+
+        if (entity.has<Transform2dComponent>()) {
+            //TODO: remove of constructed component cannot be called. use an event based removal
+            //entity.remove<TransformComponent>();
+
+            core::FileSystem::openWarningModal(
+                "Entity \"" + entity.getName() +
+                                               "\" cannot have both TransformComponent and Transform2dComponent. The "
+                                               "TransformComponent has been removed (not yet, we have to call an event!!!!).");
+        }
+    }
+
+    void Scene::onTransform2dCreate(entt::registry& registry, entt::entity enttEntity) {
+        // for now we just check if the entity already has a transform,
+        // in that case we remove the newly created transform2d component
+        Entity entity = {enttEntity, this};
+
+        if (entity.has<TransformComponent>()) {
+            // TODO: remove of constructed component cannot be called. use an event based removal
+            //entity.remove<Transform2dComponent>();
+
+            core::FileSystem::openWarningModal("Entity \"" + entity.getName() +
+                                               "\" cannot have both TransformComponent and Transform2dComponent. The "
+                                               "Transform2dComponent has been removed (not yet, we have to call an event!!!!).");
+        }
+    }
+
+    void Scene::onMeshUpdate(entt::registry& registry, entt::entity enttEntity) { 
+        Entity entity = {enttEntity, this};
+        
+        auto& propertiesComp = entity.get<PropertiesComponent>();
+        auto& meshComp = entity.get<MeshComponent>();
+
+        if (meshComp.mesh.isValid()) {
+            if (propertiesComp.isEditorVisible) {
+                entity.add<VisibilityTag>();
+            }
+
+            if (propertiesComp.isRenderable) {
+                entity.add<RenderableTag>();
+            }
+        } else {
+            entity.remove<VisibilityTag>();
+            entity.remove<RenderableTag>();
+        }
+    }
+
+    void Scene::onPropertiesUpdate(entt::registry& registry, entt::entity enttEntity) {
+        Entity entity = {enttEntity, this};
+        auto& propertiesComp = entity.get<PropertiesComponent>();
+
+        if (!entity.has<MeshComponent>() || !entity.get<MeshComponent>().mesh.isValid()) {
+            // if there is no valid mesh, we cannot set visibility/renderable tags
+            return;
+        }
+        
+        if (propertiesComp.isEditorVisible) {
+            entity.add<VisibilityTag>();
+        } else {
+            entity.remove<VisibilityTag>();
+        }
+
+        if (propertiesComp.isRenderable) {
+            entity.add<RenderableTag>();
+        } else {
+            entity.remove<RenderableTag>();
+        }
     }
 
     std::string Scene::getUniqueEntityName(const std::string& baseName) {
@@ -47,6 +127,7 @@ namespace pxt {
         entity.add<IDComponent>(id);
         entity.add<ObjPickingIdComponent>(objPickingId);
         entity.add<NameComponent>(newEntityName);
+        entity.add<PropertiesComponent>();
         entity.add<RenderableTag>();
         entity.add<VisibilityTag>();
 
