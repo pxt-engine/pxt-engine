@@ -118,6 +118,21 @@ namespace pxt {
         // Conversion operator calling the mat4 function
         operator glm::mat4() { return mat4(); }
     };
+    
+    //! These three components should not be here, but rather in a separate module for editor-only components
+    //! The properties is fine but editor-only fields should be excluded, as well as the visibility tag
+    // TODO: when we will do reflection (entt::meta or other), we can move these to editor-only module
+    struct PropertiesComponent {
+        std::string tag = "Default"; // For searching/grouping
+
+        // User Intent
+        bool isEditorVisible = true;    // Affects the viewport/Editor
+        bool isRenderable = true; // Affects the Vulkan pass
+        bool isStatic = false;    // Optimization hint (especially T/BLAS)
+        bool isLocked = false;    // Prevents accidental movement in UI
+
+        PropertiesComponent() = default;
+    };
 
     // if an entity has this tag, it will be rendered
     struct RenderableTag {};
@@ -289,7 +304,7 @@ namespace pxt {
     template <typename... Component>
     struct ComponentList {};
 
-    using CoreComponents = ComponentList<IDComponent, NameComponent, ObjPickingIdComponent>;
+    using CoreComponents = ComponentList<IDComponent, NameComponent, ObjPickingIdComponent, PropertiesComponent>;
 
     using AttachableComponents =
         ComponentList<TransformComponent, Transform2dComponent, ColorComponent, VolumeComponent, MaterialComponent,
