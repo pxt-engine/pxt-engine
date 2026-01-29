@@ -268,7 +268,7 @@ namespace pxt::editor {
             ResourceManager& rm = Application::get().getResourceManager();
 
             if (ResourceSlot::render("##entity-inspector-mesh-component-resource-slot", payload, rm)) {
-                c.mesh = payload.id;
+                entity.update<MeshComponent>([&payload](auto& meshComp) { meshComp.mesh = payload.id; });
 
                 std::string newMeshAlias = c.mesh.isValid() ? rm.get<Mesh>(c.mesh)->alias : "No Mesh Assigned";
 

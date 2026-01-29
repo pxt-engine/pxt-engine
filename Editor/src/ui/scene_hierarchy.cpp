@@ -68,11 +68,13 @@ namespace pxt::editor {
             // move cursor back to the same line, at the far right minus the icon area
             ImGui::SameLine(availableWidth - totalIconArea);
 
+
+            auto& propertiesComp = entity.get<PropertiesComponent>();
+
             // Eye icon (VisibilityTag Component) ---
-            bool isVisible = entity.has<VisibilityTag>();
+            bool isVisible = propertiesComp.isEditorVisible;
             std::string eyeIconFile = isVisible ? "eye_icon.png" : "eye_slash_icon.png";
 
-            // TODO: these two icon have to also check for entity validity, probably best if we have some preferences
             //  for eachentity inside a component or something and perform a validity check only when needed, not here
             ImTextureID eyeIcon = (ImTextureID)editorTextureRegistry->get(eyeIconFile);
             const char* eyeIconTooltip = "Hides this entity in the editor viewport";
@@ -80,16 +82,16 @@ namespace pxt::editor {
                                               ImVec2(iconSize, iconSize))) {
                 // Toggle Visibility Logic
                 if (isVisible) {
-                    entity.add<VisibilityTag>();
+                    entity.update<PropertiesComponent>([](auto& propComp) { propComp.isEditorVisible = true; });
                 } else {
-                    entity.remove<VisibilityTag>();
+                    entity.update<PropertiesComponent>([](auto& propComp) { propComp.isEditorVisible = false; });
                 }
             }
 
             ImGui::SameLine();
 
             // Renderable icon (RenderableTag Component) ---
-            bool isRenderable = entity.has<RenderableTag>();
+            bool isRenderable = propertiesComp.isRenderable;
             std::string cameraIconFile = isRenderable ? "camera_icon.png" : "camera_slash_icon.png";
 
             ImTextureID renderableIcon = (ImTextureID)editorTextureRegistry->get(cameraIconFile);
@@ -98,9 +100,9 @@ namespace pxt::editor {
                                               isRenderable, ImVec2(iconSize, iconSize))) {
                 // Renderable Toggle Logic
                 if (isRenderable) {
-                    entity.add<RenderableTag>();
+                    entity.update<PropertiesComponent>([](auto& propComp) { propComp.isRenderable = true; });
                 } else {
-                    entity.remove<RenderableTag>();
+                    entity.update<PropertiesComponent>([](auto& propComp) { propComp.isRenderable = false; });
                 }
             }
 
