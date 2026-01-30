@@ -1,19 +1,28 @@
 #pragma once
 
-#include "camera_nav_state.hpp"
+// Precopiled header
+#include "core/pch.hpp"
+
+// Engine headers
 #include "core/engine_mode.hpp"
+#include "core/events/event.hpp"
+#include "core/input/input.hpp"
+#include "core/layer/layer.hpp"
+#include "core/uid.hpp"
+#include "graphics/frame_info.hpp"
+
+// Editor headers
+#include "camera_nav_state.hpp"
 #include "editor_camera_controller.hpp"
 #include "editor_texture_registry.hpp"
 #include "editor_view_provider.hpp"
 #include "game_view_provider.hpp"
-#include "pxtengine.h"
-
-#include "editor_texture_registry.hpp"
+#include "ui/asset_browser.hpp"
 #include "ui/editor_console.hpp"
 #include "ui/entity_inspector.hpp"
 #include "ui/main_menu_bar.hpp"
 #include "ui/scene_hierarchy.hpp"
-#include "ui/asset_browser.hpp"
+#include "undo/undo_stack.hpp"
 
 #include <ImGuizmo.h>
 
@@ -60,6 +69,7 @@ namespace pxt::editor {
 
         glm::vec2 m_lastClickMousePosImGui = {0.0f, 0.0f};
 
+        UndoStack m_undoStack{};
         EditorConsole m_editorConsole{};
         SceneHierarchy m_sceneHierarchy{};
         EntityInspector m_entityInspector{};

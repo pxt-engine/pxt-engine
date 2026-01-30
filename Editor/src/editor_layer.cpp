@@ -132,6 +132,7 @@ namespace pxt::editor {
             // we return also if user is using free look mode
             if (!m_inputState.isViewportHovered || m_navigationState.freeLookEnabled)
                 return false;
+
             return onKeyPressEvent(e);
         });
     }
