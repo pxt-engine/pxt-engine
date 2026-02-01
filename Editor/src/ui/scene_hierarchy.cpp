@@ -39,8 +39,8 @@ namespace pxt::editor {
             // calculate dimensions of the line
             float availableWidth = ImGui::GetContentRegionAvail().x;
             float iconSize = ImGui::GetTextLineHeight(); // Height of text
-            float padding = 5.0f;
-            float totalIconArea = (iconSize * 2) + padding; // Space for 2 icons + gap
+            float margin = 5.0f;
+            float totalIconArea = (iconSize * 2) + margin; // Space for 2 icons + gap
 
             // render the Selectable.
             // AllowOverlap flag so that icons drawn on top of it can be clicked
