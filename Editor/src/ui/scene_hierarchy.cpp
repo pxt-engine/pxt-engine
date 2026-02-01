@@ -36,9 +36,9 @@ namespace pxt::editor {
 
             // calculate dimensions of the line
             float availableWidth = ImGui::GetContentRegionAvail().x;
-            float iconSize = 0.58 * ImGui::GetTextLineHeight(); // Height of text
+            float iconSize = ImGui::GetTextLineHeight(); // Height of text
             float padding = 5.0f;
-            float totalIconArea = (iconSize * 2) + (padding * 3); // Space for 2 icons + 3 gaps
+            float totalIconArea = (iconSize * 2) + padding; // Space for 2 icons + gap
 
             // render the Selectable.
             // AllowOverlap flag so that icons drawn on top of it can be clicked
@@ -68,8 +68,13 @@ namespace pxt::editor {
             // move cursor back to the same line, at the far right minus the icon area
             ImGui::SameLine(availableWidth - totalIconArea);
 
-
             auto& propertiesComp = entity.get<PropertiesComponent>();
+
+            // we want zero padding inside icons
+            ImVec2 iconInnerPadding = ImVec2(0, 0);
+            // we also want them to have no color, just on hover a little brightening
+            ImVec4 invisibleColor = ImVec4(0.f, 0.f, 0.f, 0.f);
+            ImVec4 hoveredColor = ImVec4(0.3f, 0.3f, 0.3f, 0.3f);
 
             // Eye icon (VisibilityTag Component) ---
             bool isVisible = propertiesComp.isEditorVisible;
@@ -79,7 +84,9 @@ namespace pxt::editor {
             ImTextureID eyeIcon = (ImTextureID)editorTextureRegistry->get(eyeIconFile);
             const char* eyeIconTooltip = "Hides this entity in the editor viewport";
             if (ui::ToggleImageButton::render(eyeIcon, "##eye-", eyeIconTooltip, true, false, isVisible,
-                                              ImVec2(iconSize, iconSize))) {
+                                              ImVec2(iconSize, iconSize), iconInnerPadding, invisibleColor,
+                                              hoveredColor, invisibleColor, invisibleColor, hoveredColor,
+                                              invisibleColor)) {
                 // Toggle Visibility Logic
                 if (isVisible) {
                     entity.update<PropertiesComponent>([](auto& propComp) { propComp.isEditorVisible = true; });
@@ -97,7 +104,9 @@ namespace pxt::editor {
             ImTextureID renderableIcon = (ImTextureID)editorTextureRegistry->get(cameraIconFile);
             const char* renderableIconTooltip = "Hides this entity in the final render";
             if (ui::ToggleImageButton::render(renderableIcon, "##renderable-", renderableIconTooltip, true, false,
-                                              isRenderable, ImVec2(iconSize, iconSize))) {
+                                              isRenderable, ImVec2(iconSize, iconSize), iconInnerPadding,
+                                              invisibleColor, hoveredColor, invisibleColor, invisibleColor,
+                                              hoveredColor, invisibleColor)) {
                 // Renderable Toggle Logic
                 if (isRenderable) {
                     entity.update<PropertiesComponent>([](auto& propComp) { propComp.isRenderable = true; });
