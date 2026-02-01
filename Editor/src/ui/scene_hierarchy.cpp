@@ -82,8 +82,8 @@ namespace pxt::editor {
             bool isVisible = propertiesComp.isEditorVisible;
 
             const char* eyeIconTooltip = "Hides this entity in the editor viewport";
-            if (ui::ToggleButton::icon(ICON_LC_EYE, ICON_LC_EYE_CLOSED, "eye-", eyeIconTooltip, true, false, isVisible,
-                                       ImVec2(iconSize, iconSize), invisibleColor, invisibleColor)) {
+            if (ui::ToggleButton::icon(ICON_LC_EYE, ICON_LC_EYE_CLOSED, "eye", eyeIconTooltip, true, false, isVisible,
+                                       ImVec2(iconSize, iconSize), iconInnerPadding, invisibleColor, invisibleColor)) {
                 // Toggle Visibility Logic
                 if (isVisible) {
                     entity.update<PropertiesComponent>([](auto& propComp) { propComp.isEditorVisible = true; });
@@ -98,8 +98,8 @@ namespace pxt::editor {
             bool isRenderable = propertiesComp.isRenderable;
 
             const char* renderableIconTooltip = "Hides this entity in the final render";
-            if (ui::ToggleButton::icon(ICON_LC_CAMERA, ICON_LC_CAMERA_OFF, "renderable-", renderableIconTooltip, true,
-                                       false, isRenderable, ImVec2(iconSize, iconSize), invisibleColor,
+            if (ui::ToggleButton::icon(ICON_LC_CAMERA, ICON_LC_CAMERA_OFF, "renderable", renderableIconTooltip, true,
+                                       false, isRenderable, ImVec2(iconSize, iconSize), iconInnerPadding, invisibleColor,
                                        invisibleColor)) {
                 // Renderable Toggle Logic
                 if (isRenderable) {
