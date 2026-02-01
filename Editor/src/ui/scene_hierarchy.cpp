@@ -1,6 +1,8 @@
 #include "ui/scene_hierarchy.hpp"
 #include "core/events/editor_events.hpp"
-#include "ui/widgets/toggle_image_button.hpp"
+#include "ui/widgets/toggle_button.hpp"
+
+#include "ui/icons_lucide.h"
 
 namespace pxt::editor {
     void SceneHierarchy::onUpdateUi(FrameInfo& frameInfo, core::UID& selectedEntityId,
@@ -78,15 +80,10 @@ namespace pxt::editor {
 
             // Eye icon (VisibilityTag Component) ---
             bool isVisible = propertiesComp.isEditorVisible;
-            std::string eyeIconFile = isVisible ? "eye_icon.png" : "eye_slash_icon.png";
 
-            //  for eachentity inside a component or something and perform a validity check only when needed, not here
-            ImTextureID eyeIcon = (ImTextureID)editorTextureRegistry->get(eyeIconFile);
             const char* eyeIconTooltip = "Hides this entity in the editor viewport";
-            if (ui::ToggleImageButton::render(eyeIcon, "##eye-", eyeIconTooltip, true, false, isVisible,
-                                              ImVec2(iconSize, iconSize), iconInnerPadding, invisibleColor,
-                                              hoveredColor, invisibleColor, invisibleColor, hoveredColor,
-                                              invisibleColor)) {
+            if (ui::ToggleButton::icon(ICON_LC_EYE, ICON_LC_EYE_CLOSED, "eye-", eyeIconTooltip, true, false, isVisible,
+                                       ImVec2(iconSize, iconSize), invisibleColor, invisibleColor)) {
                 // Toggle Visibility Logic
                 if (isVisible) {
                     entity.update<PropertiesComponent>([](auto& propComp) { propComp.isEditorVisible = true; });
@@ -99,14 +96,11 @@ namespace pxt::editor {
 
             // Renderable icon (RenderableTag Component) ---
             bool isRenderable = propertiesComp.isRenderable;
-            std::string cameraIconFile = isRenderable ? "camera_icon.png" : "camera_slash_icon.png";
 
-            ImTextureID renderableIcon = (ImTextureID)editorTextureRegistry->get(cameraIconFile);
             const char* renderableIconTooltip = "Hides this entity in the final render";
-            if (ui::ToggleImageButton::render(renderableIcon, "##renderable-", renderableIconTooltip, true, false,
-                                              isRenderable, ImVec2(iconSize, iconSize), iconInnerPadding,
-                                              invisibleColor, hoveredColor, invisibleColor, invisibleColor,
-                                              hoveredColor, invisibleColor)) {
+            if (ui::ToggleButton::icon(ICON_LC_CAMERA, ICON_LC_CAMERA_OFF, "renderable-", renderableIconTooltip, true,
+                                       false, isRenderable, ImVec2(iconSize, iconSize), invisibleColor,
+                                       invisibleColor)) {
                 // Renderable Toggle Logic
                 if (isRenderable) {
                     entity.update<PropertiesComponent>([](auto& propComp) { propComp.isRenderable = true; });

@@ -5,7 +5,7 @@
 #include "editor_logger_sink.hpp"
 #include "ui/widgets/dismissable_badge.hpp"
 #include "ui/widgets/mode_selector_image_button.hpp"
-#include "ui/widgets/toggle_image_button.hpp"
+#include "ui/widgets/toggle_button.hpp"
 
 #include <glm/gtx/matrix_decompose.hpp> // will use it in the future for gizmos
 
@@ -363,8 +363,8 @@ namespace pxt::editor {
                                             m_currentGizmoOperation, buttonSize);
 
         ImGui::SameLine(0.f, 10.f);
-        ui::ToggleImageButton::render(worldIcon, "##world-mode-gizmo", "World Mode (T)", ImGuizmo::WORLD,
-                                      ImGuizmo::LOCAL, m_currentGizmoMode, buttonSize);
+        ui::ToggleButton::image(worldIcon, "##world-mode-gizmo", "World Mode (T)", ImGuizmo::WORLD, ImGuizmo::LOCAL,
+                                m_currentGizmoMode, buttonSize);
 
         ImGui::End();
     }
@@ -395,8 +395,8 @@ namespace pxt::editor {
             tooltip = "Pause";
         }
 
-        ui::ToggleImageButton::render(playIcon, "##play-button", tooltip.c_str(), core::EngineMode::PLAY,
-                                      core::EngineMode::EDIT, newEngineMode, buttonSize);
+        ui::ToggleButton::image(playIcon, "##play-button", tooltip.c_str(), core::EngineMode::PLAY,
+                                core::EngineMode::EDIT, newEngineMode, buttonSize);
 
         // render a camera tag if there is an active camera in EDIT MODE
         // TODO: separate these ui methods for the overlay better, needs refactoring. too many ifs depending on engine
