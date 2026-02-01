@@ -77,7 +77,20 @@ namespace pxt {
         ImGuiStyle& style = ImGui::GetStyle();
         ImGuiIO& io = ImGui::GetIO();
 
-        ImFont* font = io.Fonts->AddFontFromFileTTF((FONTS_PATH + "Roboto-VariableFont_wdth,wght.ttf").c_str(), 16.5f);
+        float fontSizePixels = 16.5f;
+        float iconScaling = 1.0f;
+
+        ImFont* font =
+            io.Fonts->AddFontFromFileTTF((FONTS_PATH + "Roboto-VariableFont_wdth,wght.ttf").c_str(), fontSizePixels);
+
+        // we are gonna merge the icons into the previous font
+        ImFontConfig config;
+        config.MergeMode = true;
+        config.GlyphOffset.y =
+            fontSizePixels * (0.5f * iconScaling -
+                              0.3f); // to align vertically (these values were found experimentally for lucide icons)
+        // config.GlyphMinAdvanceX = 16.5f; // Use if you want to make the icon monospaced - // not necessary for lucide
+        io.Fonts->AddFontFromFileTTF((FONTS_PATH + "lucide.ttf").c_str(), fontSizePixels, &config);
 
         io.FontDefault = font;
 
