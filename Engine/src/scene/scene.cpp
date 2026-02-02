@@ -17,6 +17,8 @@ namespace pxt {
         m_registry.on_construct<Transform2dComponent>().connect<&Scene::onTransform2dCreate>(this);
 
         m_registry.on_update<MeshComponent>().connect<&Scene::onMeshUpdate>(this);
+        m_registry.on_construct<MeshComponent>().connect<&Scene::onMeshUpdate>(this);
+
         m_registry.on_update<PropertiesComponent>().connect<&Scene::onPropertiesUpdate>(this);
     }
 
