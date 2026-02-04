@@ -11,6 +11,7 @@
 namespace pxt {
 
     class Entity;
+    class EntityLifecycleSystem;
 
     /**
      * @class Scene
@@ -22,7 +23,7 @@ namespace pxt {
     class Scene {
     public:
         Scene();
-        ~Scene() = default;
+        ~Scene();
 
         std::string getName() const { return m_name; }
 
@@ -138,12 +139,10 @@ namespace pxt {
 
         std::string getUniqueEntityName(const std::string& baseName);
 
-    private:
-        void onTransformCreate(entt::registry& registry, entt::entity enttEntity);
-        void onTransform2dCreate(entt::registry& registry, entt::entity enttEntity);
-        void onMeshUpdate(entt::registry& registry, entt::entity entity);
-        void onPropertiesUpdate(entt::registry& registry, entt::entity enttEntity);
+    protected:
+        entt::registry& getRegistry() { return m_registry; };
 
+    private:
         std::string m_name = "Unnamed-Scene";
         std::unordered_map<core::UID, entt::entity> m_entityMap;
         std::unordered_map<uint32_t, core::UID> m_objPickingIdToUID;
@@ -152,9 +151,12 @@ namespace pxt {
         // The entity registry for managing components.
         entt::registry m_registry;
 
+        Unique<EntityLifecycleSystem> m_entityLifecycleSystem;
+
         Shared<Environment> m_environment = createShared<Environment>();
         core::UID m_activeCameraEntityID = core::UID::s_invalidId;
 
         friend class Entity;
+        friend class EntityLifecycleSystem;
     };
 } // namespace pxt
