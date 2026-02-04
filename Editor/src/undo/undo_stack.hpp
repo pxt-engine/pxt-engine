@@ -13,8 +13,8 @@ namespace pxt::editor {
 
         void executeCommand(Unique<Command> command);
 
-        void undo();
-        void redo();
+        void undo(const CommandContext& ctx);
+        void redo(const CommandContext& ctx);
         bool canUndo() const;
         bool canRedo() const;
 

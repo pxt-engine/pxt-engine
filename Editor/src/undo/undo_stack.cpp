@@ -8,20 +8,20 @@ namespace pxt::editor {
         m_redoStack.clear();
     }
 
-    void UndoStack::undo() {
+    void UndoStack::undo(const CommandContext& ctx) {
         if (canUndo()) {
             Unique<Command> command = std::move(m_undoStack.back());
             m_undoStack.pop_back();
-            command->undo({});
+            command->undo(ctx);
             m_redoStack.push_back(std::move(command));
         }
     }
 
-    void UndoStack::redo() {
+    void UndoStack::redo(const CommandContext& ctx) {
         if (canRedo()) {
             Unique<Command> command = std::move(m_redoStack.back());
             m_redoStack.pop_back();
-            command->execute({});
+            command->execute(ctx);
             m_undoStack.push_back(std::move(command));
         }
     }
