@@ -17,15 +17,15 @@ namespace pxt {
 
         void validateRenderState(Entity& entity);
 
-        void onTransformCreate(entt::registry& registry, entt::entity enttEntity);
+        void onTransformCreate(entt::entity enttEntity);
         
-        void onTransform2dCreate(entt::registry& registry, entt::entity enttEntity);
+        void onTransform2dCreate(entt::entity enttEntity);
         
-        void onMeshUpdate(entt::registry& registry, entt::entity enttEntity);
+        void onMeshUpdate(entt::entity enttEntity);
 
-        void onPropertiesUpdate(entt::registry& registry, entt::entity enttEntity);
+        void onPropertiesUpdate(entt::entity enttEntity);
 
-        void onMaterialCreate(entt::registry& registry, entt::entity enttEntity);
-        void onMaterialUpdate(entt::registry& registry, entt::entity enttEntity);
+        void onMaterialCreate(entt::entity enttEntity);
+        void onMaterialUpdate(entt::entity enttEntity);
     };
 } // namespace pxt

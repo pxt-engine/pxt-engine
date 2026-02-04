@@ -48,7 +48,7 @@ namespace pxt {
         }
     }
 
-    void EntityLifecycleSystem::onTransformCreate(entt::registry& registry, entt::entity enttEntity) {
+    void EntityLifecycleSystem::onTransformCreate(entt::entity enttEntity) {
         // for now we just check if the entity already has a transform2d,
         // in that case we remove the newly created transform3d component
         Entity entity = {enttEntity, &m_scene};
@@ -64,7 +64,7 @@ namespace pxt {
         }
     }
 
-    void EntityLifecycleSystem::onTransform2dCreate(entt::registry& registry, entt::entity enttEntity) {
+    void EntityLifecycleSystem::onTransform2dCreate(entt::entity enttEntity) {
         // for now we just check if the entity already has a transform,
         // in that case we remove the newly created transform2d component
         Entity entity = {enttEntity, &m_scene};
@@ -80,29 +80,33 @@ namespace pxt {
         }
     }
 
-    void EntityLifecycleSystem::onMeshUpdate(entt::registry& registry, entt::entity enttEntity) {
+    void EntityLifecycleSystem::onMeshUpdate(entt::entity enttEntity) {
         Entity entity = {enttEntity, &m_scene};
 
         validateRenderState(entity);
     }
 
-    void EntityLifecycleSystem::onPropertiesUpdate(entt::registry& registry, entt::entity enttEntity) {
+    void EntityLifecycleSystem::onPropertiesUpdate(entt::entity enttEntity) {
         Entity entity = {enttEntity, &m_scene};
         
         validateRenderState(entity);
     }
 
-    void EntityLifecycleSystem::onMaterialCreate(entt::registry& registry, entt::entity enttEntity) {
+    void EntityLifecycleSystem::onMaterialCreate(entt::entity enttEntity) {
         Entity entity = {enttEntity, &m_scene};
 
-        // we assign the default material on creation, more intuitive for the user
+        auto& materialHandle = entity.get<MaterialComponent>().material;
+
+        // we assign the default material on creation if there is no material assigned, more intuitive for the user
         //? maybe we should not expose resource manager here
-        entity.get<MaterialComponent>().material = Application::get().getResourceManager().s_defaultMaterial->id;
+        if (!materialHandle.isValid()) {
+            materialHandle = Application::get().getResourceManager().s_defaultMaterial->id;
+        }
 
         validateRenderState(entity);
     }
 
-    void EntityLifecycleSystem::onMaterialUpdate(entt::registry& registry, entt::entity enttEntity) {
+    void EntityLifecycleSystem::onMaterialUpdate(entt::entity enttEntity) {
         Entity entity = {enttEntity, &m_scene};
 
         validateRenderState(entity);
