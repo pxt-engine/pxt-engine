@@ -42,6 +42,7 @@ namespace pxt::editor {
         // reset state
         m_navigationState = {};
         m_editorViewProvider.resetState();
+        buildCommandContext();
 
         // here we have to obtain the corrext camera data based on engine mode
         // if we are not in EDIT mode, we simply return for now
@@ -68,20 +69,20 @@ namespace pxt::editor {
         m_editorViewProvider.onUpdateCameraController(deltaTime);
     }
 
+    void EditorLayer::buildCommandContext() {
+        m_commandContext.scene = &Application::get().getScene();
+    }
+
     void EditorLayer::checkUndoRedoInputs() {
         const auto& input = core::Input::getState();
 
-        const CommandContext ctx{
-            .scene = &Application::get().getScene(),
-        };
-
         // Undo: Ctrl + Z
         if (input.isKeyDown(core::KeyCode::LeftControl) && input.isKeyPressed(core::KeyCode::Z)) {
-            m_undoStack.undo(ctx);
+            m_undoStack.undo(m_commandContext);
         }
         // Redo: Ctrl + Y
         if (input.isKeyDown(core::KeyCode::LeftControl) && input.isKeyPressed(core::KeyCode::Y)) {
-            m_undoStack.redo(ctx);
+            m_undoStack.redo(m_commandContext);
         }
     }
 

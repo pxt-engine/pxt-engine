@@ -42,8 +42,9 @@ namespace pxt::editor {
         void updateGizmoOverlayButtons(ImGuiWindowFlags windowFlags, float padding, ImVec2 buttonSize);
         core::EngineMode updatePlayPauseButton(ImGuiWindowFlags windowFlags, float padding, ImVec2 buttonSize);
 
-        void checkUndoRedoInputs();
+        void buildCommandContext();
         void buildCameraNavigationState();
+        void checkUndoRedoInputs();
 
         ImVec2 getImageSizeWithAspectRatioForImGuiWindow(ImVec2 windowSize, float aspectRatio);
         bool onMouseButtonPress(core::MouseButtonPressEvent& event);
@@ -56,6 +57,8 @@ namespace pxt::editor {
         core::EngineMode m_engineMode = core::EngineMode::EDIT;
 
         Unique<EditorTextureRegistry> m_editorTextureRegistry = nullptr;
+
+        CommandContext m_commandContext{nullptr};
 
         CameraNavigationState m_navigationState{};
         CameraData m_editorCameraData{};
