@@ -421,7 +421,10 @@ namespace pxt {
                                        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
         stagingBuffer->map();
         stagingBuffer->writeToBuffer((void*)&emitterCount, sizeof(emitterCount));
-        stagingBuffer->writeToBuffer(m_emitters.data(), emitterDataSize, sizeof(emitterCount));
+
+        if (!m_emitters.empty()) {
+            stagingBuffer->writeToBuffer(m_emitters.data(), emitterDataSize, sizeof(emitterCount));
+        }
         stagingBuffer->unmap();
 
         m_emittersBuffers[frameIndex] = createUnique<VulkanBuffer>(
