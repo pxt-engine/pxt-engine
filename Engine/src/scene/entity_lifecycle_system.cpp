@@ -2,6 +2,7 @@
 
 #include "scene/ecs/entity.hpp"
 #include "core/filesystem.hpp"
+#include "application.hpp"
 
 namespace pxt {
     EntityLifecycleSystem::EntityLifecycleSystem(Scene& scene) : m_scene(scene) { 
@@ -17,7 +18,7 @@ namespace pxt {
 
         registry.on_update<PropertiesComponent>().connect<&EntityLifecycleSystem::onPropertiesUpdate>(this);
 
-        registry.on_construct<MaterialComponent>().connect<&EntityLifecycleSystem::onMaterialUpdate>(this);
+        registry.on_construct<MaterialComponent>().connect<&EntityLifecycleSystem::onMaterialCreate>(this);
         registry.on_update<MaterialComponent>().connect<&EntityLifecycleSystem::onMaterialUpdate>(this);
     }
 
@@ -88,6 +89,16 @@ namespace pxt {
     void EntityLifecycleSystem::onPropertiesUpdate(entt::registry& registry, entt::entity enttEntity) {
         Entity entity = {enttEntity, &m_scene};
         
+        validateRenderState(entity);
+    }
+
+    void EntityLifecycleSystem::onMaterialCreate(entt::registry& registry, entt::entity enttEntity) {
+        Entity entity = {enttEntity, &m_scene};
+
+        // we assign the default material on creation, more intuitive for the user
+        //? maybe we should not expose resource manager here
+        entity.get<MaterialComponent>().material = Application::get().getResourceManager().s_defaultMaterial->id;
+
         validateRenderState(entity);
     }
 
