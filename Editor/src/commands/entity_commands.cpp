@@ -4,10 +4,12 @@
 
 namespace pxt::editor::commands {
 
-    EntityCreateCommand::EntityCreateCommand(core::UID uid, const std::string& name) : m_uid(uid), m_name(name) {}
+    EntityCreateCommand::EntityCreateCommand(const std::string& name) : m_name(name) {}
 
     void EntityCreateCommand::execute(const CommandContext& ctx) {
-        Entity entity = ctx.scene->createEntity(m_name, m_uid);
+        Entity entity = ctx.scene->createEntity(m_name);
+
+        m_uid = entity.getUID();
 
         PXT_INFO("Executed EntityCreateCommand: Created entity \"{}\" with UID {}", m_name, m_uid.toString());
     }
