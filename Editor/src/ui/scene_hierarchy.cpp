@@ -1,4 +1,5 @@
 #include "ui/scene_hierarchy.hpp"
+#include "commands/entity_commands.hpp"
 #include "core/events/editor_events.hpp"
 #include "ui/widgets/toggle_button.hpp"
 
@@ -15,7 +16,7 @@ namespace pxt::editor {
         ImGui::Begin("Scene Entities");
 
         if (ImGui::Button("Add Entity")) {
-            scene.createEntity("New Entity");
+            m_undoStack.executeCommand(createUnique<commands::EntityCreateCommand>("New Entity"));
         }
 
         ImGui::Separator();
@@ -99,8 +100,8 @@ namespace pxt::editor {
 
             const char* renderableIconTooltip = "Hides this entity in the final render";
             if (ui::ToggleButton::icon(ICON_LC_CAMERA, ICON_LC_CAMERA_OFF, "renderable", renderableIconTooltip, true,
-                                       false, isRenderable, ImVec2(iconSize, iconSize), iconInnerPadding, invisibleColor,
-                                       invisibleColor)) {
+                                       false, isRenderable, ImVec2(iconSize, iconSize), iconInnerPadding,
+                                       invisibleColor, invisibleColor)) {
                 // Renderable Toggle Logic
                 if (isRenderable) {
                     entity.update<PropertiesComponent>([](auto& propComp) { propComp.isRenderable = true; });
