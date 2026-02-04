@@ -52,12 +52,15 @@ namespace pxt::editor {
         // update active camera information inside the provider
         m_editorViewProvider.updateActiveCamera(m_editorCameraData, m_editorCameraPosition, m_editorCameraRotation);
 
+        // for now is more intuitive to allow undo redo from everywhere (only EDIT MODE for now)
+        //? should we enable it in PLAY mode as well?
+        checkUndoRedoInputs();
+
         // we want focus and hover to accept user input
         if (!m_inputState.isViewportFocused || !m_inputState.isViewportHovered) {
             return;
         }
 
-        checkUndoRedoInputs();
         buildCameraNavigationState();
 
         m_editorViewProvider.setCameraNavigationState(m_navigationState);

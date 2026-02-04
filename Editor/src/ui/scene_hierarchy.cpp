@@ -16,7 +16,8 @@ namespace pxt::editor {
         ImGui::Begin("Scene Entities");
 
         if (ImGui::Button("Add Entity")) {
-            m_undoStack.executeCommand(createUnique<commands::EntityCreateCommand>("New Entity"));
+            CommandContext cmdCtx{&scene};
+            m_undoStack.executeCommand(createUnique<commands::EntityCreateCommand>("New Entity"), cmdCtx);
         }
 
         ImGui::Separator();
