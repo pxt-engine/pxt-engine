@@ -42,6 +42,7 @@ namespace pxt::editor {
         void updateGizmoOverlayButtons(ImGuiWindowFlags windowFlags, float padding, ImVec2 buttonSize);
         core::EngineMode updatePlayPauseButton(ImGuiWindowFlags windowFlags, float padding, ImVec2 buttonSize);
 
+        void checkUndoRedoInputs();
         void buildCameraNavigationState();
 
         ImVec2 getImageSizeWithAspectRatioForImGuiWindow(ImVec2 windowSize, float aspectRatio);
@@ -71,7 +72,7 @@ namespace pxt::editor {
 
         UndoStack m_undoStack{};
         EditorConsole m_editorConsole{};
-        SceneHierarchy m_sceneHierarchy{};
+        SceneHierarchy m_sceneHierarchy{m_undoStack};
         EntityInspector m_entityInspector{};
         MainMenuBar m_mainMenuBar{};
         AssetBrowser m_assetBrowser{};

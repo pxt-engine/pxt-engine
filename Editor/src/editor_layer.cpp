@@ -57,11 +57,29 @@ namespace pxt::editor {
             return;
         }
 
+        checkUndoRedoInputs();
         buildCameraNavigationState();
 
         m_editorViewProvider.setCameraNavigationState(m_navigationState);
         // here we update the active camera data with the editor controller
         m_editorViewProvider.onUpdateCameraController(deltaTime);
+    }
+
+    void EditorLayer::checkUndoRedoInputs() {
+        const auto& input = core::Input::getState();
+
+        const CommandContext ctx{
+            .scene = &Application::get().getScene(),
+        };
+
+        // Undo: Ctrl + Z
+        if (input.isKeyDown(core::KeyCode::LeftControl) && input.isKeyPressed(core::KeyCode::Z)) {
+            m_undoStack.undo(ctx);
+        }
+        // Redo: Ctrl + Y
+        if (input.isKeyDown(core::KeyCode::LeftControl) && input.isKeyPressed(core::KeyCode::Y)) {
+            m_undoStack.redo(ctx);
+        }
     }
 
     void EditorLayer::buildCameraNavigationState() {
