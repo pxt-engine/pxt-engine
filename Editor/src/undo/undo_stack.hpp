@@ -11,7 +11,7 @@ namespace pxt::editor {
         UndoStack() = default;
         ~UndoStack() = default;
 
-        void executeCommand(Unique<Command> command);
+        void executeCommand(Unique<Command> command, const CommandContext& ctx);
 
         void undo(const CommandContext& ctx);
         void redo(const CommandContext& ctx);

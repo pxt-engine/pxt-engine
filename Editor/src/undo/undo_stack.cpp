@@ -2,8 +2,8 @@
 
 namespace pxt::editor {
 
-    void UndoStack::executeCommand(Unique<Command> command) {
-        command->execute({});
+    void UndoStack::executeCommand(Unique<Command> command, const CommandContext& ctx) {
+        command->execute(ctx);
         m_undoStack.push_back(std::move(command));
         m_redoStack.clear();
     }
