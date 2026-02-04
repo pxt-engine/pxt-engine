@@ -285,13 +285,14 @@ namespace pxt::editor {
 
         ImGui::Image(scene, m_sceneImageExtent);
 
-        // If nothing selected, selection tool is active, we are not in edit mode
-        // or selected entity does not contain Transform Components: DO NOT show gizmos.
+        // If nothing selected, selection tool is active, we are not in edit mode,
+        // selected entity does not contain Transform Components or is locked: DO NOT show gizmos.
         // We currently use ImGuizmo::BOUNDS as "selection tool" placeholder
         bool canRenderGizmo =
             m_selectedEntityUID != core::UID::s_invalidId && m_currentGizmoOperation != ImGuizmo::BOUNDS &&
             m_engineMode == core::EngineMode::EDIT &&
-            frameInfo.scene.getEntity(m_selectedEntityUID).hasAny<Transform2dComponent, TransformComponent>();
+            frameInfo.scene.getEntity(m_selectedEntityUID).hasAny<Transform2dComponent, TransformComponent>() &&
+            !frameInfo.scene.getEntity(m_selectedEntityUID).get<PropertiesComponent>().isLocked;
 
         if (canRenderGizmo) {
             // this has to be called inside the window where ImGuizmo is used

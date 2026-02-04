@@ -127,9 +127,13 @@ namespace pxt {
 
         // User Intent
         bool isEditorVisible = true;    // Affects the viewport/Editor
-        bool isRenderable = true; // Affects the Vulkan pass
-        bool isStatic = false;    // Optimization hint (especially T/BLAS)
-        bool isLocked = false;    // Prevents accidental movement in UI
+        bool isRenderable = true;       // Affects the Vulkan pass
+        bool isStatic = false;          // Optimization hint (especially T/BLAS)
+        
+        // Prevents accidental movement in UI
+        // TODO: this should be a per-axis && operation lock, but for now it's a simple global lock for the entire transform
+        // component
+        bool isLocked = false;
 
         PropertiesComponent() = default;
     };

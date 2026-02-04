@@ -1,6 +1,8 @@
 #include "ui/entity_inspector.hpp"
 #include "ui/drag_and_drop.hpp"
 #include "ui/resource_slot.hpp"
+#include "ui/icons_lucide.h"
+#include "ui/widgets/toggle_button.hpp"
 
 namespace pxt::editor {
 
@@ -208,6 +210,21 @@ namespace pxt::editor {
 
         // TransformComponent
         RegisterComponent<TransformComponent>("TransformComponent", [](auto& c, Entity entity) {
+            auto& propertiesComp = entity.get<PropertiesComponent>();
+            bool isLocked = propertiesComp.isLocked;
+            
+            float buttonSize = ImGui::GetTextLineHeight();
+            ImVec2 iconPadding = ImVec2(0.f, 0.f);
+            ImVec4 iconColor = ImVec4(0.f, 0.f, 0.f, 0.f);
+            const char* lockTooltip = "Locks the TransformComponent of this Entity";
+
+            if (ui::ToggleButton::icon(ICON_LC_LOCK_KEYHOLE, ICON_LC_LOCK_KEYHOLE_OPEN, "lock", lockTooltip,
+                true, false, isLocked, ImVec2(buttonSize, buttonSize), iconPadding, iconColor, iconColor)) {
+                entity.update<PropertiesComponent>([isLocked](auto& propComp) { propComp.isLocked = isLocked; });
+            }
+
+            ImGui::BeginDisabled(isLocked);
+
             DrawVec3Control("Translation", c.translation);
 
             glm::vec3 rotationDegrees = glm::degrees(c.rotation);
@@ -215,6 +232,8 @@ namespace pxt::editor {
             c.rotation = glm::radians(rotationDegrees);
 
             DrawVec3Control("Scale", c.scale, 1.0f); // Default scale reset to 1.0
+
+            ImGui::EndDisabled();
         });
 
         // ColorComponent
