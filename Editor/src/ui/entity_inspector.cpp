@@ -248,6 +248,17 @@ namespace pxt::editor {
         RegisterComponent<MaterialComponent>("MaterialComponent", [](auto& c, Entity entity) {
             ResourceManager& rm = Application::get().getResourceManager();
 
+            DragAndDrop::EnginePayload payload = {c.material, DragAndDrop::PayloadSource::AssetBrowser,
+                                                  Resource::Type::Material};
+
+            if (ResourceSlot::render("##entity-inspector-material-component-resource-slot", payload, rm)) {
+                entity.update<MaterialComponent>([&payload](auto& matComp) { matComp.material = payload.id; });
+
+                std::string newMaterialAlias = c.material.isValid() ? rm.get<Material>(c.material)->alias : "No Material Assigned";
+
+                PXT_INFO("Changed Material of Entity \"{}\" to Mesh \"{}\"", entity.getName(), newMaterialAlias);
+            }
+
             if (c.material.isValid()) {
                 auto material = rm.get<Material>(c.material);
                 ImGui::Text("Material: %s", material->alias.c_str());
