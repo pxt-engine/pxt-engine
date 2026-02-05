@@ -12,8 +12,8 @@ namespace pxt::editor::commands {
         EntityCreateCommand(const std::string& name);
         ~EntityCreateCommand() override = default;
 
-        void execute(const CommandContext& ctx) override;
-        void undo(const CommandContext& ctx) override;
+        void execute(ExecutionContext& ctx) override;
+        void undo(ExecutionContext& ctx) override;
 
     private:
         core::UID m_uid = core::UID::s_invalidId;

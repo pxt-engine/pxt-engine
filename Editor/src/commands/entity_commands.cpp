@@ -6,7 +6,7 @@ namespace pxt::editor::commands {
 
     EntityCreateCommand::EntityCreateCommand(const std::string& name) : m_name(name) {}
 
-    void EntityCreateCommand::execute(const CommandContext& ctx) {
+    void EntityCreateCommand::execute(ExecutionContext& ctx) {
         Entity entity = ctx.scene->createEntity(m_name);
 
         m_uid = entity.getUID();
@@ -14,7 +14,7 @@ namespace pxt::editor::commands {
         PXT_INFO("Executed EntityCreateCommand: Created entity \"{}\" with UID {}", m_name, m_uid.toString());
     }
 
-    void EntityCreateCommand::undo(const CommandContext& ctx) {
+    void EntityCreateCommand::undo(ExecutionContext& ctx) {
         ctx.scene->destroyEntity(m_uid);
 
         PXT_INFO("Undid EntityCreateCommand: Destroyed entity with UID {}", m_uid.toString());

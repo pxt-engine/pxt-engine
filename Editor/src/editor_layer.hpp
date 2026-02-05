@@ -42,7 +42,7 @@ namespace pxt::editor {
         void updateGizmoOverlayButtons(ImGuiWindowFlags windowFlags, float padding, ImVec2 buttonSize);
         core::EngineMode updatePlayPauseButton(ImGuiWindowFlags windowFlags, float padding, ImVec2 buttonSize);
 
-        void buildCommandContext();
+        void buildCommandExecutionContext();
         void buildCameraNavigationState();
         void checkUndoRedoInputs();
 
@@ -58,8 +58,6 @@ namespace pxt::editor {
 
         Unique<EditorTextureRegistry> m_editorTextureRegistry = nullptr;
 
-        CommandContext m_commandContext{nullptr};
-
         CameraNavigationState m_navigationState{};
         CameraData m_editorCameraData{};
         glm::vec3 m_editorCameraRotation{0.f};
@@ -73,6 +71,7 @@ namespace pxt::editor {
 
         glm::vec2 m_lastClickMousePosImGui = {0.0f, 0.0f};
 
+        ExecutionContext m_commandExecutionContext{};
         UndoStack m_undoStack{};
         EditorConsole m_editorConsole{};
         SceneHierarchy m_sceneHierarchy{m_undoStack};

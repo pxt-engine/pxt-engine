@@ -42,7 +42,11 @@ namespace pxt::editor {
         // reset state
         m_navigationState = {};
         m_editorViewProvider.resetState();
-        buildCommandContext();
+
+        buildCommandExecutionContext();
+
+        // Execute any pending commands in the undo stack
+        m_undoStack.flush();
 
         // here we have to obtain the corrext camera data based on engine mode
         // if we are not in EDIT mode, we simply return for now
@@ -69,8 +73,12 @@ namespace pxt::editor {
         m_editorViewProvider.onUpdateCameraController(deltaTime);
     }
 
-    void EditorLayer::buildCommandContext() {
-        m_commandContext.scene = &Application::get().getScene();
+    void EditorLayer::buildCommandExecutionContext() {
+        m_commandExecutionContext = {
+            .scene = &Application::get().getScene(), //
+        };
+
+        m_undoStack.setExecutionContext(&m_commandExecutionContext);
     }
 
     void EditorLayer::checkUndoRedoInputs() {
@@ -78,11 +86,11 @@ namespace pxt::editor {
 
         // Undo: Ctrl + Z
         if (input.isKeyDown(core::KeyCode::LeftControl) && input.isKeyPressed(core::KeyCode::Z)) {
-            m_undoStack.undo(m_commandContext);
+            m_undoStack.submitUndo();
         }
         // Redo: Ctrl + Y
         if (input.isKeyDown(core::KeyCode::LeftControl) && input.isKeyPressed(core::KeyCode::Y)) {
-            m_undoStack.redo(m_commandContext);
+            m_undoStack.submitRedo();
         }
     }
 

@@ -11,7 +11,7 @@ namespace pxt::editor {
      *
      * It contains pointers to relevant systems for command operations.
      */
-    struct CommandContext {
+    struct ExecutionContext {
         Scene* scene;
     };
 
@@ -23,8 +23,8 @@ namespace pxt::editor {
     class Command {
     public:
         virtual ~Command() = default;
-        virtual void execute(const CommandContext& ctx) = 0;
-        virtual void undo(const CommandContext& ctx) = 0;
+        virtual void execute(ExecutionContext& ctx) = 0;
+        virtual void undo(ExecutionContext& ctx) = 0;
     };
 
 } // namespace pxt::editor
