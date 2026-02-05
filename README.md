@@ -1,6 +1,6 @@
 # PXT Engine
 
-A modern C++20 game engine based on Vulkan, with a hybrid rendering pipeline. Designed with a focus on photorealistic path tracing and an intuitive ECS-based editor.
+A modern C++23 game engine based on Vulkan, with a hybrid rendering pipeline. Designed with a focus on photorealistic path tracing and an intuitive ECS-based editor.
 
 ## Key Features
 
