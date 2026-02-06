@@ -68,9 +68,10 @@ namespace pxt {
         /**
          * @brief Copy an entity and adds the copy to the scene.
          * @param uid The uid of the entity to copy.
+         * @param copyUid Optional UID for the copied entity. If not provided, a new UID is generated.
          * @return The copied entity.
          */
-        Entity duplicateEntity(core::UID uid);
+        Entity duplicateEntity(core::UID uid, core::UID copyUid = core::UID());
 
         /**
          * @brief Called when the scene starts.
@@ -81,7 +82,7 @@ namespace pxt {
 
         /**
          * @brief Update a component of an entity using a provided function.
-         * 
+         *
          * @tparam Component type
          * @tparam Func function type
          * @param entity The entity whose component is to be updated.

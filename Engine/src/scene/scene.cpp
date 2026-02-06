@@ -2,11 +2,11 @@
 
 #include "core/events/editor_events.hpp"
 #include "core/events/event_dispatcher.hpp"
+#include "core/filesystem.hpp"
 #include "scene/ecs/component.hpp"
 #include "scene/ecs/entity.hpp"
-#include "scene/script/script.hpp"
-#include "core/filesystem.hpp"
 #include "scene/entity_lifecycle_system.hpp"
+#include "scene/script/script.hpp"
 
 namespace pxt {
     Scene::Scene() {
@@ -118,7 +118,7 @@ namespace pxt {
             ...);
     }
 
-    Entity Scene::duplicateEntity(core::UID uid) {
+    Entity Scene::duplicateEntity(core::UID uid, core::UID copyUid) {
         PXT_ASSERT(m_entityMap.contains(uid), "Source entity not found!");
 
         Entity source = getEntity(uid);
@@ -142,7 +142,7 @@ namespace pxt {
         // find the next available: "Cube (Copy) 1", "Cube (Copy) 2", etc.
         std::string uniqueName = getUniqueEntityName(baseName);
 
-        Entity replica = createEntity(uniqueName);
+        Entity replica = createEntity(uniqueName, copyUid);
 
         copyComponentList(AttachableComponents{}, source, replica);
 
