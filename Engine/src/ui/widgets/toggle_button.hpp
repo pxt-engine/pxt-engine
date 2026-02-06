@@ -24,12 +24,12 @@ namespace pxt::ui {
 
             ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, innerPadding);
             ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.0f); // Make it invisible
-            
+
             bool clicked = ImGui::ButtonEx("##invisible", size, ImGuiButtonFlags_AlignTextBaseLine);
-            
+
             ImGui::PopStyleVar();
             ImGui::PopStyleVar();
-            
+
             // check if the invisible button is hovered
             bool isButtonHovered = ImGui::IsItemHovered();
 

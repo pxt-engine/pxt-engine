@@ -38,7 +38,7 @@ namespace pxt::ui {
         float centerY = pos.y + (height / 2.0f);
 
         // calculate "X" position first to know the text limit
-        const char* closeX = "X";
+        constexpr const char* closeX = "X";
         ImVec2 xSize = ImGui::CalcTextSize(closeX);
         float xPos = pos.x + width - xSize.x - style.FramePadding.x;
 
@@ -110,7 +110,7 @@ namespace pxt::ui {
         float centerY = pos.y + (height / 2.0f);
 
         // Calculate "X" (Right Side)
-        const char* closeX = "X";
+        constexpr const char* closeX = "X";
         ImVec2 xSize = ImGui::CalcTextSize(closeX);
         float xPos = pos.x + width - xSize.x - style.FramePadding.x;
 
@@ -141,4 +141,4 @@ namespace pxt::ui {
 
         return clicked;
     }
-}
+} // namespace pxt::ui

@@ -5,14 +5,14 @@
 #include "resources/resource.hpp"
 
 namespace pxt::editor {
-    static const char* UNIVERSAL_PAYLOAD_ID = "UNIVERSAL_PAYLOAD_ID";
+    constexpr const char* UNIVERSAL_PAYLOAD_ID = "UNIVERSAL_PAYLOAD_ID";
 
     struct DragAndDrop {
 
         enum class PayloadSource { AssetBrowser };
 
         struct EnginePayload {
-            core::UID id;        // The UID
+            core::UID id;         // The UID
             PayloadSource source; // Where it started
             Resource::Type type;  // What it is
         };

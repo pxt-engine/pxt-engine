@@ -1,7 +1,7 @@
 #include "ui/entity_inspector.hpp"
 #include "ui/drag_and_drop.hpp"
-#include "ui/resource_slot.hpp"
 #include "ui/icons_lucide.h"
+#include "ui/resource_slot.hpp"
 #include "ui/widgets/toggle_button.hpp"
 
 namespace pxt::editor {
@@ -212,14 +212,16 @@ namespace pxt::editor {
         RegisterComponent<TransformComponent>("TransformComponent", [](auto& c, Entity entity) {
             auto& propertiesComp = entity.get<PropertiesComponent>();
             bool isLocked = propertiesComp.isLocked;
-            
+
             float buttonSize = ImGui::GetTextLineHeight();
             ImVec2 iconPadding = ImVec2(0.f, 0.f);
             ImVec4 iconColor = ImVec4(0.f, 0.f, 0.f, 0.f);
-            const char* lockTooltip = "Locks the TransformComponent of this Entity";
 
-            if (ui::ToggleButton::icon(ICON_LC_LOCK_KEYHOLE, ICON_LC_LOCK_KEYHOLE_OPEN, "lock", lockTooltip,
-                true, false, isLocked, ImVec2(buttonSize, buttonSize), iconPadding, iconColor, iconColor)) {
+            constexpr const char* lockTooltip = "Locks the TransformComponent of this Entity";
+
+            if (ui::ToggleButton::icon(ICON_LC_LOCK_KEYHOLE, ICON_LC_LOCK_KEYHOLE_OPEN, "lock", lockTooltip, true,
+                                       false, isLocked, ImVec2(buttonSize, buttonSize), iconPadding, iconColor,
+                                       iconColor)) {
                 entity.update<PropertiesComponent>([isLocked](auto& propComp) { propComp.isLocked = isLocked; });
             }
 
@@ -273,7 +275,8 @@ namespace pxt::editor {
             if (ResourceSlot::render("##entity-inspector-material-component-resource-slot", payload, rm)) {
                 entity.update<MaterialComponent>([&payload](auto& matComp) { matComp.material = payload.id; });
 
-                std::string newMaterialAlias = c.material.isValid() ? rm.get<Material>(c.material)->alias : "No Material Assigned";
+                std::string newMaterialAlias =
+                    c.material.isValid() ? rm.get<Material>(c.material)->alias : "No Material Assigned";
 
                 PXT_INFO("Changed Material of Entity \"{}\" to Mesh \"{}\"", entity.getName(), newMaterialAlias);
             }
