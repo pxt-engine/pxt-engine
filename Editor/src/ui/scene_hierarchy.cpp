@@ -16,7 +16,8 @@ namespace pxt::editor {
         ImGui::Begin("Scene Entities");
 
         if (ImGui::Button("Add Entity")) {
-            m_undoStack.submitCommand(createUnique<commands::EntityCreateCommand>("New Entity"));
+            core::UID newEntityId; // default constructor generates a new UID
+            m_undoStack.submitCommand(createUnique<commands::CreateEntityCommand>("New Entity", newEntityId));
         }
 
         ImGui::Separator();
@@ -115,14 +116,21 @@ namespace pxt::editor {
 
         // Execute Actions
         if (entityToRemove != core::UID::s_invalidId) {
-            scene.destroyEntity(entityToRemove);
-            if (selectedEntityId == entityToRemove)
+
+            m_undoStack.submitCommand(createUnique<commands::DestroyEntityCommand>(entityToRemove));
+
+            if (selectedEntityId == entityToRemove) {
                 selectedEntityId = core::UID::s_invalidId;
+            }
         }
 
         if (entityToDuplicate != core::UID::s_invalidId) {
-            Entity duplicatedEntity = scene.duplicateEntity(entityToDuplicate);
-            selectedEntityId = duplicatedEntity.getUID();
+
+            core::UID copyEntityId; // default constructor generates a new UID
+
+            m_undoStack.submitCommand(createUnique<commands::DuplicateEntityCommand>(entityToDuplicate, copyEntityId));
+
+            // selectedEntityId = copyEntityId;
         }
 
         // deselect if background clicked

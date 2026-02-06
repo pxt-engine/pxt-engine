@@ -7,10 +7,10 @@
 
 namespace pxt::editor::commands {
 
-    class EntityCreateCommand : public Command {
+    class CreateEntityCommand : public Command {
     public:
-        EntityCreateCommand(const std::string& name);
-        ~EntityCreateCommand() override = default;
+        explicit CreateEntityCommand(const std::string& name, core::UID uid);
+        ~CreateEntityCommand() override = default;
 
         void execute(ExecutionContext& ctx) override;
         void undo(ExecutionContext& ctx) override;
@@ -18,6 +18,31 @@ namespace pxt::editor::commands {
     private:
         core::UID m_uid = core::UID::s_invalidId;
         std::string m_name;
+    };
+
+    class DestroyEntityCommand : public Command {
+    public:
+        explicit DestroyEntityCommand(core::UID uid);
+        ~DestroyEntityCommand() override = default;
+
+        void execute(ExecutionContext& ctx) override;
+        void undo(ExecutionContext& ctx) override;
+
+    private:
+        core::UID m_uid;
+    };
+
+    class DuplicateEntityCommand : public Command {
+    public:
+        explicit DuplicateEntityCommand(core::UID originalUid, core::UID copyUid);
+        ~DuplicateEntityCommand() override = default;
+
+        void execute(ExecutionContext& ctx) override;
+        void undo(ExecutionContext& ctx) override;
+
+    private:
+        core::UID m_originalUid;
+        core::UID m_copyUid = core::UID::s_invalidId;
     };
 
 } // namespace pxt::editor::commands
