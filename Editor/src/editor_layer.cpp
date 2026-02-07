@@ -74,8 +74,13 @@ namespace pxt::editor {
     }
 
     void EditorLayer::buildCommandExecutionContext() {
+
+        auto& app = Application::get();
+
         m_commandExecutionContext = {
-            .scene = &Application::get().getScene(), //
+            .eventQueue = &app.getEventQueue(),
+            .scene = &app.getScene(), //
+
         };
 
         m_undoStack.setExecutionContext(&m_commandExecutionContext);
@@ -240,12 +245,6 @@ namespace pxt::editor {
 
         // first update scene hierarchy ui (an entity might be selected)
         m_sceneHierarchy.onUpdateUi(frameInfo, m_selectedEntityUID, m_editorTextureRegistry.get());
-
-        // only fire event if selection changed
-        if (m_prevSelectedEntityUID != m_selectedEntityUID) {
-            Application::get().queueEvent(core::SelectedEntityChangedEvent(m_selectedEntityUID));
-            m_prevSelectedEntityUID = m_selectedEntityUID;
-        }
 
         // then update entity inspector ui
         m_entityInspector.onUpdateUi(frameInfo, m_selectedEntityUID);

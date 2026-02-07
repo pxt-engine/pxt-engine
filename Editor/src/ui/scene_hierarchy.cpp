@@ -129,8 +129,6 @@ namespace pxt::editor {
             core::UID copyEntityId; // default constructor generates a new UID
 
             m_undoStack.submitCommand(createUnique<commands::DuplicateEntityCommand>(entityToDuplicate, copyEntityId));
-
-            // selectedEntityId = copyEntityId;
         }
 
         // deselect if background clicked

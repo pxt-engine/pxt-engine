@@ -1,5 +1,6 @@
 #include "commands/entity_commands.hpp"
 
+#include "core/events/editor_events.hpp"
 #include "scene/ecs/entity.hpp"
 
 namespace pxt::editor::commands {
@@ -8,6 +9,8 @@ namespace pxt::editor::commands {
 
     void CreateEntityCommand::execute(ExecutionContext& ctx) {
         ctx.scene->createEntity(m_name, m_uid);
+
+        ctx.eventQueue->queueEvent(core::SelectedEntityChangedEvent(m_uid));
 
         PXT_INFO("Executed EntityCreateCommand: Created entity \"{}\" with UID {}", m_name, m_uid.toString());
     }
@@ -38,6 +41,8 @@ namespace pxt::editor::commands {
 
     void DuplicateEntityCommand::execute(ExecutionContext& ctx) {
         ctx.scene->duplicateEntity(m_originalUid, m_copyUid);
+
+        ctx.eventQueue->queueEvent(core::SelectedEntityChangedEvent(m_copyUid));
 
         PXT_INFO("Executed DuplicateEntityCommand: Duplicated entity with UID {} to new UID {}",
                  m_originalUid.toString(), m_copyUid.toString());
