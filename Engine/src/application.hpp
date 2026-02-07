@@ -1,7 +1,7 @@
 #pragma once
 
-#include "core/engine_mode.hpp"
 #include "concurrency/job_system.hpp"
+#include "core/engine_mode.hpp"
 #include "core/events/event.hpp"
 #include "core/events/event_queue.hpp"
 #include "core/layer/layer_stack.hpp"
@@ -34,6 +34,8 @@ namespace pxt {
         void run();
 
         Scene& getScene() { return m_scene; }
+
+        core::EventQueue& getEventQueue() { return m_eventQueue; }
 
         Context& getContext() { return m_context; }
 
