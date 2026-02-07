@@ -2,6 +2,8 @@
 
 #include "core/events/editor_events.hpp"
 #include "core/events/engine_state_events.hpp"
+
+#include "constants.hpp"
 #include "editor_logger_sink.hpp"
 #include "ui/widgets/dismissable_badge.hpp"
 #include "ui/widgets/mode_selector_image_button.hpp"
@@ -36,6 +38,8 @@ namespace pxt::editor {
         m_editorViewProvider.setActiveCameraRotation(m_editorCameraRotation);
 
         Application::get().setViewProvider(&m_editorViewProvider);
+
+        Application::get().getWindow().loadWindowIcon(EDITOR_TEXTURES_PATH + EDITOR_ICON);
     }
 
     void EditorLayer::onBeginFrame(float deltaTime) {
