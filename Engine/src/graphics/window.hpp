@@ -94,6 +94,8 @@ namespace pxt {
          */
         void createWindowSurface(VkInstance instance, VkSurfaceKHR* surface);
 
+        void loadWindowIcon(const std::string& iconPath);
+
     private:
         /**
          * @brief Registers the GLFW callbacks for window events.

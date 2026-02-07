@@ -9,6 +9,8 @@
 
 #include <ImGuizmo.h>
 
+#include <stb_image.h>
+
 namespace pxt {
 
     Window::Window(const WindowData& props) : m_data(props) {
@@ -27,6 +29,13 @@ namespace pxt {
     Window::~Window() {
         glfwDestroyWindow(m_window);
         glfwTerminate();
+    }
+
+    void Window::loadWindowIcon(const std::string& iconPath) {
+        GLFWimage images[1];
+        images[0].pixels = stbi_load(iconPath.c_str(), &images[0].width, &images[0].height, 0, 4); // rgba channels
+        glfwSetWindowIcon(m_window, 1, images);
+        stbi_image_free(images[0].pixels);
     }
 
     void Window::createWindowSurface(VkInstance instance, VkSurfaceKHR* surface) {
