@@ -2,6 +2,7 @@
 
 #include "core/pch.hpp"
 
+#include "core/events/event_queue.hpp"
 #include "scene/scene.hpp"
 
 namespace pxt::editor {
@@ -12,6 +13,7 @@ namespace pxt::editor {
      * It contains pointers to relevant systems for command operations.
      */
     struct ExecutionContext {
+        core::EventQueue* eventQueue;
         Scene* scene;
     };
 
