@@ -83,8 +83,7 @@ namespace pxt::editor {
 
         m_commandExecutionContext = {
             .eventQueue = &app.getEventQueue(),
-            .scene = &app.getScene(), //
-
+            .scene = &app.getScene()
         };
 
         m_undoStack.setExecutionContext(&m_commandExecutionContext);
