@@ -128,6 +128,7 @@ namespace pxt::editor {
 
         dispatcher.dispatch<core::SelectedEntityChangedEvent>([this](core::SelectedEntityChangedEvent& e) {
             m_selectedEntityUID = e.getSelectedEntityUID();
+            m_prevSelectedEntityUID = m_selectedEntityUID;
             return false;
         });
 
@@ -265,6 +266,12 @@ namespace pxt::editor {
         core::Input::getState().isViewportFocused = m_inputState.isViewportFocused;
         core::Input::getState().isViewportHovered = m_inputState.isViewportHovered;
         core::Input::getState().isCursorOverUI = m_inputState.isCursorOverUI;
+
+        // selected entity changed, notify listeners
+        if (m_selectedEntityUID != m_prevSelectedEntityUID) {
+            Application::get().queueEvent(core::SelectedEntityChangedEvent(m_selectedEntityUID));
+            // prev and current selection are updated in the event callback of this class
+        }
     }
 
     void EditorLayer::updateSceneUi(FrameInfo& frameInfo) {

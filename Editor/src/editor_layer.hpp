@@ -80,6 +80,7 @@ namespace pxt::editor {
         AssetBrowser m_assetBrowser{};
 
         core::UID m_selectedEntityUID = core::UID::s_invalidId;
+        core::UID m_prevSelectedEntityUID = core::UID::s_invalidId;
 
         ImVec2 m_sceneImageExtent{0.f, 0.f};
         ImVec2 m_viewportUpperLeftScreenCoord{0.f, 0.f};
