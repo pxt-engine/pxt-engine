@@ -30,7 +30,7 @@ include(CompileShaders)
 # Subprojects
 add_subdirectory(Engine)
 add_subdirectory(Editor)
-add_subdirectory(Application)
+add_subdirectory(GameExample)
 
 compile_shaders(${PROJECT_NAME} ${SHADER_DIRECTORY} ${SHADER_OUTPUT_DIRECTORY})
 
