@@ -8,9 +8,9 @@
 
 using namespace pxt;
 
-class App : public Application {
+class GameExample : public Application {
 public:
-    App() : Application() {}
+    GameExample() : Application() {}
 
     void prepareEnvironment() {
         std::array<std::string, 6> skyboxTextures;
@@ -420,7 +420,7 @@ public:
 };
 
 pxt::Application* pxt::initApplication() {
-    App* exampleApp = new App();
+    GameExample* exampleApp = new GameExample();
     exampleApp->start();
 
     // push layers if needed
