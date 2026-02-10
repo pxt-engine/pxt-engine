@@ -1,28 +1,28 @@
-#include "scene/entity_lifecycle_system.hpp"
+#include "scene/entity_lifecycle_listener.hpp"
 
-#include "scene/ecs/entity.hpp"
-#include "core/filesystem.hpp"
 #include "application.hpp"
+#include "core/filesystem.hpp"
+#include "scene/ecs/entity.hpp"
 
 namespace pxt {
-    EntityLifecycleSystem::EntityLifecycleSystem(Scene& scene) : m_scene(scene) { 
+    EntityLifecycleListener::EntityLifecycleListener(Scene& scene) : m_scene(scene) {
         registerCallbacks(m_scene.getRegistry());
     }
 
-    void EntityLifecycleSystem::registerCallbacks(entt::registry& registry) {
-        registry.on_construct<TransformComponent>().connect<&EntityLifecycleSystem::onTransformCreate>(this);
-        registry.on_construct<Transform2dComponent>().connect<&EntityLifecycleSystem::onTransform2dCreate>(this);
+    void EntityLifecycleListener::registerCallbacks(entt::registry& registry) {
+        registry.on_construct<TransformComponent>().connect<&EntityLifecycleListener::onTransformCreate>(this);
+        registry.on_construct<Transform2dComponent>().connect<&EntityLifecycleListener::onTransform2dCreate>(this);
 
-        registry.on_update<MeshComponent>().connect<&EntityLifecycleSystem::onMeshUpdate>(this);
-        registry.on_construct<MeshComponent>().connect<&EntityLifecycleSystem::onMeshUpdate>(this);
+        registry.on_update<MeshComponent>().connect<&EntityLifecycleListener::onMeshUpdate>(this);
+        registry.on_construct<MeshComponent>().connect<&EntityLifecycleListener::onMeshUpdate>(this);
 
-        registry.on_update<PropertiesComponent>().connect<&EntityLifecycleSystem::onPropertiesUpdate>(this);
+        registry.on_update<PropertiesComponent>().connect<&EntityLifecycleListener::onPropertiesUpdate>(this);
 
-        registry.on_construct<MaterialComponent>().connect<&EntityLifecycleSystem::onMaterialCreate>(this);
-        registry.on_update<MaterialComponent>().connect<&EntityLifecycleSystem::onMaterialUpdate>(this);
+        registry.on_construct<MaterialComponent>().connect<&EntityLifecycleListener::onMaterialCreate>(this);
+        registry.on_update<MaterialComponent>().connect<&EntityLifecycleListener::onMaterialUpdate>(this);
     }
 
-    void EntityLifecycleSystem::validateRenderState(Entity& entity) {
+    void EntityLifecycleListener::validateRenderState(Entity& entity) {
         const bool hasMesh = entity.has<MeshComponent>() && entity.get<MeshComponent>().mesh.isValid();
         const bool hasMaterial = entity.has<MaterialComponent>() && entity.get<MaterialComponent>().material.isValid();
 
@@ -48,7 +48,7 @@ namespace pxt {
         }
     }
 
-    void EntityLifecycleSystem::onTransformCreate(entt::entity enttEntity) {
+    void EntityLifecycleListener::onTransformCreate(entt::entity enttEntity) {
         // for now we just check if the entity already has a transform2d,
         // in that case we remove the newly created transform3d component
         Entity entity = {enttEntity, &m_scene};
@@ -64,7 +64,7 @@ namespace pxt {
         }
     }
 
-    void EntityLifecycleSystem::onTransform2dCreate(entt::entity enttEntity) {
+    void EntityLifecycleListener::onTransform2dCreate(entt::entity enttEntity) {
         // for now we just check if the entity already has a transform,
         // in that case we remove the newly created transform2d component
         Entity entity = {enttEntity, &m_scene};
@@ -80,19 +80,19 @@ namespace pxt {
         }
     }
 
-    void EntityLifecycleSystem::onMeshUpdate(entt::entity enttEntity) {
+    void EntityLifecycleListener::onMeshUpdate(entt::entity enttEntity) {
         Entity entity = {enttEntity, &m_scene};
 
         validateRenderState(entity);
     }
 
-    void EntityLifecycleSystem::onPropertiesUpdate(entt::entity enttEntity) {
+    void EntityLifecycleListener::onPropertiesUpdate(entt::entity enttEntity) {
         Entity entity = {enttEntity, &m_scene};
-        
+
         validateRenderState(entity);
     }
 
-    void EntityLifecycleSystem::onMaterialCreate(entt::entity enttEntity) {
+    void EntityLifecycleListener::onMaterialCreate(entt::entity enttEntity) {
         Entity entity = {enttEntity, &m_scene};
 
         auto& materialHandle = entity.get<MaterialComponent>().material;
@@ -106,7 +106,7 @@ namespace pxt {
         validateRenderState(entity);
     }
 
-    void EntityLifecycleSystem::onMaterialUpdate(entt::entity enttEntity) {
+    void EntityLifecycleListener::onMaterialUpdate(entt::entity enttEntity) {
         Entity entity = {enttEntity, &m_scene};
 
         validateRenderState(entity);
