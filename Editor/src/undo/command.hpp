@@ -4,6 +4,7 @@
 
 #include "core/events/event_queue.hpp"
 #include "scene/scene.hpp"
+#include "graphics/frame_info.hpp"
 
 namespace pxt::editor {
 
@@ -13,8 +14,9 @@ namespace pxt::editor {
      * It contains pointers to relevant systems for command operations.
      */
     struct ExecutionContext {
-        core::EventQueue* eventQueue;
-        Scene* scene;
+        core::EventQueue* eventQueue = nullptr;
+        Scene* scene = nullptr;
+        FrameInfo* prevFrameInfo = nullptr;
     };
 
     /**
