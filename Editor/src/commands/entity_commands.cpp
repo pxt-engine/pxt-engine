@@ -31,7 +31,7 @@ namespace pxt::editor::commands {
         // we also have to add a basic material component to make the mesh renderable
         newEntity.add<MaterialComponent>();
 
-        // we position the object at in front of the camera (-z is forward in view space)
+        // we position the object in front of the camera (-z is forward in view space)
         glm::vec4 startPosition{0.f, 0.f, -1.f, 1.f};
 
         // inverseViewMatrix * startPosition and update transform component

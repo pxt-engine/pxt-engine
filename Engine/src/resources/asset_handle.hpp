@@ -10,7 +10,7 @@ namespace pxt {
 
         AssetHandle() = default;
 
-        AssetHandle(core::UID uid) : uid(uid) {}
+        explicit AssetHandle(core::UID uid) : uid(uid) {}
 
         bool isValid() const { return uid != core::UID::s_invalidId; }
 

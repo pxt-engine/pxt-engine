@@ -1,5 +1,6 @@
 #include "graphics/render_systems/render_layer.hpp"
 #include "core/events/editor_events.hpp"
+#include "core/events/ecs_events.hpp"
 #include "core/events/event_dispatcher.hpp"
 #include "ui/widgets/space.hpp"
 
@@ -539,6 +540,13 @@ namespace pxt {
 
         dispatcher.dispatch<core::SelectedEntityChangedEvent>([this](core::SelectedEntityChangedEvent& e) {
             m_selectedEntityUID = e.getSelectedEntityUID();
+            return false;
+        });
+
+        dispatcher.dispatch<core::EntityDestroyedEvent>([this](core::EntityDestroyedEvent& e) {
+            if (e.getDestroyedEntityUID() == m_selectedEntityUID) {
+                m_selectedEntityUID = core::UID::s_invalidId;
+            }
             return false;
         });
     }

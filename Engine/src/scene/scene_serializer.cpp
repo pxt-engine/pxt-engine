@@ -310,7 +310,7 @@ namespace pxt {
             }
             // Deserialize MeshComponent
             if (auto meshComponentNode = entityNode["MeshComponent"]) {
-                AssetHandle mesh = rm.get<Mesh>(meshComponentNode["mesh"].as<std::string>())->id;
+                AssetHandle mesh{rm.get<Mesh>(meshComponentNode["mesh"].as<std::string>())->id};
 
                 entity.add<MeshComponent>(mesh);
             }
@@ -376,7 +376,7 @@ namespace pxt {
                 }
 
                 entity.add<MaterialComponent>(MaterialComponent::Builder()
-                                                  .setMaterial(material->id)
+                                                  .setMaterial(AssetHandle{material->id})
                                                   .setTilingFactor(tilingFactor)
                                                   .setTint(tint)
                                                   .build());

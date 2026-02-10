@@ -100,7 +100,7 @@ namespace pxt {
         // we assign the default material on creation if there is no material assigned, more intuitive for the user
         //? maybe we should not expose resource manager here
         if (!materialHandle.isValid()) {
-            materialHandle = Application::get().getResourceManager().s_defaultMaterial->id;
+            materialHandle = AssetHandle{Application::get().getResourceManager().s_defaultMaterial->id};
         }
 
         validateRenderState(entity);

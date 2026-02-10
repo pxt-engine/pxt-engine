@@ -72,7 +72,7 @@ public:
                             .createEntity("Floor")
                             .add<TransformComponent>(glm::vec3{0.f, 1.0f, 0.f}, glm::vec3{1.f, 1.f, 1.f},
                                                      glm::vec3{0.0f, 0.0f, 0.0f})
-                            .add<MeshComponent>(quad->id)
+                            .add<MeshComponent>(AssetHandle{quad->id})
                             .add<MaterialComponent>(); /*MaterialComponent::Builder()
                                                  .setMaterial(stylizedStoneMaterial)
                                  .setTilingFactor(2.0f)
@@ -82,28 +82,28 @@ public:
                      .createEntity("Left Wall")
                      .add<TransformComponent>(glm::vec3{-1.f, 0.f, 0.f}, glm::vec3{1.f, 1.f, 1.f},
                                               glm::vec3{0.0f, 0.0f, glm::pi<float>() / 2})
-                     .add<MeshComponent>(quad->id);
+                     .add<MeshComponent>(AssetHandle{quad->id});
         entity.addAndGet<MaterialComponent>().tint = glm::vec3{1.0f, 0.f, 0.f};
 
         entity = getScene()
                      .createEntity("Right Wall")
                      .add<TransformComponent>(glm::vec3{1.f, 0.f, 0.f}, glm::vec3{1.f, 1.f, 1.f},
                                               glm::vec3{0.0f, 0.0f, -glm::pi<float>() / 2})
-                     .add<MeshComponent>(quad->id);
+                     .add<MeshComponent>(AssetHandle{quad->id});
         entity.addAndGet<MaterialComponent>().tint = glm::vec3{0.f, 1.0f, 0.f};
 
         entity = getScene()
                      .createEntity("Front Wall")
                      .add<TransformComponent>(glm::vec3{0.f, 0.f, 1.f}, glm::vec3{1.f, 1.f, 1.f},
                                               glm::vec3{glm::pi<float>() / 2, 0.0f, 0.0f})
-                     .add<MeshComponent>(quad->id);
+                     .add<MeshComponent>(AssetHandle{quad->id});
         entity.addAndGet<MaterialComponent>(); // .tint = glm::vec3{ 0.f, 0.0f, 1.f };
 
         entity = getScene()
                      .createEntity("Roof")
                      .add<TransformComponent>(glm::vec3{0.f, -1.f, 0.f}, glm::vec3{1.f, 1.f, 1.f},
                                               glm::vec3{glm::pi<float>(), 0.0f, 0.0f})
-                     .add<MeshComponent>(quad->id)
+                     .add<MeshComponent>(AssetHandle{quad->id})
                      .add<MaterialComponent>();
     }
 
@@ -145,25 +145,30 @@ public:
                             .createEntity("vase")
                             .add<TransformComponent>(glm::vec3{-0.75f, 0.99f, 0.1f}, glm::vec3{1.0f, 1.0f, 1.0f},
                                                      glm::vec3{0.0f, glm::pi<float>() / 4, 0.0f})
-                            .add<MeshComponent>(vaseMesh->id);
-        entity.addAndGet<MaterialComponent>(MaterialComponent::Builder().setMaterial(glassMaterial->id).build()).tint =
+                            .add<MeshComponent>(AssetHandle{vaseMesh->id});
+        entity
+            .addAndGet<MaterialComponent>(
+                MaterialComponent::Builder().setMaterial(AssetHandle{glassMaterial->id}).build())
+            .tint =
             glm::vec3(0.63f, 0.84f, 0.99f);
 
         entity = getScene()
                      .createEntity("teapot")
                      .add<TransformComponent>(glm::vec3{0.5f, 1.0f, 0.7f}, glm::vec3{0.15f, 0.15f, 0.15f},
                                               glm::vec3{glm::pi<float>(), -glm::pi<float>() / 1.6, 0.0f})
-                     .add<MeshComponent>(teapotMesh->id);
-        entity.addAndGet<MaterialComponent>(MaterialComponent::Builder().setMaterial(metallicMaterial->id).build())
+                     .add<MeshComponent>(AssetHandle{teapotMesh->id});
+        entity
+            .addAndGet<MaterialComponent>(
+                MaterialComponent::Builder().setMaterial(AssetHandle{metallicMaterial->id}).build())
             .tint = glm::vec3(0.737, 0.776, 0.8);
 
         entity = getScene()
                      .createEntity("vase2")
                      .add<TransformComponent>(glm::vec3{-0.65f, 0.99f, 0.4f}, glm::vec3{1.8f, 1.4f, 1.8f},
                                               glm::vec3{0.0f, 0.0f, 0.0f})
-                     .add<MeshComponent>(vaseMesh->id);
+                     .add<MeshComponent>(AssetHandle{vaseMesh->id});
         entity.addAndGet<MaterialComponent>(MaterialComponent::Builder()
-                                                .setMaterial(glassMaterial->id)
+                                                .setMaterial(AssetHandle{glassMaterial->id})
                                                 .build()); // .tint = glm::vec3(0.63f, 0.84f, 0.99f);
     }
 
@@ -188,8 +193,9 @@ public:
                 .createEntity("rubik")
                 .add<TransformComponent>(glm::vec3{-0.75f, 0.9f, -0.3f}, glm::vec3{0.1f, 0.1f, 0.1f},
                                          glm::vec3{0.0f, -glm::pi<float>() / 2.5, 0.0f})
-                .add<MeshComponent>(rubikMesh->id)
-                .add<MaterialComponent>(MaterialComponent::Builder().setMaterial(rubikMaterial->id).build());
+                            .add<MeshComponent>(AssetHandle{rubikMesh->id})
+                            .add<MaterialComponent>(
+                                MaterialComponent::Builder().setMaterial(AssetHandle{rubikMaterial->id}).build());
     }
 
     void createLamp() {
@@ -215,8 +221,9 @@ public:
                             .createEntity("lamp")
                             .add<TransformComponent>(glm::vec3{0.6f, 1.0f, 0.6f}, glm::vec3{2.4f, 2.8f, 2.4f},
                                                      glm::vec3{glm::pi<float>(), glm::pi<float>() / 4, 0.0f})
-                            .add<MeshComponent>(lampMesh->id)
-                            .add<MaterialComponent>(MaterialComponent::Builder().setMaterial(lampMaterial->id).build());
+                            .add<MeshComponent>(AssetHandle{lampMesh->id})
+                            .add<MaterialComponent>(
+                                MaterialComponent::Builder().setMaterial(AssetHandle{lampMaterial->id}).build());
     }
 
     void createRoofLight() {
@@ -238,8 +245,9 @@ public:
                 .createEntity("roofLight")
                 .add<TransformComponent>(glm::vec3{0.0f, -1.1f, 0.0f}, glm::vec3{0.25f, 0.25f, 0.25f},
                                          glm::vec3{glm::pi<float>(), 0.0, 0.0})
-                .add<MeshComponent>(roofLightMesh->id)
-                .add<MaterialComponent>(MaterialComponent::Builder().setMaterial(roofLightMaterial->id).build());
+                            .add<MeshComponent>(AssetHandle{roofLightMesh->id})
+                            .add<MaterialComponent>(
+                                MaterialComponent::Builder().setMaterial(AssetHandle{roofLightMaterial->id}).build());
     }
 
     void createPencilAndPen() {
@@ -263,15 +271,17 @@ public:
                 .createEntity("pencil")
                 .add<TransformComponent>(glm::vec3{0.65f, 0.985f, -0.1f}, glm::vec3{0.1f, 0.1f, 0.1f},
                                          glm::vec3{0.0f, -glm::pi<float>() / 10, 0.0f})
-                .add<MeshComponent>(pencilMesh->id)
-                .add<MaterialComponent>(MaterialComponent::Builder().setMaterial(pencilMaterial->id).build());
+                            .add<MeshComponent>(AssetHandle{pencilMesh->id})
+                            .add<MaterialComponent>(
+                                MaterialComponent::Builder().setMaterial(AssetHandle{pencilMaterial->id}).build());
 
         entity = getScene()
                      .createEntity("pencil2")
                      .add<TransformComponent>(glm::vec3{0.55f, 0.985f, 0.0f}, glm::vec3{0.1f, 0.1f, 0.1f},
                                               glm::vec3{0.0f, -glm::pi<float>() / 12, 0.0f})
-                     .add<MeshComponent>(pencilMesh->id)
-                     .add<MaterialComponent>(MaterialComponent::Builder().setMaterial(pencilMaterial->id).build());
+                     .add<MeshComponent>(AssetHandle{pencilMesh->id})
+                     .add<MaterialComponent>(
+                         MaterialComponent::Builder().setMaterial(AssetHandle{pencilMaterial->id}).build());
     }
 
     void createLights() {
@@ -360,7 +370,7 @@ public:
 
         /*auto volumeCubeEntity = getScene().createEntity("Volume Cube")
             .add<TransformComponent>(glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3{ 0.5f }, glm::vec3{ 0.0f, 0.0f, 0.0f })
-            .add<MeshComponent>(cubeModel)
+            .add<MeshComponent>(AssetHandle{cubeModel)
             .add<VolumeComponent>(VolumeComponent::Builder()
                 .setAbsorption(glm::vec4{ 0.3f })
                 .setScattering(glm::vec4{ 0.3f })
@@ -378,8 +388,8 @@ public:
             getScene()
                 .createEntity("Emissive sphere")
                 .add<TransformComponent>(glm::vec3{0.0f, -0.45f, 0.6f}, glm::vec3{0.5f}, glm::vec3{0.0f, 0.0f, 0.0f})
-                .add<MeshComponent>(sphereModel->id)
-                .add<MaterialComponent>(MaterialComponent::Builder().setMaterial(emissiveMat->id).build());
+                .add<MeshComponent>(AssetHandle{sphereModel->id})
+                .add<MaterialComponent>(MaterialComponent::Builder().setMaterial(AssetHandle{emissiveMat->id}).build());
 
         auto bunny = rm.get<Mesh>(MODELS_PATH + "dragon.obj");
         /*auto bunnyMaterial = Material::Builder()
@@ -399,7 +409,7 @@ public:
 
         /*Entity entity = getScene().createEntity("glass cube")
             .add<TransformComponent>(glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3{ 0.1f }, glm::vec3{ 0.0f, glm::pi<float>()
-           / 4, 0.0f }) .add<MeshComponent>(cubeModel) .add<MaterialComponent>(MaterialComponent::Builder()
+           / 4, 0.0f }) .add<MeshComponent>(AssetHandle{cubeModel) .add<MaterialComponent>(MaterialComponent::Builder()
                 .setMaterial(glassMaterial)
                 .setTint(glm::vec4(1.0f, 0.0f, 0.0f, 1.0f))
                 .build());*/
@@ -409,7 +419,7 @@ public:
                 .createEntity("Bunny")
                 .add<TransformComponent>(glm::vec3{0.0f}, glm::vec3{3.0f, 3.0f, 3.0f},
                                          glm::vec3{0.0f, 0.0f, glm::pi<float>()})
-                .add<MeshComponent>(bunny->id)
+                .add<MeshComponent>(AssetHandle{bunny->id})
                 .add<VolumeComponent>(VolumeComponent::Builder()
                                           .setAbsorption(glm::vec4{0.1f})
                                           .setScattering(glm::vec4{0.9f})

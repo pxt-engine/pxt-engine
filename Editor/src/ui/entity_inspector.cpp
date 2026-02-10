@@ -273,7 +273,8 @@ namespace pxt::editor {
                                                   Resource::Type::Material};
 
             if (ResourceSlot::render("##entity-inspector-material-component-resource-slot", payload, rm)) {
-                entity.update<MaterialComponent>([&payload](auto& matComp) { matComp.material = payload.id; });
+                entity.update<MaterialComponent>(
+                    [&payload](auto& matComp) { matComp.material = AssetHandle{payload.id}; });
 
                 std::string newMaterialAlias =
                     c.material.isValid() ? rm.get<Material>(c.material)->alias : "No Material Assigned";
@@ -301,7 +302,7 @@ namespace pxt::editor {
             ResourceManager& rm = Application::get().getResourceManager();
 
             if (ResourceSlot::render("##entity-inspector-mesh-component-resource-slot", payload, rm)) {
-                entity.update<MeshComponent>([&payload](auto& meshComp) { meshComp.mesh = payload.id; });
+                entity.update<MeshComponent>([&payload](auto& meshComp) { meshComp.mesh = AssetHandle{payload.id}; });
 
                 std::string newMeshAlias = c.mesh.isValid() ? rm.get<Mesh>(c.mesh)->alias : "No Mesh Assigned";
 
