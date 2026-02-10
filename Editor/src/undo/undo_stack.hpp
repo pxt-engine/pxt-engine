@@ -21,7 +21,13 @@ namespace pxt::editor {
         ~UndoStack() = default;
 
         void setExecutionContext(ExecutionContext* ctx) { m_executionContext = ctx; }
-
+        
+        /*
+         * @brief Executes all pending commands in the undo stack.
+         * 
+         * @note This should be called at the end of each frame to ensure that all commands are executed in a consistent
+         * state and that all the previous frame data necessary for command execution is still valid and accessible (FrameInfo for example)
+          */
         void flush();
 
         void submitCommand(Unique<Command> command);
