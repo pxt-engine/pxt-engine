@@ -35,6 +35,20 @@ namespace pxt {
         Renderer(const Renderer&) = delete;
         Renderer& operator=(const Renderer&) = delete;
 
+        /*
+         * @brief Waits for a Vulkan fence to be signaled.
+         * 
+         * @param fence The Vulkan fence to wait for.
+         * @param timeout The maximum time to wait for the fence to be signaled, in nanoseconds. Defaults to UINT64_MAX
+         * (wait indefinitely).
+         * 
+         * @return The result of the wait operation, VK_SUCCESS if the fence was signaled, or an error code if it failed
+         * or timed out.
+         */
+        VkResult waitForFence(VkFence fence, uint64_t timeout = UINT64_MAX) {
+            return vkWaitForFences(m_context.getDevice(), 1, &fence, VK_TRUE, timeout);
+        }
+
         /**
          * @brief Gets the Vulkan render pass associated with the swap chain.
          *

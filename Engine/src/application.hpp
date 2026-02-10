@@ -41,6 +41,8 @@ namespace pxt {
 
         Window& getWindow() { return m_window; }
 
+        Renderer& getRenderer() { return m_renderer; }
+
         ResourceManager& getResourceManager() { return *m_resourceManagerPtr; }
 
         DescriptorAllocatorGrowable* getDescriptorAllocator() { return m_descriptorAllocator.get(); }
@@ -98,6 +100,10 @@ namespace pxt {
         }
 
         void setViewProvider(IViewProvider* viewProvider) { m_viewProviderPtr = viewProvider; }
+
+        VkResult waitForFence(VkFence fence, uint64_t timeout = UINT64_MAX) {
+            return m_renderer.waitForFence(fence, timeout);
+        }
 
     protected:
         virtual void loadScene() {}
