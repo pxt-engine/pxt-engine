@@ -34,6 +34,7 @@ namespace pxt::editor {
         void onBeginFrame(float deltaTime) override;
         void onEvent(core::Event& event) override;
         void onUpdateUi(FrameInfo& frameInfo) override;
+        void onPostFrameUpdate(FrameInfo& frameInfo) override;
 
     private:
         void updateSceneUi(FrameInfo& frameInfo);
@@ -42,7 +43,7 @@ namespace pxt::editor {
         void updateGizmoOverlayButtons(ImGuiWindowFlags windowFlags, float padding, ImVec2 buttonSize);
         core::EngineMode updatePlayPauseButton(ImGuiWindowFlags windowFlags, float padding, ImVec2 buttonSize);
 
-        void buildCommandExecutionContext();
+        void buildCommandExecutionContext(FrameInfo* const prevFrameInfo);
         void buildCameraNavigationState();
         void checkUndoRedoInputs();
 
@@ -71,7 +72,7 @@ namespace pxt::editor {
 
         glm::vec2 m_lastClickMousePosImGui = {0.0f, 0.0f};
 
-        ExecutionContext m_commandExecutionContext{};
+        ExecutionContext m_commandExecutionContext;
         UndoStack m_undoStack{};
         EditorConsole m_editorConsole{};
         SceneHierarchy m_sceneHierarchy{m_undoStack};

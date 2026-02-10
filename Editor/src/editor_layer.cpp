@@ -2,12 +2,16 @@
 
 #include "core/events/editor_events.hpp"
 #include "core/events/engine_state_events.hpp"
+#include "core/events/ecs_events.hpp"
 
 #include "constants.hpp"
 #include "editor_logger_sink.hpp"
 #include "ui/widgets/dismissable_badge.hpp"
 #include "ui/widgets/mode_selector_image_button.hpp"
 #include "ui/widgets/toggle_button.hpp"
+#include "ui/drag_and_drop.hpp"
+
+#include "commands/entity_commands.hpp"
 
 #include <glm/gtx/matrix_decompose.hpp> // will use it in the future for gizmos
 
@@ -47,11 +51,6 @@ namespace pxt::editor {
         m_navigationState = {};
         m_editorViewProvider.resetState();
 
-        buildCommandExecutionContext();
-
-        // Execute any pending commands in the undo stack
-        m_undoStack.flush();
-
         // here we have to obtain the corrext camera data based on engine mode
         // if we are not in EDIT mode, we simply return for now
         if (m_engineMode != core::EngineMode::EDIT) {
@@ -77,13 +76,14 @@ namespace pxt::editor {
         m_editorViewProvider.onUpdateCameraController(deltaTime);
     }
 
-    void EditorLayer::buildCommandExecutionContext() {
+    void EditorLayer::buildCommandExecutionContext(FrameInfo* const prevFrameInfo) {
 
         auto& app = Application::get();
 
         m_commandExecutionContext = {
-            .eventQueue = &app.getEventQueue(),
-            .scene = &app.getScene()
+            .eventQueue = &app.getEventQueue(), 
+            .scene = &app.getScene(), 
+            .prevFrameInfo = prevFrameInfo
         };
 
         m_undoStack.setExecutionContext(&m_commandExecutionContext);
@@ -129,6 +129,13 @@ namespace pxt::editor {
         dispatcher.dispatch<core::SelectedEntityChangedEvent>([this](core::SelectedEntityChangedEvent& e) {
             m_selectedEntityUID = e.getSelectedEntityUID();
             m_prevSelectedEntityUID = m_selectedEntityUID;
+            return false;
+        });
+
+        dispatcher.dispatch<core::EntityDestroyedEvent>([this](core::EntityDestroyedEvent& e) {
+            if (e.getDestroyedEntityUID() == m_selectedEntityUID) {
+                m_selectedEntityUID = core::UID::s_invalidId;
+            }
             return false;
         });
 
@@ -301,6 +308,14 @@ namespace pxt::editor {
         }
 
         ImGui::Image(scene, m_sceneImageExtent);
+
+        DragAndDrop::EnginePayload incomingPayload;
+        if (DragAndDrop::dragDropTarget(incomingPayload, Resource::Type::Mesh,
+                                        DragAndDrop::PayloadSource::AssetBrowser)) {
+            std::string& meshAlias = frameInfo.rm.get<Mesh>(incomingPayload.id)->alias;
+            m_undoStack.submitCommand(createUnique<commands::CreateEntityFromMeshCommand>(meshAlias, core::UID(), AssetHandle{
+                incomingPayload.id}));
+        }
 
         // If nothing selected, selection tool is active, we are not in edit mode,
         // selected entity does not contain Transform Components or is locked: DO NOT show gizmos.
@@ -512,5 +527,21 @@ namespace pxt::editor {
         }
 
         return ratioedExtent;
+    }
+
+    void EditorLayer::onPostFrameUpdate(FrameInfo& frameInfo) {
+        // we wait for the frame to end and then we flush the undo stack
+        if (Application::get().waitForFence(frameInfo.frameFence) != VK_SUCCESS) {
+            PXT_ERROR("Failed to wait for frame fence in EditorLayer::onPostFrameUpdate");
+        }
+
+        FrameInfo prevFrameInfo = frameInfo; // make a copy to pass to the command execution context
+        buildCommandExecutionContext(&frameInfo);
+
+        // Execute any pending commands in the undo stack
+        m_undoStack.flush();
+
+        //! after this point the prevFrameInfo inside the execution context is not valid anymore, be careful if you want
+        //! to execute commands after this point that rely on it.
     }
 } // namespace pxt::editor
