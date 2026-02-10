@@ -44,6 +44,9 @@ namespace pxt::core {
             PickObjectAt,
             SelectedEntityChanged,
             ViewportResizeEvent,
+
+            // ECS events
+            EntityDestroyed,
         };
 
         [[nodiscard]] virtual Event::Type getEventType() const = 0;
