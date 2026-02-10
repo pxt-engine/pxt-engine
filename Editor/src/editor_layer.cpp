@@ -1,15 +1,15 @@
 #include "editor_layer.hpp"
 
+#include "core/events/ecs_events.hpp"
 #include "core/events/editor_events.hpp"
 #include "core/events/engine_state_events.hpp"
-#include "core/events/ecs_events.hpp"
 
 #include "constants.hpp"
 #include "editor_logger_sink.hpp"
+#include "ui/drag_and_drop.hpp"
 #include "ui/widgets/dismissable_badge.hpp"
 #include "ui/widgets/mode_selector_image_button.hpp"
 #include "ui/widgets/toggle_button.hpp"
-#include "ui/drag_and_drop.hpp"
 
 #include "commands/entity_commands.hpp"
 
@@ -81,10 +81,7 @@ namespace pxt::editor {
         auto& app = Application::get();
 
         m_commandExecutionContext = {
-            .eventQueue = &app.getEventQueue(), 
-            .scene = &app.getScene(), 
-            .prevFrameInfo = prevFrameInfo
-        };
+            .eventQueue = &app.getEventQueue(), .scene = &app.getScene(), .prevFrameInfo = prevFrameInfo};
 
         m_undoStack.setExecutionContext(&m_commandExecutionContext);
     }
@@ -270,10 +267,6 @@ namespace pxt::editor {
         //? maybe viewport class in the future?
         updateSceneUi(frameInfo);
 
-        core::Input::getState().isViewportFocused = m_inputState.isViewportFocused;
-        core::Input::getState().isViewportHovered = m_inputState.isViewportHovered;
-        core::Input::getState().isCursorOverUI = m_inputState.isCursorOverUI;
-
         // selected entity changed, notify listeners
         if (m_selectedEntityUID != m_prevSelectedEntityUID) {
             Application::get().queueEvent(core::SelectedEntityChangedEvent(m_selectedEntityUID));
@@ -312,9 +305,29 @@ namespace pxt::editor {
         DragAndDrop::EnginePayload incomingPayload;
         if (DragAndDrop::dragDropTarget(incomingPayload, Resource::Type::Mesh,
                                         DragAndDrop::PayloadSource::AssetBrowser)) {
+            const glm::vec2 mousePos = m_inputState.getMousePosition();
+
+            const glm::vec2 dropPos{mousePos.x - m_viewportUpperLeftScreenCoord.x,
+                                    mousePos.y - m_viewportUpperLeftScreenCoord.y};
+
+            const CameraMatrices& cm = frameInfo.cameraMatrices;
+            const glm::vec3 nearPoint = glm::unProjectZO(glm::vec3(dropPos, 0.f), cm.viewMatrix, cm.projectionMatrix,
+                                                         glm::vec4(0, 0, viewportSize.x, viewportSize.y));
+
+            const glm::vec3 farPoint = glm::unProjectZO(glm::vec3(dropPos, 1.f), cm.viewMatrix, cm.projectionMatrix,
+                                                        glm::vec4(0, 0, viewportSize.x, viewportSize.y));
+
+            const glm::vec3 rayDir = glm::normalize(farPoint - nearPoint);
+
+            // constant world-space distance
+            const float distanceFromCamera = 2.0f;
+
+            const glm::vec3 anchorPosition =
+                CameraMath::getCameraPos(cm.inverseViewMatrix) + rayDir * distanceFromCamera;
+
             std::string& meshAlias = frameInfo.rm.get<Mesh>(incomingPayload.id)->alias;
-            m_undoStack.submitCommand(createUnique<commands::CreateEntityFromMeshCommand>(meshAlias, core::UID(), AssetHandle{
-                incomingPayload.id}));
+            m_undoStack.submitCommand(createUnique<commands::CreateEntityFromMeshCommand>(
+                meshAlias, core::UID(), AssetHandle{incomingPayload.id}, anchorPosition));
         }
 
         // If nothing selected, selection tool is active, we are not in edit mode,

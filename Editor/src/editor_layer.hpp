@@ -68,6 +68,8 @@ namespace pxt::editor {
                                                 m_editorCameraRotation};
         GameViewProvider m_gameViewProvider;
 
+        // this is just a way to not write "core::Input::getState()" everywhere, since we need to read input state in
+        // multiple places in the editor layer and also update it
         core::InputState& m_inputState = core::Input::getState();
 
         glm::vec2 m_lastClickMousePosImGui = {0.0f, 0.0f};
