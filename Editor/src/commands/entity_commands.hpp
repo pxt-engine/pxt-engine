@@ -20,6 +20,20 @@ namespace pxt::editor::commands {
         std::string m_name;
     };
 
+    class CreateEntityFromMeshCommand : public Command {
+    public:
+        explicit CreateEntityFromMeshCommand(const std::string& name, core::UID uid, AssetHandle mesh);
+        ~CreateEntityFromMeshCommand() override = default;
+
+        void execute(ExecutionContext& ctx) override;
+        void undo(ExecutionContext& ctx) override;
+
+    private:
+        core::UID m_uid = core::UID::s_invalidId;
+        std::string m_name;
+        AssetHandle m_mesh;
+    };
+
     class DestroyEntityCommand : public Command {
     public:
         explicit DestroyEntityCommand(core::UID uid);

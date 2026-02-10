@@ -21,6 +21,34 @@ namespace pxt::editor::commands {
         PXT_INFO("Undid EntityCreateCommand: Destroyed entity with UID {}", m_uid.toString());
     }
 
+    CreateEntityFromMeshCommand::CreateEntityFromMeshCommand(const std::string& name, core::UID uid, AssetHandle mesh)
+        : m_name(name), m_uid(uid), m_mesh(mesh) {}
+
+    void CreateEntityFromMeshCommand::execute(ExecutionContext& ctx) {
+        Entity newEntity = ctx.scene->createEntity(m_name, m_uid);
+
+        newEntity.add<MeshComponent>(m_mesh);
+        // we also have to add a basic material component to make the mesh renderable
+        newEntity.add<MaterialComponent>();
+
+        // we position the object at in front of the camera (-z is forward in view space)
+        glm::vec4 startPosition{0.f, 0.f, -1.f, 1.f};
+
+        // inverseViewMatrix * startPosition and update transform component
+        newEntity.get<TransformComponent>().translation =
+            glm::vec3(ctx.prevFrameInfo->cameraMatrices.inverseViewMatrix * startPosition);
+
+        ctx.eventQueue->queueEvent(core::SelectedEntityChangedEvent(m_uid));
+
+        PXT_INFO("Executed EntityCreateCommand: Created entity \"{}\" with UID {} from mesh (UID) {}", m_name, m_uid.toString(), m_mesh.uid.toString());
+    }
+
+    void CreateEntityFromMeshCommand::undo(ExecutionContext& ctx) {
+        ctx.scene->destroyEntity(m_uid);
+
+        PXT_INFO("Undid EntityCreateCommand: Destroyed entity with UID {}", m_uid.toString());
+    }
+
     DestroyEntityCommand::DestroyEntityCommand(core::UID uid) : m_uid(uid) {}
 
     void DestroyEntityCommand::execute(ExecutionContext& ctx) {
@@ -53,5 +81,4 @@ namespace pxt::editor::commands {
 
         PXT_INFO("Undid DuplicateEntityCommand: Destroyed duplicated entity with UID {}", m_copyUid.toString());
     }
-
 } // namespace pxt::editor::commands
