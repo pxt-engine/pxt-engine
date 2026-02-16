@@ -70,7 +70,7 @@ namespace pxt {
     void SkyboxRenderSystem::render(FrameInfo& frameInfo) {
         m_pipeline->bind(frameInfo.commandBuffer);
 
-        std::array<VkDescriptorSet, 2> descriptorSets = {frameInfo.globalDescriptorSet, m_skybox->getDescriptorSet()};
+        std::array<VkDescriptorSet, 2> descriptorSets = {frameInfo.globalDescriptorSet, m_skybox->getDescriptorSet(frameInfo.frameIndex)};
 
         vkCmdBindDescriptorSets(frameInfo.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0,
                                 static_cast<uint32_t>(descriptorSets.size()), descriptorSets.data(), 0, nullptr);

@@ -337,7 +337,7 @@ namespace pxt {
             m_textureRegistry.getDescriptorSet(),
             m_storageImageDescriptorSet,
             m_materialRegistry.getDescriptorSet(frameInfo.frameIndex),
-            m_skybox->getDescriptorSet(),
+            m_skybox->getDescriptorSet(frameInfo.frameIndex),
             m_rtSceneManager.getMeshInstanceDescriptorSet(frameInfo.frameIndex),
             m_rtSceneManager.getEmittersDescriptorSet(frameInfo.frameIndex),
             m_rtSceneManager.getVolumeDescriptorSet(frameInfo.frameIndex),

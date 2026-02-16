@@ -16,6 +16,20 @@ namespace pxt {
         glm::vec4 getAmbientLight() const { return m_ambientLight; }
 
         /**
+         * @brief Get the ambient light color of the environment.
+         *
+         * @return The ambient light color.
+         */
+        glm::vec3 getAmbientLightColor() const { return glm::vec3(m_ambientLight); }
+
+        /**
+         * @brief Get the ambient light intensity of the environment.
+         *
+         * @return The ambient light intensity.
+         */
+        float getAmbientLightIntensity() const { return m_ambientLight.w; }
+
+        /**
          * @brief Set the ambient light of the environment.
          * The RGB components represents the ambient light color, the alpha component represents the intensity.
          *
@@ -31,7 +45,7 @@ namespace pxt {
          *
          * @param skyboxTextures An array of texture paths for the skybox faces.
          */
-        void setSkybox(const std::array<std::string, 6>& skyboxTextures);
+        void setSkybox(const std::array<std::string, 6>& skyboxTextures, uint32_t frameIndex = 0);
 
     private:
         glm::vec4 m_ambientLight = glm::vec4{0.67f, 0.85f, 0.9f, .02f};
