@@ -310,20 +310,8 @@ namespace pxt::editor {
             const glm::vec2 dropPos{mousePos.x - m_viewportUpperLeftScreenCoord.x,
                                     mousePos.y - m_viewportUpperLeftScreenCoord.y};
 
-            const CameraMatrices& cm = frameInfo.cameraMatrices;
-            const glm::vec3 nearPoint = glm::unProjectZO(glm::vec3(dropPos, 0.f), cm.viewMatrix, cm.projectionMatrix,
-                                                         glm::vec4(0, 0, viewportSize.x, viewportSize.y));
-
-            const glm::vec3 farPoint = glm::unProjectZO(glm::vec3(dropPos, 1.f), cm.viewMatrix, cm.projectionMatrix,
-                                                        glm::vec4(0, 0, viewportSize.x, viewportSize.y));
-
-            const glm::vec3 rayDir = glm::normalize(farPoint - nearPoint);
-
-            // constant world-space distance
-            const float distanceFromCamera = 2.0f;
-
-            const glm::vec3 anchorPosition =
-                CameraMath::getCameraPos(cm.inverseViewMatrix) + rayDir * distanceFromCamera;
+            const glm::vec3 anchorPosition = CameraMath::computeWorldPositionFromScreen(
+                dropPos, frameInfo.cameraMatrices, glm::vec2(viewportSize.x, viewportSize.y), 3.f);
 
             std::string& meshAlias = frameInfo.rm.get<Mesh>(incomingPayload.id)->alias;
             m_undoStack.submitCommand(createUnique<commands::CreateEntityFromMeshCommand>(
