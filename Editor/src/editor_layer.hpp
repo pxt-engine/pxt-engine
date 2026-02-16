@@ -87,6 +87,7 @@ namespace pxt::editor {
 
         ImVec2 m_sceneImageExtent{0.f, 0.f};
         ImVec2 m_viewportUpperLeftScreenCoord{0.f, 0.f};
+        bool m_forceViewportFocus = false;
 
         ImGuizmo::OPERATION m_currentGizmoOperation{ImGuizmo::TRANSLATE};
         ImGuizmo::MODE m_currentGizmoMode{ImGuizmo::WORLD};

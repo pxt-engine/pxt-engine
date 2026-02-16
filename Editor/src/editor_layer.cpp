@@ -279,6 +279,13 @@ namespace pxt::editor {
 
         ImTextureID scene = (ImTextureID)frameInfo.sceneDescriptorSet;
 
+        //! here we check if other widgets have requested viewport focus
+        //! if yes, we focus the viewport
+        if (m_forceViewportFocus) {
+            ImGui::SetNextWindowFocus();
+            m_forceViewportFocus = false;
+        }
+
         // we push a style var to remove the viewpoer window padding
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
         ImGui::Begin("Viewport");
@@ -316,6 +323,8 @@ namespace pxt::editor {
             std::string& meshAlias = frameInfo.rm.get<Mesh>(incomingPayload.id)->alias;
             m_undoStack.submitCommand(createUnique<commands::CreateEntityFromMeshCommand>(
                 meshAlias, core::UID(), AssetHandle{incomingPayload.id}, anchorPosition));
+
+            m_forceViewportFocus = true;
         }
 
         // If nothing selected, selection tool is active, we are not in edit mode,
