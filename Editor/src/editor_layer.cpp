@@ -264,6 +264,8 @@ namespace pxt::editor {
 
         m_assetBrowser.onUpdateUi(rm);
 
+        m_environmentUi.onUpdateUi(frameInfo);
+
         //? maybe viewport class in the future?
         updateSceneUi(frameInfo);
 

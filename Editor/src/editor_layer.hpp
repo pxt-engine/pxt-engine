@@ -20,6 +20,7 @@
 #include "ui/asset_browser.hpp"
 #include "ui/editor_console.hpp"
 #include "ui/entity_inspector.hpp"
+#include "ui/environment.hpp"
 #include "ui/main_menu_bar.hpp"
 #include "ui/scene_hierarchy.hpp"
 #include "undo/undo_stack.hpp"
@@ -81,6 +82,7 @@ namespace pxt::editor {
         EntityInspector m_entityInspector{};
         MainMenuBar m_mainMenuBar{};
         AssetBrowser m_assetBrowser{};
+        EnvironmentUi m_environmentUi{};
 
         core::UID m_selectedEntityUID = core::UID::s_invalidId;
         core::UID m_prevSelectedEntityUID = core::UID::s_invalidId;
