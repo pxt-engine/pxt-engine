@@ -21,6 +21,10 @@ namespace pxt {
 
         VkDescriptorSet getDescriptorSet() const { return m_skyboxDescriptorSet; }
 
+        VkDescriptorSet getDebugDescriptorSet(uint32_t faceIndex) const {
+            return m_skyboxDebugDescriptorSets[faceIndex];
+        }
+
         VkDescriptorSetLayout getDescriptorSetLayout() const {
             return m_skyboxDescriptorSetLayout->getDescriptorSetLayout();
         }
@@ -35,5 +39,9 @@ namespace pxt {
 
         VkDescriptorSet m_skyboxDescriptorSet;
         Unique<DescriptorSetLayout> m_skyboxDescriptorSetLayout;
+
+        // TODO: move these to a descriptor set manager or something
+        std::array<VkDescriptorSet, 6> m_skyboxDebugDescriptorSets;
+        Unique<DescriptorSetLayout> m_skyboxDebugDescriptorSetLayout;
     };
 } // namespace pxt

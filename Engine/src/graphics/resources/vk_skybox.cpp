@@ -117,6 +117,25 @@ namespace pxt {
         DescriptorWriter(m_context, *m_skyboxDescriptorSetLayout)
             .writeImage(0, &skyboxImageInfo)
             .updateSet(m_skyboxDescriptorSet);
+
+        // Create debug descriptor sets for each face of the cube map
+        m_skyboxDebugDescriptorSetLayout =
+            DescriptorSetLayout::Builder(m_context)
+                .addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
+                .build();
+
+        for (size_t i = 0; i < m_skyboxDebugDescriptorSets.size(); i++) {
+            descriptorAllocator.allocate(m_skyboxDebugDescriptorSetLayout->getDescriptorSetLayout(),
+                                         m_skyboxDebugDescriptorSets[i]);
+            // Create a descriptor image info for the current face of the cube map
+            VkDescriptorImageInfo debugImageInfo{};
+            debugImageInfo.sampler = m_cubeMap->getSamplerHandle();
+            debugImageInfo.imageView = m_cubeMap->getFaceImageView(i);
+            debugImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            DescriptorWriter(m_context, *m_skyboxDebugDescriptorSetLayout)
+                .writeImage(0, &debugImageInfo)
+                .updateSet(m_skyboxDebugDescriptorSets[i]);
+        }
     }
 
     VkDescriptorImageInfo VulkanSkybox::getDescriptorImageInfo() const {
