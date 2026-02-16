@@ -71,6 +71,22 @@ namespace pxt {
         return id;
     }
 
+    ResourceId ResourceManager::remove(const core::UID uid) {
+        m_resources[uid] = nullptr; // set to nullptr first
+        m_resources.erase(uid);
+
+        // also remove from aliases
+        for (auto it = m_aliases.begin(); it != m_aliases.end();) {
+            if (it->second == uid) {
+                it = m_aliases.erase(it);
+            } else {
+                ++it;
+            }
+        }
+
+        return uid;
+    }
+
     void ResourceManager::foreach (const std::function<void(const Shared<Resource>&)>& function) {
         for (const auto& resource : m_resources | std::views::values) {
             function(resource);
