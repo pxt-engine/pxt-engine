@@ -386,13 +386,13 @@ namespace pxt {
         ImTextureID cube_negz = (ImTextureID)m_shadowMapDebugDescriptorSets[5];
 
         /* Render the shadow cube map textures flat out in this format (with y mirrored):
-        //       +----+
-                         | +Y |
+        //                +----+
+                          | +Y |
                 +----+----+----+----+
                 | -X | +Z | +X | -Z |
                 +----+----+----+----+
-                         | -Y |
-                         +----+
+                          | -Y |
+                          +----+
         */
 
         ImGui::Begin("Shadow Cube Map Debug");
