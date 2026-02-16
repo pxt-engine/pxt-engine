@@ -177,12 +177,14 @@ namespace pxt {
         }
     }
 
-    void VulkanSkybox::replace(const std::array<std::string, 6>& skyboxTexturesPaths, uint32_t frameIndex) {
+    void VulkanSkybox::replace(const std::array<std::string, 6>& skyboxTexturesPaths) {
         // Ensure GPU is not using old resources
         vkDeviceWaitIdle(m_context.getDevice());
 
+        ResourceManager& rm = Application::get().getResourceManager();
+
         // Reload textures (creates new CubeMap)
-        loadTextures(skyboxTexturesPaths, Application::get().getResourceManager());
+        loadTextures(skyboxTexturesPaths, rm);
     }
 
 } // namespace pxt

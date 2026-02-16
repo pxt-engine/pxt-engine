@@ -33,7 +33,7 @@ namespace pxt {
 
         const CubeMap& getCubeMap() const { return *m_cubeMap; }
 
-        void replace(const std::array<std::string, 6>& skyboxTextures, uint32_t frameIndex) override;
+        void replace(const std::array<std::string, 6>& skyboxTextures) override;
 
         void updateDescriptorSets(uint32_t frameIndex);
 

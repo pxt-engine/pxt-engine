@@ -8,6 +8,6 @@ namespace pxt {
     public:
         virtual ~Skybox() = default;
 
-        virtual void replace(const std::array<std::string, 6>& skyboxTextures, uint32_t frameIndex) = 0;
+        virtual void replace(const std::array<std::string, 6>& skyboxTextures) = 0;
     };
 } // namespace pxt

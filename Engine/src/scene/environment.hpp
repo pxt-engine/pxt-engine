@@ -45,7 +45,7 @@ namespace pxt {
          *
          * @param skyboxTextures An array of texture paths for the skybox faces.
          */
-        void setSkybox(const std::array<std::string, 6>& skyboxTextures, uint32_t frameIndex = 0);
+        void setSkybox(const std::array<std::string, 6>& skyboxTextures);
 
     private:
         glm::vec4 m_ambientLight = glm::vec4{0.67f, 0.85f, 0.9f, .02f};
