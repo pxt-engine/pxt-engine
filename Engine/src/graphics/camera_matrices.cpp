@@ -55,4 +55,21 @@ namespace pxt {
         // Re-calculate Up to ensure orthonormality
         upDir = glm::cross(rightDir, forward);
     }
+
+    glm::vec3 CameraMath::computeWorldPositionFromScreen(const glm::vec2& screenPos, const CameraMatrices& camMatrices,
+                                                         const glm::vec2& viewportSize, const float depth) {
+        const glm::vec3 nearPoint =
+            glm::unProjectZO(glm::vec3(screenPos, 0.f), camMatrices.viewMatrix, camMatrices.projectionMatrix,
+                             glm::vec4(0, 0, viewportSize.x, viewportSize.y));
+
+        const glm::vec3 farPoint =
+            glm::unProjectZO(glm::vec3(screenPos, 1.f), camMatrices.viewMatrix, camMatrices.projectionMatrix,
+                             glm::vec4(0, 0, viewportSize.x, viewportSize.y));
+
+        const glm::vec3 rayDir = glm::normalize(farPoint - nearPoint);
+
+        const glm::vec3 anchorPosition = CameraMath::getCameraPos(camMatrices.inverseViewMatrix) + rayDir * depth;
+
+        return anchorPosition;
+    }
 } // namespace pxt

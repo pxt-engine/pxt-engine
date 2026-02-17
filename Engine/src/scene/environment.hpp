@@ -16,6 +16,20 @@ namespace pxt {
         glm::vec4 getAmbientLight() const { return m_ambientLight; }
 
         /**
+         * @brief Get the ambient light color of the environment.
+         *
+         * @return The ambient light color.
+         */
+        glm::vec3 getAmbientLightColor() const { return glm::vec3(m_ambientLight); }
+
+        /**
+         * @brief Get the ambient light intensity of the environment.
+         *
+         * @return The ambient light intensity.
+         */
+        float getAmbientLightIntensity() const { return m_ambientLight.w; }
+
+        /**
          * @brief Set the ambient light of the environment.
          * The RGB components represents the ambient light color, the alpha component represents the intensity.
          *

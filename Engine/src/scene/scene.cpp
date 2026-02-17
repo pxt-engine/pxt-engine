@@ -1,12 +1,12 @@
 #include "scene/scene.hpp"
 
-#include "core/events/editor_events.hpp"
 #include "core/events/ecs_events.hpp"
+#include "core/events/editor_events.hpp"
 #include "core/events/event_dispatcher.hpp"
 #include "core/filesystem.hpp"
 #include "scene/ecs/component.hpp"
 #include "scene/ecs/entity.hpp"
-#include "scene/entity_lifecycle_system.hpp"
+#include "scene/entity_lifecycle_listener.hpp"
 #include "scene/script/script.hpp"
 
 #include "application.hpp"
@@ -17,7 +17,7 @@ namespace pxt {
         m_objPickingIdToUID[core::ObjPickingId::s_invalidId] = core::UID::s_invalidId;
         m_uidToObjPickingId[core::UID::s_invalidId] = core::ObjPickingId::s_invalidId;
 
-        m_entityLifecycleSystem = createUnique<EntityLifecycleSystem>(*this);
+        m_entityLifecycleSystem = createUnique<EntityLifecycleListener>(*this);
     }
 
     Scene::~Scene() = default;

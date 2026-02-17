@@ -22,7 +22,8 @@ namespace pxt::editor::commands {
 
     class CreateEntityFromMeshCommand : public Command {
     public:
-        explicit CreateEntityFromMeshCommand(const std::string& name, core::UID uid, AssetHandle mesh);
+        explicit CreateEntityFromMeshCommand(const std::string& name, core::UID uid, AssetHandle mesh,
+                                             glm::vec3 anchorPosition = glm::vec3{0.f});
         ~CreateEntityFromMeshCommand() override = default;
 
         void execute(ExecutionContext& ctx) override;
@@ -32,6 +33,7 @@ namespace pxt::editor::commands {
         core::UID m_uid = core::UID::s_invalidId;
         std::string m_name;
         AssetHandle m_mesh;
+        glm::vec3 m_anchorPosition;
     };
 
     class DestroyEntityCommand : public Command {

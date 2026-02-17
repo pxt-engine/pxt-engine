@@ -1,6 +1,6 @@
 #include "graphics/render_systems/render_layer.hpp"
-#include "core/events/editor_events.hpp"
 #include "core/events/ecs_events.hpp"
+#include "core/events/editor_events.hpp"
 #include "core/events/event_dispatcher.hpp"
 #include "ui/widgets/space.hpp"
 
@@ -388,6 +388,14 @@ namespace pxt {
         ubo.view = frameInfo.cameraMatrices.viewMatrix;
         ubo.inverseView = frameInfo.cameraMatrices.inverseViewMatrix;
         ubo.inverseProjection = frameInfo.cameraMatrices.inverseProjectionMatrix;
+
+        // update skybox descriptor set for the current frame
+        // TODO: this needs to be done in a different way! we should not be updating the skybox descriptor set every
+        // frame, but only when the skybox changes. The problem is we should also update the previous frame sets when
+        // they are done rendering (which in the future can be done via onPostFrameUpdate but Environment / Skybox
+        // abstractions are not ready yet).
+        auto skybox = static_pointer_cast<VulkanSkybox>(frameInfo.scene.getEnvironment()->getSkybox());
+        skybox->updateDescriptorSets(frameInfo.frameIndex);
 
         // update light values into ubo
         m_pointLightSystem->update(frameInfo, ubo);

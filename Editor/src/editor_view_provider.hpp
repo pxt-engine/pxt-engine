@@ -34,6 +34,8 @@ namespace pxt::editor {
 
         void onUpdateCameraController(float deltaTime);
 
+        const CameraData& getActiveCameraData() const { return m_activeCameraData; };
+
     private:
         EditorCameraController m_editorCameraController;
         CameraNavigationState m_camNavState{};

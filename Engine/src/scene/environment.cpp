@@ -5,6 +5,10 @@
 namespace pxt {
 
     void Environment::setSkybox(const std::array<std::string, 6>& skyboxTextures) {
-        m_skybox = VulkanSkybox::create(skyboxTextures);
+        if (m_skybox) {
+            m_skybox->replace(skyboxTextures);
+        } else {
+            m_skybox = VulkanSkybox::create(skyboxTextures);
+        }
     }
 } // namespace pxt

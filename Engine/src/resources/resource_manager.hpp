@@ -93,6 +93,15 @@ namespace pxt {
         ResourceId add(const Shared<Resource>& resource, const std::string& alias);
 
         /**
+         * @brief Removes a resource from the manager by its UID.
+         *
+         * @param uid The UID of the resource to remove.
+         *
+         * @return The ID of the removed resource.
+         */
+        ResourceId remove(const core::UID uid);
+
+        /**
          * @brief Iterates over all resources and applies the given function to each.
          *
          * @param function The function to apply to each resource.

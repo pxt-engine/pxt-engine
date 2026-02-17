@@ -20,6 +20,7 @@
 #include "ui/asset_browser.hpp"
 #include "ui/editor_console.hpp"
 #include "ui/entity_inspector.hpp"
+#include "ui/environment.hpp"
 #include "ui/main_menu_bar.hpp"
 #include "ui/scene_hierarchy.hpp"
 #include "undo/undo_stack.hpp"
@@ -68,6 +69,8 @@ namespace pxt::editor {
                                                 m_editorCameraRotation};
         GameViewProvider m_gameViewProvider;
 
+        // this is just a way to not write "core::Input::getState()" everywhere, since we need to read input state in
+        // multiple places in the editor layer and also update it
         core::InputState& m_inputState = core::Input::getState();
 
         glm::vec2 m_lastClickMousePosImGui = {0.0f, 0.0f};
@@ -79,12 +82,14 @@ namespace pxt::editor {
         EntityInspector m_entityInspector{};
         MainMenuBar m_mainMenuBar{};
         AssetBrowser m_assetBrowser{};
+        EnvironmentUi m_environmentUi{};
 
         core::UID m_selectedEntityUID = core::UID::s_invalidId;
         core::UID m_prevSelectedEntityUID = core::UID::s_invalidId;
 
         ImVec2 m_sceneImageExtent{0.f, 0.f};
         ImVec2 m_viewportUpperLeftScreenCoord{0.f, 0.f};
+        bool m_forceViewportFocus = false;
 
         ImGuizmo::OPERATION m_currentGizmoOperation{ImGuizmo::TRANSLATE};
         ImGuizmo::MODE m_currentGizmoMode{ImGuizmo::WORLD};

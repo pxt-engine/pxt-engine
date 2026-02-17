@@ -11,7 +11,7 @@
 namespace pxt {
 
     class Entity;
-    class EntityLifecycleSystem;
+    class EntityLifecycleListener;
 
     /**
      * @class Scene
@@ -152,12 +152,12 @@ namespace pxt {
         // The entity registry for managing components.
         entt::registry m_registry;
 
-        Unique<EntityLifecycleSystem> m_entityLifecycleSystem;
+        Unique<EntityLifecycleListener> m_entityLifecycleSystem;
 
         Shared<Environment> m_environment = createShared<Environment>();
         core::UID m_activeCameraEntityID = core::UID::s_invalidId;
 
         friend class Entity;
-        friend class EntityLifecycleSystem;
+        friend class EntityLifecycleListener;
     };
 } // namespace pxt

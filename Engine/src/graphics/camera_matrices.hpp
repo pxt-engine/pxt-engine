@@ -27,5 +27,9 @@ namespace pxt {
         static void computeOrthonormalBasisFromPitchYaw(glm::vec3& forward, glm::vec3& upDir, glm::vec3& rightDir,
                                                         const float pitch, const float yaw,
                                                         const bool isWorldYUp = true);
+
+        [[nodiscard]] static glm::vec3 computeWorldPositionFromScreen(const glm::vec2& screenPos,
+                                                                      const CameraMatrices& camMatrices,
+                                                                      const glm::vec2& viewportSize, const float depth);
     };
 } // namespace pxt

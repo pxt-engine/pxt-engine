@@ -6,9 +6,9 @@ namespace pxt {
     class Scene; // forward declaration
     class Entity;
 
-    class EntityLifecycleSystem {
+    class EntityLifecycleListener {
     public:
-        explicit EntityLifecycleSystem(Scene& scene);
+        explicit EntityLifecycleListener(Scene& scene);
 
     private:
         Scene& m_scene;
@@ -18,9 +18,9 @@ namespace pxt {
         void validateRenderState(Entity& entity);
 
         void onTransformCreate(entt::entity enttEntity);
-        
+
         void onTransform2dCreate(entt::entity enttEntity);
-        
+
         void onMeshUpdate(entt::entity enttEntity);
 
         void onPropertiesUpdate(entt::entity enttEntity);
