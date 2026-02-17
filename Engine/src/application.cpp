@@ -190,11 +190,7 @@ namespace pxt {
             } else if (resource->getType() == Resource::Type::Mesh) {
                 auto mesh = std::static_pointer_cast<Mesh>(resource);
                 m_blasRegistry.getOrCreateBLAS(mesh);
-            }
-        });
-
-        m_resourceManagerPtr->foreach ([&](const Shared<Resource>& resource) {
-            if (resource->getType() == Resource::Type::Material) {
+            } else if (resource->getType() == Resource::Type::Material) {
                 auto material = std::static_pointer_cast<Material>(resource);
 
                 m_materialRegistry.add(material);
