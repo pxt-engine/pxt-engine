@@ -327,7 +327,7 @@ namespace pxt {
                 .build();
 
         for (int i = 0; i < SwapChain::MAX_FRAMES_IN_FLIGHT; i++) {
-            m_descriptorAllocator.allocate(m_tlasDescriptorSetLayout->getDescriptorSetLayout(),
+            m_descriptorAllocator.allocate(m_tlasDescriptorSetLayout->getHandle(),
                                            m_tlasDescriptorSets[i]);
         }
     }
@@ -366,7 +366,7 @@ namespace pxt {
                 .build();
 
         for (int i = 0; i < SwapChain::MAX_FRAMES_IN_FLIGHT; i++) {
-            m_descriptorAllocator.allocate(m_meshInstanceDescriptorSetLayout->getDescriptorSetLayout(),
+            m_descriptorAllocator.allocate(m_meshInstanceDescriptorSetLayout->getHandle(),
                                            m_meshInstanceDescriptorSets[i]);
         }
     }
@@ -405,7 +405,7 @@ namespace pxt {
                 .build();
 
         for (int i = 0; i < SwapChain::MAX_FRAMES_IN_FLIGHT; i++) {
-            m_descriptorAllocator.allocate(m_emittersDescriptorSetLayout->getDescriptorSetLayout(),
+            m_descriptorAllocator.allocate(m_emittersDescriptorSetLayout->getHandle(),
                                            m_emittersDescriptorSets[i]);
         }
     }
@@ -448,7 +448,7 @@ namespace pxt {
                 .build();
 
         for (int i = 0; i < SwapChain::MAX_FRAMES_IN_FLIGHT; i++) {
-            m_descriptorAllocator.allocate(m_volumesDescriptorSetLayout->getDescriptorSetLayout(),
+            m_descriptorAllocator.allocate(m_volumesDescriptorSetLayout->getHandle(),
                                            m_volumesDescriptorSets[i]);
         }
     }

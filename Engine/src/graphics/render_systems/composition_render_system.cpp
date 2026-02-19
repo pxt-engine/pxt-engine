@@ -31,7 +31,7 @@ namespace pxt {
                 .addBinding(3, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_COMPUTE_BIT)          // output
                 .build();
 
-        m_descriptorAllocator.allocate(m_descriptorSetLayout->getDescriptorSetLayout(), m_descriptorSet);
+        m_descriptorAllocator.allocate(m_descriptorSetLayout->getHandle(), m_descriptorSet);
     }
 
     void CompositionRenderSystem::createPipelineLayout() {
@@ -40,7 +40,7 @@ namespace pxt {
         pushConstantRange.offset = 0;
         pushConstantRange.size = sizeof(CompositionPushConstants);
 
-        std::vector<VkDescriptorSetLayout> descriptorSetLayouts{m_descriptorSetLayout->getDescriptorSetLayout()};
+        std::vector<VkDescriptorSetLayout> descriptorSetLayouts{m_descriptorSetLayout->getHandle()};
 
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;

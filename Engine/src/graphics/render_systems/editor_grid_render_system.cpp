@@ -28,7 +28,7 @@ namespace pxt {
         pushConstantRange.offset = 0;
         pushConstantRange.size = sizeof(EditorGridPushConstantData);
 
-        std::vector<VkDescriptorSetLayout> descriptorSetLayouts{globalSetLayout.getDescriptorSetLayout()};
+        std::vector<VkDescriptorSetLayout> descriptorSetLayouts{globalSetLayout.getHandle()};
 
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;

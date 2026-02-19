@@ -52,7 +52,7 @@ namespace pxt {
         VkDescriptorSet getTLASDescriptorSet(int frameIndex) const { return m_tlasDescriptorSets[frameIndex]; }
 
         VkDescriptorSetLayout getTLASDescriptorSetLayout() const {
-            return m_tlasDescriptorSetLayout->getDescriptorSetLayout();
+            return m_tlasDescriptorSetLayout->getHandle();
         }
 
         VkDescriptorSet getMeshInstanceDescriptorSet(int frameIndex) const {
@@ -60,19 +60,19 @@ namespace pxt {
         }
 
         VkDescriptorSetLayout getMeshInstanceDescriptorSetLayout() const {
-            return m_meshInstanceDescriptorSetLayout->getDescriptorSetLayout();
+            return m_meshInstanceDescriptorSetLayout->getHandle();
         }
 
         VkDescriptorSet getEmittersDescriptorSet(int frameIndex) const { return m_emittersDescriptorSets[frameIndex]; }
 
         VkDescriptorSetLayout getEmittersDescriptorSetLayout() const {
-            return m_emittersDescriptorSetLayout->getDescriptorSetLayout();
+            return m_emittersDescriptorSetLayout->getHandle();
         }
 
         VkDescriptorSet getVolumeDescriptorSet(int frameIndex) const { return m_volumesDescriptorSets[frameIndex]; }
 
         VkDescriptorSetLayout getVolumeDescriptorSetLayout() const {
-            return m_volumesDescriptorSetLayout->getDescriptorSetLayout();
+            return m_volumesDescriptorSetLayout->getHandle();
         }
 
     private:

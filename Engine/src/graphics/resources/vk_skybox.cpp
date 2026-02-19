@@ -120,7 +120,7 @@ namespace pxt {
         VkDescriptorImageInfo skyboxImageInfo = getDescriptorImageInfo();
 
         for (int i = 0; i < SwapChain::MAX_FRAMES_IN_FLIGHT; i++) {
-            descriptorAllocator.allocate(m_skyboxDescriptorSetLayout->getDescriptorSetLayout(),
+            descriptorAllocator.allocate(m_skyboxDescriptorSetLayout->getHandle(),
                                          m_skyboxDescriptorSet[i]);
 
             DescriptorWriter(m_context, *m_skyboxDescriptorSetLayout)
@@ -135,7 +135,7 @@ namespace pxt {
                 .build();
 
         for (size_t i = 0; i < m_skyboxDebugDescriptorSets.size(); i++) {
-            descriptorAllocator.allocate(m_skyboxDebugDescriptorSetLayout->getDescriptorSetLayout(),
+            descriptorAllocator.allocate(m_skyboxDebugDescriptorSetLayout->getHandle(),
                                          m_skyboxDebugDescriptorSets[i]);
             // Create a descriptor image info for the current face of the cube map
             VkDescriptorImageInfo debugImageInfo{};

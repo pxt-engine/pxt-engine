@@ -43,7 +43,7 @@ namespace pxt {
     VkDescriptorSet TextureRegistry::getDescriptorSet() { return m_textureDescriptorSet; }
 
     VkDescriptorSetLayout TextureRegistry::getDescriptorSetLayout() {
-        return m_textureDescriptorSetLayout->getDescriptorSetLayout();
+        return m_textureDescriptorSetLayout->getHandle();
     }
 
     void TextureRegistry::createDescriptorSet() {
@@ -66,7 +66,7 @@ namespace pxt {
             imageInfos.push_back(imageInfo);
         }
 
-        m_descriptorAllocator->allocate(m_textureDescriptorSetLayout->getDescriptorSetLayout(), m_textureDescriptorSet);
+        m_descriptorAllocator->allocate(m_textureDescriptorSetLayout->getHandle(), m_textureDescriptorSet);
 
         DescriptorWriter(m_context, *m_textureDescriptorSetLayout)
             .writeImages(0, imageInfos.data(), static_cast<uint32_t>(imageInfos.size()))

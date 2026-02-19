@@ -197,7 +197,7 @@ namespace pxt {
         pushConstantRange.size = sizeof(ObjPickingPushConstantData);
 
         std::vector<VkDescriptorSetLayout> descriptorSetLayouts{
-            globalSetLayout.getDescriptorSetLayout(),
+            globalSetLayout.getHandle(),
         };
 
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};

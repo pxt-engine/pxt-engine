@@ -19,7 +19,7 @@ namespace pxt {
     }
 
     void SkyboxRenderSystem::createPipelineLayout(DescriptorSetLayout& globalSetLayout) {
-        std::vector<VkDescriptorSetLayout> descriptorSetLayouts{globalSetLayout.getDescriptorSetLayout(),
+        std::vector<VkDescriptorSetLayout> descriptorSetLayouts{globalSetLayout.getHandle(),
                                                                 m_skybox->getDescriptorSetLayout()};
 
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};

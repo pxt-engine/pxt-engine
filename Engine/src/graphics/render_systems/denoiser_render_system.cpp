@@ -123,7 +123,7 @@ namespace pxt {
                 .addBinding(1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_COMPUTE_BIT)
                 .build();
 
-        m_descriptorAllocator.allocate(m_accumulationDescriptorSetLayout->getDescriptorSetLayout(),
+        m_descriptorAllocator.allocate(m_accumulationDescriptorSetLayout->getHandle(),
                                        m_accumulationDescriptorSet);
 
         // The descriptor set will be updated at runtime with the new frame's image info
@@ -143,7 +143,7 @@ namespace pxt {
                 .addBinding(3, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_COMPUTE_BIT)
                 .build();
 
-        m_descriptorAllocator.allocate(m_temporalFilterDescriptorSetLayout->getDescriptorSetLayout(),
+        m_descriptorAllocator.allocate(m_temporalFilterDescriptorSetLayout->getHandle(),
                                        m_temporalFilterDescriptorSet);
     }
 
@@ -158,7 +158,7 @@ namespace pxt {
                 .addBinding(2, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_COMPUTE_BIT)
                 .build();
 
-        m_descriptorAllocator.allocate(m_spatialFilterDescriptorSetLayout->getDescriptorSetLayout(),
+        m_descriptorAllocator.allocate(m_spatialFilterDescriptorSetLayout->getHandle(),
                                        m_spatialFilterDescriptorSet);
     }
 
@@ -169,7 +169,7 @@ namespace pxt {
         pushConstantRange.size = sizeof(DenoiserPushConstantData); // Only frameCount needed here
 
         std::vector<VkDescriptorSetLayout> descriptorSetLayouts{
-            m_accumulationDescriptorSetLayout->getDescriptorSetLayout()};
+            m_accumulationDescriptorSetLayout->getHandle()};
 
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -191,7 +191,7 @@ namespace pxt {
         pushConstantRange.size = sizeof(DenoiserPushConstantData); // For frameCount, temporalAlpha
 
         std::vector<VkDescriptorSetLayout> descriptorSetLayouts{
-            m_temporalFilterDescriptorSetLayout->getDescriptorSetLayout()};
+            m_temporalFilterDescriptorSetLayout->getHandle()};
 
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -213,7 +213,7 @@ namespace pxt {
         pushConstantRange.size = sizeof(DenoiserPushConstantData); // For spatialSigmaColor, spatialSigmaSpace
 
         std::vector<VkDescriptorSetLayout> descriptorSetLayouts{
-            m_spatialFilterDescriptorSetLayout->getDescriptorSetLayout()};
+            m_spatialFilterDescriptorSetLayout->getHandle()};
 
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;

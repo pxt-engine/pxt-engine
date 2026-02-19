@@ -61,7 +61,7 @@ namespace pxt {
          * @return VkDescriptorSetLayout object.
          */
         [[nodiscard]]
-        VkDescriptorSetLayout getDescriptorSetLayout() const {
+        VkDescriptorSetLayout getHandle() const {
             return m_descriptorSetLayout;
         }
 

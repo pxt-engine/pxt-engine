@@ -28,7 +28,7 @@ namespace pxt {
     VkDescriptorSet MaterialRegistry::getDescriptorSet(int frameIndex) { return m_materialDescriptorSets[frameIndex]; }
 
     VkDescriptorSetLayout MaterialRegistry::getDescriptorSetLayout() {
-        return m_materialDescriptorSetLayout->getDescriptorSetLayout();
+        return m_materialDescriptorSetLayout->getHandle();
     }
 
     void MaterialRegistry::createDescriptorSets() {
@@ -41,7 +41,7 @@ namespace pxt {
                 .build();
 
         for (int i = 0; i < SwapChain::MAX_FRAMES_IN_FLIGHT; i++) {
-            m_descriptorAllocator->allocate(m_materialDescriptorSetLayout->getDescriptorSetLayout(),
+            m_descriptorAllocator->allocate(m_materialDescriptorSetLayout->getHandle(),
                                             m_materialDescriptorSets[i]);
         }
     }

@@ -131,7 +131,7 @@ namespace pxt {
                 .addBinding(2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT) // Global Majorant Buffer
                 .build();
 
-        m_descriptorAllocator.allocate(m_descriptorSetLayout->getDescriptorSetLayout(), m_descriptorSet);
+        m_descriptorAllocator.allocate(m_descriptorSetLayout->getHandle(), m_descriptorSet);
 
         // Update descriptor set immediately since the images don't change
         VkDescriptorImageInfo densityImageInfo = m_densityTexture->getImageInfo(false);
@@ -161,7 +161,7 @@ namespace pxt {
                             VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR)
                 .build();
 
-        m_descriptorAllocator.allocate(m_samplingDescriptorSetLayout->getDescriptorSetLayout(),
+        m_descriptorAllocator.allocate(m_samplingDescriptorSetLayout->getHandle(),
                                        m_samplingDescriptorSet);
 
         // TODO: manage this automatically, with the method provided by VulkanImage abstraction
@@ -186,7 +186,7 @@ namespace pxt {
         // DENSITY TEXTURE IMGUI
         densityImageInfo.imageView = m_densitySliceImageView;
 
-        m_descriptorAllocator.allocate(m_imGuiDescriptorSetLayout->getDescriptorSetLayout(),
+        m_descriptorAllocator.allocate(m_imGuiDescriptorSetLayout->getHandle(),
                                        m_imGuiDensityDescriptorSet);
 
         DescriptorWriter(m_context, *m_imGuiDescriptorSetLayout)
@@ -196,7 +196,7 @@ namespace pxt {
         // MAJORANT GRID TEXTURE IMGUI
         majorantImageInfo.imageView = m_majorantGridSliceImageView;
 
-        m_descriptorAllocator.allocate(m_imGuiDescriptorSetLayout->getDescriptorSetLayout(),
+        m_descriptorAllocator.allocate(m_imGuiDescriptorSetLayout->getHandle(),
                                        m_imGuiMajorantDescriptorSet);
 
         DescriptorWriter(m_context, *m_imGuiDescriptorSetLayout)
@@ -210,7 +210,7 @@ namespace pxt {
         pushConstantRange.offset = 0;
         pushConstantRange.size = sizeof(DensityPushConstants);
 
-        std::vector<VkDescriptorSetLayout> descriptorSetLayouts{m_descriptorSetLayout->getDescriptorSetLayout()};
+        std::vector<VkDescriptorSetLayout> descriptorSetLayouts{m_descriptorSetLayout->getHandle()};
 
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -239,7 +239,7 @@ namespace pxt {
     }
 
     void DensityTextureRenderSystem::createGlobalMajorantPipelineLayout() {
-        std::vector<VkDescriptorSetLayout> descriptorSetLayouts{m_descriptorSetLayout->getDescriptorSetLayout()};
+        std::vector<VkDescriptorSetLayout> descriptorSetLayouts{m_descriptorSetLayout->getHandle()};
 
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;

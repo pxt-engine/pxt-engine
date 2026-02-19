@@ -53,7 +53,7 @@ namespace pxt::editor {
     VkDescriptorSet EditorTextureRegistry::createDescriptorSet(Context& context, VkDescriptorImageInfo imageInfo) {
 
         VkDescriptorSet textureDescriptorSet = VK_NULL_HANDLE;
-        m_descriptorAllocator->allocate(m_textureDescriptorSetLayout->getDescriptorSetLayout(), textureDescriptorSet);
+        m_descriptorAllocator->allocate(m_textureDescriptorSetLayout->getHandle(), textureDescriptorSet);
 
         if (textureDescriptorSet == VK_NULL_HANDLE) {
             throw std::runtime_error("Failed to allocate descriptor set for texture inside editor pool");

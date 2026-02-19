@@ -55,7 +55,7 @@ namespace pxt {
         for (size_t i = 0; i < m_lightDescriptorSets.size(); i++) {
             auto bufferInfo = m_lightUniformBuffers[i]->descriptorInfo();
 
-            m_descriptorAllocator.allocate(setLayout.getDescriptorSetLayout(), m_lightDescriptorSets[i]);
+            m_descriptorAllocator.allocate(setLayout.getHandle(), m_lightDescriptorSets[i]);
 
             DescriptorWriter(m_context, setLayout).writeBuffer(0, &bufferInfo).updateSet(m_lightDescriptorSets[i]);
         }
@@ -216,7 +216,7 @@ namespace pxt {
         pushConstantRange.offset = 0;
         pushConstantRange.size = sizeof(ShadowMapPushConstantData);
 
-        std::vector<VkDescriptorSetLayout> descriptorSetLayouts{setLayout.getDescriptorSetLayout()};
+        std::vector<VkDescriptorSetLayout> descriptorSetLayouts{setLayout.getHandle()};
 
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -362,7 +362,7 @@ namespace pxt {
 
         // Create descriptor set for each face of the cube map
         for (size_t i = 0; i < m_debugImageDescriptorInfos.size(); i++) {
-            m_descriptorAllocator.allocate(debugSetLayout->getDescriptorSetLayout(), m_shadowMapDebugDescriptorSets[i]);
+            m_descriptorAllocator.allocate(debugSetLayout->getHandle(), m_shadowMapDebugDescriptorSets[i]);
             DescriptorWriter(m_context, *debugSetLayout)
                 .writeImage(0, &m_debugImageDescriptorInfos[i])
                 .updateSet(m_shadowMapDebugDescriptorSets[i]);

@@ -44,7 +44,7 @@ namespace pxt {
         descriptorImageInfo.imageView = m_sceneImage->getImageView();
         descriptorImageInfo.sampler = VK_NULL_HANDLE;
 
-        m_descriptorAllocator.allocate(m_storageImageDescriptorSetLayout->getDescriptorSetLayout(),
+        m_descriptorAllocator.allocate(m_storageImageDescriptorSetLayout->getHandle(),
                                        m_storageImageDescriptorSet);
 
         DescriptorWriter(m_context, *m_storageImageDescriptorSetLayout)
@@ -60,7 +60,7 @@ namespace pxt {
                 .addBinding(0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_RAYGEN_BIT_KHR, 1)
                 .build();
 
-        m_descriptorAllocator.allocate(m_blueNoiseDescriptorSetLayout->getDescriptorSetLayout(),
+        m_descriptorAllocator.allocate(m_blueNoiseDescriptorSetLayout->getHandle(),
                                        m_blueNoiseDescriptorSet);
 
         VkDeviceSize bufferSize = sizeof(m_blueNoiseTextureIndeces);
@@ -102,17 +102,17 @@ namespace pxt {
 
     void RayTracingRenderSystem::createPipelineLayout(DescriptorSetLayout& setLayout) {
         std::vector<VkDescriptorSetLayout> descriptorSetLayouts{
-            setLayout.getDescriptorSetLayout(),
+            setLayout.getHandle(),
             m_rtSceneManager.getTLASDescriptorSetLayout(),
             m_textureRegistry.getDescriptorSetLayout(),
-            m_storageImageDescriptorSetLayout->getDescriptorSetLayout(),
+            m_storageImageDescriptorSetLayout->getHandle(),
             m_materialRegistry.getDescriptorSetLayout(),
             m_skybox->getDescriptorSetLayout(),
             m_rtSceneManager.getMeshInstanceDescriptorSetLayout(),
             m_rtSceneManager.getEmittersDescriptorSetLayout(),
             m_rtSceneManager.getVolumeDescriptorSetLayout(),
-            m_blueNoiseDescriptorSetLayout->getDescriptorSetLayout(),
-            m_densityTextureSystem.getSamplingDensitySetLayout()->getDescriptorSetLayout()};
+            m_blueNoiseDescriptorSetLayout->getHandle(),
+            m_densityTextureSystem.getSamplingDensitySetLayout()->getHandle()};
 
         VkPushConstantRange pushConstantRange{};
         pushConstantRange.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;

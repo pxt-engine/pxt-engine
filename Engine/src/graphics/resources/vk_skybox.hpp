@@ -28,7 +28,7 @@ namespace pxt {
         }
 
         VkDescriptorSetLayout getDescriptorSetLayout() const {
-            return m_skyboxDescriptorSetLayout->getDescriptorSetLayout();
+            return m_skyboxDescriptorSetLayout->getHandle();
         }
 
         const CubeMap& getCubeMap() const { return *m_cubeMap; }

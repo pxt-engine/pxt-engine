@@ -312,7 +312,7 @@ namespace pxt {
 
     void RenderLayer::createRenderSystems() {
         m_pointLightSystem = createUnique<PointLightSystem>(m_context, m_offscreenRenderPass->getHandle(),
-                                                            m_globalSetLayout.getDescriptorSetLayout());
+                                                            m_globalSetLayout.getHandle());
 
         m_shadowMapRenderSystem =
             createUnique<ShadowMapRenderSystem>(m_context, m_descriptorAllocator, m_globalSetLayout);
@@ -571,7 +571,7 @@ namespace pxt {
         imageInfo.imageView = m_sceneImage->getImageView();
         imageInfo.sampler = m_sceneImage->getSamplerHandle();
 
-        m_descriptorAllocator.allocate(m_finalImageDescriptorSetLayout->getDescriptorSetLayout(),
+        m_descriptorAllocator.allocate(m_finalImageDescriptorSetLayout->getHandle(),
                                        m_finalImageDescriptorSet);
 
         DescriptorWriter(m_context, *m_finalImageDescriptorSetLayout)

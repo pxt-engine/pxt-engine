@@ -41,7 +41,7 @@ namespace pxt {
                 .addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
                 .build();
 
-        m_descriptorAllocator.allocate(m_shadowMapDescriptorSetLayout->getDescriptorSetLayout(),
+        m_descriptorAllocator.allocate(m_shadowMapDescriptorSetLayout->getHandle(),
                                        m_shadowMapDescriptorSet);
 
         DescriptorWriter(m_context, *m_shadowMapDescriptorSetLayout)
@@ -56,8 +56,8 @@ namespace pxt {
         pushConstantRange.size = sizeof(MaterialPushConstantData);
 
         std::vector<VkDescriptorSetLayout> descriptorSetLayouts{
-            globalSetLayout.getDescriptorSetLayout(), m_textureRegistry.getDescriptorSetLayout(),
-            m_shadowMapDescriptorSetLayout->getDescriptorSetLayout()};
+            globalSetLayout.getHandle(), m_textureRegistry.getDescriptorSetLayout(),
+            m_shadowMapDescriptorSetLayout->getHandle()};
 
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;

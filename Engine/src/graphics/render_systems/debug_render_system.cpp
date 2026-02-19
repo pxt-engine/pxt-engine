@@ -41,7 +41,7 @@ namespace pxt {
         pushConstantRange.offset = 0;
         pushConstantRange.size = sizeof(DebugPushConstantData);
 
-        std::vector<VkDescriptorSetLayout> descriptorSetLayouts{globalSetLayout.getDescriptorSetLayout(),
+        std::vector<VkDescriptorSetLayout> descriptorSetLayouts{globalSetLayout.getHandle(),
                                                                 m_textureRegistry.getDescriptorSetLayout()};
 
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
