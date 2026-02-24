@@ -20,10 +20,10 @@ namespace pxt {
         float tilingFactor = 1.0f;
     };
 
-    MaterialRenderSystem::MaterialRenderSystem(Context& context, DescriptorAllocatorGrowable& descriptorAllocator,
-                                               TextureRegistry& textureRegistry, DescriptorSetLayout& globalSetLayout,
+    MaterialRenderSystem::MaterialRenderSystem(Context& context, DescriptorManager& descriptorManager,
+                                               TextureRegistry& textureRegistry, const DescriptorSetLayout& globalSetLayout,
                                                VkRenderPass renderPass, VkDescriptorImageInfo shadowMapImageInfo)
-        : m_context(context), m_descriptorAllocator(descriptorAllocator), m_textureRegistry(textureRegistry),
+        : m_context(context), m_descriptorManager(descriptorManager), m_textureRegistry(textureRegistry),
           m_renderPassHandle(renderPass) {
         createDescriptorSets(shadowMapImageInfo);
         createPipelineLayout(globalSetLayout);
@@ -36,20 +36,16 @@ namespace pxt {
 
     void MaterialRenderSystem::createDescriptorSets(VkDescriptorImageInfo shadowMapImageInfo) {
         // SHADOW MAP DESCRIPTOR SET
-        m_shadowMapDescriptorSetLayout =
-            DescriptorSetLayout::Builder(m_context)
-                .addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
-                .build();
+        std::vector<DescriptorEntry> bindings = {
+            {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 1}
+        };
+        
+        m_shadowMapDescriptorSet = m_descriptorManager.createSet(bindings);
 
-        m_descriptorAllocator.allocate(m_shadowMapDescriptorSetLayout->getHandle(),
-                                       m_shadowMapDescriptorSet);
-
-        DescriptorWriter(m_context, *m_shadowMapDescriptorSetLayout)
-            .writeImage(0, &shadowMapImageInfo)
-            .updateSet(m_shadowMapDescriptorSet);
+        m_descriptorManager.submitUpdateSingle(m_shadowMapDescriptorSet, 0, shadowMapImageInfo);
     }
 
-    void MaterialRenderSystem::createPipelineLayout(DescriptorSetLayout& globalSetLayout) {
+    void MaterialRenderSystem::createPipelineLayout(const DescriptorSetLayout& globalSetLayout) {
         VkPushConstantRange pushConstantRange{};
         pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
         pushConstantRange.offset = 0;
@@ -57,7 +53,8 @@ namespace pxt {
 
         std::vector<VkDescriptorSetLayout> descriptorSetLayouts{
             globalSetLayout.getHandle(), m_textureRegistry.getDescriptorSetLayout(),
-            m_shadowMapDescriptorSetLayout->getHandle()};
+            m_descriptorManager.getRawLayout(m_shadowMapDescriptorSet)
+        };
 
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -130,7 +127,10 @@ namespace pxt {
         m_pipeline->bind(frameInfo.commandBuffer);
 
         std::array<VkDescriptorSet, 3> descriptorSets = {
-            frameInfo.globalDescriptorSet, m_textureRegistry.getDescriptorSet(), m_shadowMapDescriptorSet};
+            frameInfo.globalDescriptorSet, 
+            m_textureRegistry.getDescriptorSet(frameInfo.frameIndex),
+            m_descriptorManager.getDescriptorSet(m_shadowMapDescriptorSet, frameInfo.frameIndex)
+        };
 
         vkCmdBindDescriptorSets(frameInfo.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0,
                                 static_cast<uint32_t>(descriptorSets.size()), descriptorSets.data(), 0, nullptr);

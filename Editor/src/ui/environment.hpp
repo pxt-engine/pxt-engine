@@ -12,6 +12,6 @@ namespace pxt::editor {
         void onUpdateUi(FrameInfo& frameInfo);
 
     private:
-        void drawSkybox(Shared<VulkanSkybox> skybox);
+        void drawSkybox(Shared<VulkanSkybox> skybox, uint32_t frameIndex);
     };
 } // namespace pxt::editor

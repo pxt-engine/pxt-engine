@@ -2,6 +2,7 @@
 
 #include "core/pch.hpp"
 #include "graphics/descriptors/descriptors.hpp"
+#include "graphics/descriptors/descriptor_manager.hpp"
 #include "graphics/resources/texture_registry.hpp"
 #include "graphics/resources/vk_buffer.hpp"
 #include "graphics/swap_chain.hpp"
@@ -46,14 +47,7 @@ namespace pxt {
      */
     class MaterialRegistry {
     public:
-        MaterialRegistry(Context& context, TextureRegistry& textureRegistry);
-
-        /**
-         * @brief Sets the descriptor allocator used to allocate descriptor sets.
-         *
-         * @param descriptorAllocator pointer to a growable descriptor allocator.
-         */
-        void setDescriptorAllocator(DescriptorAllocatorGrowable* descriptorAllocator);
+        explicit MaterialRegistry(Context& context, DescriptorManager& descriptorManager, TextureRegistry& textureRegistry);
 
         /**
          * @brief Adds a material to the registry.
@@ -78,7 +72,7 @@ namespace pxt {
          *
          * @return The Vulkan descriptor set.
          */
-        VkDescriptorSet getDescriptorSet(int frameIndex);
+        VkDescriptorSet getDescriptorSet(uint32_t frameIndex);
 
         /**
          * @brief Gets the Vulkan descriptor set layout used for the materials.
@@ -95,7 +89,7 @@ namespace pxt {
          */
         void createDescriptorSets();
 
-        void updateDescriptorSet(int frameIndex);
+        void updateDescriptorSet(uint32_t frameIndex);
 
     private:
         /**
@@ -108,14 +102,18 @@ namespace pxt {
         MaterialData getMaterialData(Shared<Material> material);
 
         Context& m_context;
+        DescriptorManager& m_descriptorManager;
         TextureRegistry& m_textureRegistry;
-        DescriptorAllocatorGrowable* m_descriptorAllocator;
 
         std::vector<Shared<Material>> m_materials;
         std::unordered_map<ResourceId, uint32_t> m_idToIndex;
 
+        // we use this to determine whether to update the descriptor set or not
+        //TODO: the update is now called by the render system, it should become a centralized sync point when
+        //      this class becomes a field of the resource manager
+        std::array<bool, SwapChain::MAX_FRAMES_IN_FLIGHT> isBufferDirty{false};
+
         std::vector<Unique<VulkanBuffer>> m_materialsGpuBuffers{SwapChain::MAX_FRAMES_IN_FLIGHT};
-        std::vector<VkDescriptorSet> m_materialDescriptorSets{SwapChain::MAX_FRAMES_IN_FLIGHT};
-        Shared<DescriptorSetLayout> m_materialDescriptorSetLayout = nullptr;
+        DescriptorSetHandle m_materialDescriptorSet = core::UID::s_invalidId;
     };
 } // namespace pxt

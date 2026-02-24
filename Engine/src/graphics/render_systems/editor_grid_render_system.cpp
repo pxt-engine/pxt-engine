@@ -11,7 +11,7 @@ namespace pxt {
         float farFog = 50.f;
     };
 
-    EditorGridRenderSystem::EditorGridRenderSystem(Context& context, DescriptorSetLayout& globalSetLayout,
+    EditorGridRenderSystem::EditorGridRenderSystem(Context& context, const DescriptorSetLayout& globalSetLayout,
                                                    VkRenderPass renderPass)
         : m_context(context), m_renderPassHandle(renderPass) {
         createPipelineLayout(globalSetLayout);
@@ -22,7 +22,7 @@ namespace pxt {
         vkDestroyPipelineLayout(m_context.getDevice(), m_pipelineLayout, nullptr);
     }
 
-    void EditorGridRenderSystem::createPipelineLayout(DescriptorSetLayout& globalSetLayout) {
+    void EditorGridRenderSystem::createPipelineLayout(const DescriptorSetLayout& globalSetLayout) {
         VkPushConstantRange pushConstantRange{};
         pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
         pushConstantRange.offset = 0;

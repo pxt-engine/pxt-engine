@@ -15,8 +15,8 @@ namespace pxt {
 
     class ObjectPickingSystem {
     public:
-        ObjectPickingSystem(Context& context, DescriptorAllocatorGrowable& descriptorAllocator,
-                            DescriptorSetLayout& globalSetLayout, VkExtent2D sceneImageExtent);
+        ObjectPickingSystem(Context& context,
+                            const DescriptorSetLayout& globalSetLayout, VkExtent2D sceneImageExtent);
         ~ObjectPickingSystem();
 
         ObjectPickingSystem(const ObjectPickingSystem&) = delete;
@@ -38,14 +38,13 @@ namespace pxt {
 
         void createPixelColorBuffer();
 
-        void createPipelineLayout(DescriptorSetLayout& globalSetLayout);
+        void createPipelineLayout(const DescriptorSetLayout& globalSetLayout);
         void createPipeline(bool useCompiledSpirvFiles = true);
 
         template <typename... Components>
         void processEntities(ComponentList<Components...> neededComponents, FrameInfo& frameInfo);
 
         Context& m_context;
-        DescriptorAllocatorGrowable& m_descriptorAllocator;
 
         Unique<RenderPass> m_offscreenRenderPass = nullptr;
         Unique<FrameBuffer> m_offscreenFb = nullptr;

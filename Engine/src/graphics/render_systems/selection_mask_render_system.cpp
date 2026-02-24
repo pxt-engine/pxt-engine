@@ -10,10 +10,9 @@ namespace pxt {
     };
 
     SelectionMaskRenderSystem::SelectionMaskRenderSystem(Context& context,
-                                                         DescriptorAllocatorGrowable& descriptorAllocator,
-                                                         DescriptorSetLayout& globalSetLayout,
+                                                         const DescriptorSetLayout& globalSetLayout,
                                                          VkExtent2D sceneImageExtent)
-        : m_context{context}, m_descriptorAllocator{descriptorAllocator}, m_sceneExtent{sceneImageExtent} {
+        : m_context{context}, m_sceneExtent{sceneImageExtent} {
         createRenderPass();
         createMaskColorImage();
         createOffscreenFrameBuffer();
@@ -113,7 +112,7 @@ namespace pxt {
             m_context, framebufferInfo, "SelectionMaskRenderSystem Offscreen Framebuffer", m_selectionMaskImage);
     }
 
-    void SelectionMaskRenderSystem::createPipelineLayout(DescriptorSetLayout& globalSetLayout) {
+    void SelectionMaskRenderSystem::createPipelineLayout(const DescriptorSetLayout& globalSetLayout) {
         VkPushConstantRange pushConstantRange{};
         pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
         pushConstantRange.offset = 0;

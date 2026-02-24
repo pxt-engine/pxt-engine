@@ -8,8 +8,8 @@ namespace pxt {
         uint32_t outlineThickness;
     };
 
-    CompositionRenderSystem::CompositionRenderSystem(Context& context, DescriptorAllocatorGrowable& descriptorAllocator)
-        : m_context(context), m_descriptorAllocator(descriptorAllocator) {
+    CompositionRenderSystem::CompositionRenderSystem(Context& context, DescriptorManager& descriptorManager)
+        : m_context(context), m_descriptorManager(descriptorManager) {
 
         m_nearestSampler = VulkanSampler::createSimpleNearestSampler(m_context);
 
@@ -23,15 +23,14 @@ namespace pxt {
     }
 
     void CompositionRenderSystem::createDescriptorSet() {
-        m_descriptorSetLayout =
-            DescriptorSetLayout::Builder(m_context)
-                .addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_COMPUTE_BIT) // scene
-                .addBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_COMPUTE_BIT) // selection mask
-                .addBinding(2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_COMPUTE_BIT) // ids
-                .addBinding(3, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_COMPUTE_BIT)          // output
-                .build();
-
-        m_descriptorAllocator.allocate(m_descriptorSetLayout->getHandle(), m_descriptorSet);
+        std::vector<DescriptorEntry> bindings = {
+            {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_COMPUTE_BIT, 1},
+            {1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_COMPUTE_BIT, 1},
+            {2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_COMPUTE_BIT, 1},
+            {3, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_COMPUTE_BIT, 1}
+        };
+        
+        m_descriptorSet = m_descriptorManager.createSet(bindings);
     }
 
     void CompositionRenderSystem::createPipelineLayout() {
@@ -40,7 +39,7 @@ namespace pxt {
         pushConstantRange.offset = 0;
         pushConstantRange.size = sizeof(CompositionPushConstants);
 
-        std::vector<VkDescriptorSetLayout> descriptorSetLayouts{m_descriptorSetLayout->getHandle()};
+        std::vector<VkDescriptorSetLayout> descriptorSetLayouts{m_descriptorManager.getRawLayout(m_descriptorSet)};
 
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -80,12 +79,12 @@ namespace pxt {
         selectionMaskInfo.sampler = m_nearestSampler->getHandle();
         objIdsInfo.sampler = m_nearestSampler->getHandle();
 
-        DescriptorWriter(m_context, *m_descriptorSetLayout)
-            .writeImage(0, &sceneInfo)
-            .writeImage(1, &selectionMaskInfo)
-            .writeImage(2, &objIdsInfo)
-            .writeImage(3, &outputInfo)
-            .updateSet(m_descriptorSet);
+        m_descriptorManager.submitUpdateSingle(m_descriptorSet, 0, sceneInfo);
+        m_descriptorManager.submitUpdateSingle(m_descriptorSet, 1, selectionMaskInfo);
+        m_descriptorManager.submitUpdateSingle(m_descriptorSet, 2, objIdsInfo);
+        m_descriptorManager.submitUpdateSingle(m_descriptorSet, 3, outputInfo);
+        
+        m_descriptorManager.flushUpdatesForSet(m_descriptorSet, frameInfo.frameIndex);
 
         CompositionPushConstants compPushConstants{};
         compPushConstants.selectedObjectColor = core::ObjPickingId::getColorVec4FromId(selectedObjPickingId);
@@ -94,7 +93,8 @@ namespace pxt {
 
         m_pipeline->bind(frameInfo.commandBuffer);
         vkCmdBindDescriptorSets(frameInfo.commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_pipelineLayout, 0, 1,
-                                &m_descriptorSet, 0, nullptr);
+                                m_descriptorManager.getDescriptorSetPtr(m_descriptorSet, frameInfo.frameIndex), 0,
+                                nullptr);
 
         vkCmdPushConstants(frameInfo.commandBuffer, m_pipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0,
                            sizeof(compPushConstants), &compPushConstants);

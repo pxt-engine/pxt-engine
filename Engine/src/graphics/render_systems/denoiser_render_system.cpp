@@ -15,9 +15,9 @@ namespace pxt {
         VkBool32 isSpatialEnabled;
     };
 
-    DenoiserRenderSystem::DenoiserRenderSystem(Context& context, DescriptorAllocatorGrowable& descriptorAllocator,
+    DenoiserRenderSystem::DenoiserRenderSystem(Context& context, DescriptorManager& descriptorManager,
                                                VkExtent2D swapChainExtent)
-        : m_context(context), m_descriptorAllocator(descriptorAllocator), m_extent(swapChainExtent) {
+        : m_context(context), m_descriptorManager(descriptorManager), m_extent(swapChainExtent) {
 
         createSharedSampler();
         createImages(swapChainExtent);
@@ -117,14 +117,12 @@ namespace pxt {
     void DenoiserRenderSystem::createAccumulationDescriptorSet() {
         // Binding 0: New noisy frame (read as a sampled image from the path tracer)
         // Binding 1: Accumulation buffer (read/write as a storage image)
-        m_accumulationDescriptorSetLayout =
-            DescriptorSetLayout::Builder(m_context)
-                .addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_COMPUTE_BIT)
-                .addBinding(1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_COMPUTE_BIT)
-                .build();
-
-        m_descriptorAllocator.allocate(m_accumulationDescriptorSetLayout->getHandle(),
-                                       m_accumulationDescriptorSet);
+        std::vector<DescriptorEntry> bindings = {
+            {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_COMPUTE_BIT, 1},
+            {1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_COMPUTE_BIT, 1}
+        };
+        
+        m_accumulationDescriptorSet = m_descriptorManager.createSet(bindings);
 
         // The descriptor set will be updated at runtime with the new frame's image info
         // and the accumulation buffer's image info.
@@ -135,31 +133,27 @@ namespace pxt {
         // Binding 1: History buffer (read as sampled image - previous frame's denoised output)
         // Binding 2: New noisy frame (read as sampled image - for motion detection)
         // Binding 3: Temporary temporal output buffer (write as storage image)
-        m_temporalFilterDescriptorSetLayout =
-            DescriptorSetLayout::Builder(m_context)
-                .addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_COMPUTE_BIT)
-                .addBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_COMPUTE_BIT)
-                .addBinding(2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_COMPUTE_BIT)
-                .addBinding(3, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_COMPUTE_BIT)
-                .build();
+        std::vector<DescriptorEntry> bindings = {
+            {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_COMPUTE_BIT, 1},
+            {1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_COMPUTE_BIT, 1},
+            {2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_COMPUTE_BIT, 1},
+            {3, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_COMPUTE_BIT, 1}
+        };
 
-        m_descriptorAllocator.allocate(m_temporalFilterDescriptorSetLayout->getHandle(),
-                                       m_temporalFilterDescriptorSet);
+        m_temporalFilterDescriptorSet = m_descriptorManager.createSet(bindings);
     }
 
     void DenoiserRenderSystem::createSpatialFilterDescriptorSet() {
         // Binding 0: Temporary temporal output buffer (read as sampled image)
         // Binding 1: New noisy frame (read as sampled image - for bilateral color guidance)
         // Binding 2: History buffer (write as storage image - final denoised output for current frame)
-        m_spatialFilterDescriptorSetLayout =
-            DescriptorSetLayout::Builder(m_context)
-                .addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_COMPUTE_BIT)
-                .addBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_COMPUTE_BIT)
-                .addBinding(2, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_COMPUTE_BIT)
-                .build();
-
-        m_descriptorAllocator.allocate(m_spatialFilterDescriptorSetLayout->getHandle(),
-                                       m_spatialFilterDescriptorSet);
+        std::vector<DescriptorEntry> bindings = {
+            {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_COMPUTE_BIT, 1},
+            {1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_COMPUTE_BIT, 1},
+            {2, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_COMPUTE_BIT, 1}
+        };
+        
+        m_spatialFilterDescriptorSet = m_descriptorManager.createSet(bindings);
     }
 
     void DenoiserRenderSystem::createAccumulationPipelineLayout() {
@@ -168,8 +162,7 @@ namespace pxt {
         pushConstantRange.offset = 0;
         pushConstantRange.size = sizeof(DenoiserPushConstantData); // Only frameCount needed here
 
-        std::vector<VkDescriptorSetLayout> descriptorSetLayouts{
-            m_accumulationDescriptorSetLayout->getHandle()};
+        std::vector<VkDescriptorSetLayout> descriptorSetLayouts{m_descriptorManager.getLayout(m_accumulationDescriptorSet).getHandle()};
 
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -191,7 +184,7 @@ namespace pxt {
         pushConstantRange.size = sizeof(DenoiserPushConstantData); // For frameCount, temporalAlpha
 
         std::vector<VkDescriptorSetLayout> descriptorSetLayouts{
-            m_temporalFilterDescriptorSetLayout->getHandle()};
+            m_descriptorManager.getLayout(m_temporalFilterDescriptorSet).getHandle()};
 
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -212,8 +205,7 @@ namespace pxt {
         pushConstantRange.offset = 0;
         pushConstantRange.size = sizeof(DenoiserPushConstantData); // For spatialSigmaColor, spatialSigmaSpace
 
-        std::vector<VkDescriptorSetLayout> descriptorSetLayouts{
-            m_spatialFilterDescriptorSetLayout->getHandle()};
+        std::vector<VkDescriptorSetLayout> descriptorSetLayouts{m_descriptorManager.getLayout(m_spatialFilterDescriptorSet).getHandle()};
 
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -229,7 +221,7 @@ namespace pxt {
     }
 
     void DenoiserRenderSystem::createAccumulationPipeline(bool useCompiledSpirvFiles) {
-        PXT_ASSERT(m_accumulationPipelineLayout != nullptr,
+        PXT_ASSERT(m_accumulationPipelineLayout != 0,
                    "Cannot create accumulation pipeline before pipelineLayout");
 
         ComputePipelineConfigInfo pipelineConfig{};
@@ -245,7 +237,7 @@ namespace pxt {
     }
 
     void DenoiserRenderSystem::createTemporalFilterPipeline(bool useCompiledSpirvFiles) {
-        PXT_ASSERT(m_temporalFilterPipelineLayout != nullptr,
+        PXT_ASSERT(m_temporalFilterPipelineLayout != 0,
                    "Cannot create temporal filter pipeline before pipelineLayout");
 
         ComputePipelineConfigInfo pipelineConfig{};
@@ -261,7 +253,7 @@ namespace pxt {
     }
 
     void DenoiserRenderSystem::createSpatialFilterPipeline(bool useCompiledSpirvFiles) {
-        PXT_ASSERT(m_spatialFilterPipelineLayout != nullptr,
+        PXT_ASSERT(m_spatialFilterPipelineLayout != 0,
                    "Cannot create spatial filter pipeline before pipelineLayout");
 
         ComputePipelineConfigInfo pipelineConfig{};
@@ -314,14 +306,14 @@ namespace pxt {
 
         accumulationImageInfo = m_accumulationImage->getImageInfo(false); // Storage image info
 
-        DescriptorWriter(m_context, *m_accumulationDescriptorSetLayout)
-            .writeImage(0, &newFrameImageInfo)     // New noisy frame (sampled)
-            .writeImage(1, &accumulationImageInfo) // Accumulation buffer (storage)
-            .updateSet(m_accumulationDescriptorSet);
+        m_descriptorManager.submitUpdateSingle(m_accumulationDescriptorSet, 0, newFrameImageInfo); // New noisy frame (sampled)
+        m_descriptorManager.submitUpdateSingle(m_accumulationDescriptorSet, 1, accumulationImageInfo); // Accumulation buffer (storage)
+        m_descriptorManager.flushUpdatesForSet(m_accumulationDescriptorSet, frameInfo.frameIndex);
 
         m_accumulationPipeline->bind(commandBuffer);
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_accumulationPipelineLayout, 0, 1,
-                                &m_accumulationDescriptorSet, 0, nullptr);
+                                m_descriptorManager.getDescriptorSetPtr(m_accumulationDescriptorSet, frameInfo.frameIndex),
+                                0, nullptr);
 
         vkCmdPushConstants(commandBuffer, m_accumulationPipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0,
                            sizeof(DenoiserPushConstantData), &denoiserPush);
@@ -350,16 +342,18 @@ namespace pxt {
         temporalHistoryImageInfo = m_temporalHistoryImage->getImageInfo();            // Sampled image info
         tempTemporalOutputImageInfo = m_tempTemporalOutputImage->getImageInfo(false); // Storage image info
 
-        DescriptorWriter(m_context, *m_temporalFilterDescriptorSetLayout)
-            .writeImage(0, &accumulationImageInfo)       // Accumulation (sampled)
-            .writeImage(1, &temporalHistoryImageInfo)    // History (sampled)
-            .writeImage(2, &newFrameImageInfo)           // New noisy frame (sampled)
-            .writeImage(3, &tempTemporalOutputImageInfo) // Temporal output (storage)
-            .updateSet(m_temporalFilterDescriptorSet);
-
+        m_descriptorManager.submitUpdateSingle(m_temporalFilterDescriptorSet, 0, accumulationImageInfo); // Accumulation (sampled)
+        m_descriptorManager.submitUpdateSingle(m_temporalFilterDescriptorSet, 1,
+                                               temporalHistoryImageInfo); // History (sampled)
+        m_descriptorManager.submitUpdateSingle(m_temporalFilterDescriptorSet, 2,
+                                               newFrameImageInfo); // New noisy frame (sampled)
+        m_descriptorManager.submitUpdateSingle(m_temporalFilterDescriptorSet, 3,
+                                               tempTemporalOutputImageInfo); // Temporal output (storage)
+        m_descriptorManager.flushUpdatesForSet(m_temporalFilterDescriptorSet, frameInfo.frameIndex);
+        
         m_temporalFilterPipeline->bind(commandBuffer);
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_temporalFilterPipelineLayout, 0, 1,
-                                &m_temporalFilterDescriptorSet, 0, nullptr);
+            m_descriptorManager.getDescriptorSetPtr(m_temporalFilterDescriptorSet, frameInfo.frameIndex), 0, nullptr);
 
         vkCmdPushConstants(commandBuffer, m_accumulationPipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0,
                            sizeof(DenoiserPushConstantData), &denoiserPush);
@@ -383,15 +377,18 @@ namespace pxt {
         tempTemporalOutputImageInfo = m_tempTemporalOutputImage->getImageInfo(); // Sampled image info
         temporalHistoryImageInfo = m_temporalHistoryImage->getImageInfo(false);
 
-        DescriptorWriter(m_context, *m_spatialFilterDescriptorSetLayout)
-            .writeImage(0, &tempTemporalOutputImageInfo) // Temporal output (sampled)
-            .writeImage(1, &newFrameImageInfo)           // New noisy frame (sampled, for bilateral guidance)
-            .writeImage(2, &temporalHistoryImageInfo)    // History buffer (storage, final output)
-            .updateSet(m_spatialFilterDescriptorSet);
+        m_descriptorManager.submitUpdateSingle(m_spatialFilterDescriptorSet, 0,
+                                               tempTemporalOutputImageInfo); // Temporal output (sampled)
+        m_descriptorManager.submitUpdateSingle(m_spatialFilterDescriptorSet, 1,
+                                               newFrameImageInfo); // New noisy frame (sampled, for bilateral guidance)
+        m_descriptorManager.submitUpdateSingle(m_spatialFilterDescriptorSet, 2,
+                                               temporalHistoryImageInfo); // History buffer (storage, final output)
 
+        m_descriptorManager.flushUpdatesForSet(m_spatialFilterDescriptorSet, frameInfo.frameIndex);
+        
         m_spatialFilterPipeline->bind(commandBuffer);
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_spatialFilterPipelineLayout, 0, 1,
-                                &m_spatialFilterDescriptorSet, 0, nullptr);
+            m_descriptorManager.getDescriptorSetPtr(m_spatialFilterDescriptorSet, frameInfo.frameIndex), 0, nullptr);
 
         vkCmdPushConstants(commandBuffer, m_accumulationPipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0,
                            sizeof(DenoiserPushConstantData), &denoiserPush);

@@ -9,17 +9,16 @@
 #include "application.hpp"
 
 namespace pxt {
-    RenderLayer::RenderLayer(Context& context, Renderer& renderer, DescriptorAllocatorGrowable& descriptorAllocator,
+    RenderLayer::RenderLayer(Context& context, Renderer& renderer, DescriptorManager& descriptorManager,
                              TextureRegistry& textureRegistry, MaterialRegistry& materialRegistry,
-                             BLASRegistry& blasRegistry, DescriptorSetLayout& globalSetLayout,
-                             Shared<Environment> environment)
+                             BLASRegistry& blasRegistry, Shared<Environment> environment)
 
         : Layer("RenderLayer"),
 
           m_context(context), m_renderer(renderer), m_textureRegistry(textureRegistry),
           m_materialRegistry(materialRegistry), m_blasRegistry(blasRegistry),
-          m_descriptorAllocator(descriptorAllocator), m_globalSetLayout(globalSetLayout),
-          m_environment(std::move(environment)) {
+          m_descriptorManager(descriptorManager), m_environment(std::move(environment)) {
+
         m_offscreenColorFormat = m_context.findSupportedFormat(
             {VK_FORMAT_R16G16B16A16_SFLOAT, VK_FORMAT_R8G8B8A8_UNORM}, VK_IMAGE_TILING_OPTIMAL,
             VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT | VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT |
@@ -31,6 +30,9 @@ namespace pxt {
             throw std::runtime_error(
                 "Failed to find a suitable offscreen color format for RenderLayer's render target!");
         }
+
+        createUboBuffers();
+        createUboDescriptorSet();
 
         createRenderPass();
         createSceneImage();
@@ -45,9 +47,6 @@ namespace pxt {
     RenderLayer::~RenderLayer() {};
 
     void RenderLayer::recreateViewportResources() {
-        // wait for the device to be idle
-        vkDeviceWaitIdle(m_context.getDevice());
-
         // destroy old resources: FrameBuffer will be destroyed by reassigning the unique_ptr
 
         createSceneImage();
@@ -310,42 +309,64 @@ namespace pxt {
                                                   m_sceneImage, m_offscreenDepthImage);
     }
 
+    void RenderLayer::createUboBuffers() {
+        for (int i = 0; i < SwapChain::MAX_FRAMES_IN_FLIGHT; i++) {
+            m_uboBuffers[i] =
+                createUnique<VulkanBuffer>(m_context, sizeof(GlobalUbo), 1, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                                           VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+            m_uboBuffers[i]->map();
+        }
+    }
+
+    void RenderLayer::createUboDescriptorSet() {
+        std::vector<DescriptorEntry> bindings = {
+            {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT |
+            VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR,
+            1}};
+
+        m_uboDescriptorSet = m_descriptorManager.createSet(bindings);
+
+        m_descriptorManager.submitUpdateSingle(m_uboDescriptorSet, 0, m_uboBuffers[0]->descriptorInfo());
+    }
+
     void RenderLayer::createRenderSystems() {
-        m_pointLightSystem = createUnique<PointLightSystem>(m_context, m_offscreenRenderPass->getHandle(),
-                                                            m_globalSetLayout.getHandle());
+        const DescriptorSetLayout& globalSetLayout = m_descriptorManager.getLayout(m_uboDescriptorSet);
+
+        m_pointLightSystem = createUnique<PointLightSystem>(m_context, m_descriptorManager, m_offscreenRenderPass->getHandle(),
+                                                            m_uboDescriptorSet);
 
         m_shadowMapRenderSystem =
-            createUnique<ShadowMapRenderSystem>(m_context, m_descriptorAllocator, m_globalSetLayout);
+            createUnique<ShadowMapRenderSystem>(m_context, m_descriptorManager, m_uboDescriptorSet);
 
-        m_materialRenderSystem = createUnique<MaterialRenderSystem>(
-            m_context, m_descriptorAllocator, m_textureRegistry, m_globalSetLayout, m_offscreenRenderPass->getHandle(),
-            m_shadowMapRenderSystem->getShadowMapImageInfo());
+        m_materialRenderSystem = createUnique<MaterialRenderSystem>(m_context, m_descriptorManager, m_textureRegistry,
+                                                                    globalSetLayout, m_offscreenRenderPass->getHandle(),
+                                                                    m_shadowMapRenderSystem->getShadowMapImageInfo());
 
-        m_debugRenderSystem = createUnique<DebugRenderSystem>(m_context, m_descriptorAllocator, m_textureRegistry,
-                                                              m_offscreenRenderPass->getHandle(), m_globalSetLayout);
+        m_debugRenderSystem = createUnique<DebugRenderSystem>(m_context, m_textureRegistry,
+                                                              m_offscreenRenderPass->getHandle(), globalSetLayout);
 
-        m_skyboxRenderSystem = createUnique<SkyboxRenderSystem>(m_context, m_environment, m_globalSetLayout,
+        m_skyboxRenderSystem = createUnique<SkyboxRenderSystem>(m_context, m_environment, globalSetLayout,
                                                                 m_offscreenRenderPass->getHandle());
 
         m_denoiserRenderSystem =
-            createUnique<DenoiserRenderSystem>(m_context, m_descriptorAllocator, m_renderer.getSwapChainExtent());
+            createUnique<DenoiserRenderSystem>(m_context, m_descriptorManager, m_renderer.getSwapChainExtent());
 
         m_densityTextureSystem = createUnique<DensityTextureRenderSystem>(
-            m_context, m_descriptorAllocator, VkExtent3D{256, 256, 256}, VkExtent3D{32, 32, 32});
+            m_context, m_descriptorManager, VkExtent3D{256, 256, 256}, VkExtent3D{32, 32, 32});
 
         m_rayTracingRenderSystem = createUnique<RayTracingRenderSystem>(
-            m_context, m_descriptorAllocator, m_textureRegistry, m_materialRegistry, m_blasRegistry, m_environment,
-            m_globalSetLayout, m_sceneImage, *m_densityTextureSystem);
+            m_context, m_descriptorManager, m_textureRegistry, m_materialRegistry, m_blasRegistry, m_environment,
+            globalSetLayout, m_sceneImage, *m_densityTextureSystem);
 
         m_objectPickingSystem =
-            createUnique<ObjectPickingSystem>(m_context, m_descriptorAllocator, m_globalSetLayout, m_viewportExtent);
+            createUnique<ObjectPickingSystem>(m_context, globalSetLayout, m_viewportExtent);
 
-        m_compositionRenderSystem = createUnique<CompositionRenderSystem>(m_context, m_descriptorAllocator);
+        m_compositionRenderSystem = createUnique<CompositionRenderSystem>(m_context, m_descriptorManager);
 
-        m_selectionMaskRenderSystem = createUnique<SelectionMaskRenderSystem>(m_context, m_descriptorAllocator,
-                                                                              m_globalSetLayout, m_viewportExtent);
+        m_selectionMaskRenderSystem = createUnique<SelectionMaskRenderSystem>(m_context,
+                                                                              globalSetLayout, m_viewportExtent);
         m_editorGridRenderSystem =
-            createUnique<EditorGridRenderSystem>(m_context, m_globalSetLayout, m_offscreenRenderPass->getHandle());
+            createUnique<EditorGridRenderSystem>(m_context, globalSetLayout, m_offscreenRenderPass->getHandle());
     }
 
     void RenderLayer::reloadShaders() {
@@ -389,21 +410,13 @@ namespace pxt {
         ubo.inverseView = frameInfo.cameraMatrices.inverseViewMatrix;
         ubo.inverseProjection = frameInfo.cameraMatrices.inverseProjectionMatrix;
 
-        // update skybox descriptor set for the current frame
-        // TODO: this needs to be done in a different way! we should not be updating the skybox descriptor set every
-        // frame, but only when the skybox changes. The problem is we should also update the previous frame sets when
-        // they are done rendering (which in the future can be done via onPostFrameUpdate but Environment / Skybox
-        // abstractions are not ready yet).
-        auto skybox = static_pointer_cast<VulkanSkybox>(frameInfo.scene.getEnvironment()->getSkybox());
-        skybox->updateDescriptorSets(frameInfo.frameIndex);
-
         // update light values into ubo
         m_pointLightSystem->update(frameInfo, ubo);
 
         // update shadow map
         m_shadowMapRenderSystem->update(frameInfo, ubo);
 
-        // update material descriptor set
+        // update material descriptor set (internally it will check if it has to update or not)
         m_materialRegistry.updateDescriptorSet(frameInfo.frameIndex);
 
         // update raytracing scene
@@ -413,11 +426,16 @@ namespace pxt {
         }
     }
 
+    void RenderLayer::updateGlobalUboBuffers(GlobalUbo& ubo, uint32_t frameIndex) {
+        m_uboBuffers[frameIndex]->writeToBuffer(&ubo);
+        m_uboBuffers[frameIndex]->flush();
+    }
+
     void RenderLayer::doRenderPasses(FrameInfo& frameInfo) {
         const core::EngineMode currentEngineMode = Application::get().getEngineMode();
 
         if (m_densityTextureSystem->needsRegeneration()) {
-            m_densityTextureSystem->generate(frameInfo.commandBuffer);
+            m_densityTextureSystem->generate(frameInfo);
         }
 
         // object picking
@@ -523,6 +541,9 @@ namespace pxt {
 
         dispatcher.dispatch<core::ViewportResizeEvent>([this](auto& event) {
             m_viewportExtent = {event.getWidth(), event.getHeight()};
+            
+            // wait for the device (fine for resizes)
+            vkDeviceWaitIdle(m_context.getDevice());
             recreateViewportResources();
 
             // update scene image for raytracing
@@ -535,6 +556,13 @@ namespace pxt {
             m_objectPickingSystem->updateImage(m_viewportExtent);
 
             m_selectionMaskRenderSystem->updateImage(m_viewportExtent);
+
+            // after recreating the resources, we need to update all descriptor sets that reference them.
+            // It is not a problem here because we called vkDeviceWaitIdle, which is fine in the case of a resize
+            // so there are no pending command buffers that could be using the old resources.
+            for (uint8_t i = 0; i < SwapChain::MAX_FRAMES_IN_FLIGHT; i++) {
+                m_descriptorManager.flushUpdates(i);
+            }
 
             return false; // propagate (scene needs it for cameras)
         });
@@ -561,22 +589,16 @@ namespace pxt {
 
     void RenderLayer::createDescriptorSetsImGui() {
         // DESCRIPTOR SET FOR IMGUI VIEWPORT
-        m_finalImageDescriptorSetLayout =
-            DescriptorSetLayout::Builder(m_context)
-                .addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 1)
-                .build();
+        std::vector<DescriptorEntry> bindings = {
+            {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 1}};
+        m_finalImageDescriptorSet = m_descriptorManager.createSet(bindings);
 
         VkDescriptorImageInfo imageInfo;
         imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         imageInfo.imageView = m_sceneImage->getImageView();
         imageInfo.sampler = m_sceneImage->getSamplerHandle();
 
-        m_descriptorAllocator.allocate(m_finalImageDescriptorSetLayout->getHandle(),
-                                       m_finalImageDescriptorSet);
-
-        DescriptorWriter(m_context, *m_finalImageDescriptorSetLayout)
-            .writeImage(0, &imageInfo)
-            .updateSet(m_finalImageDescriptorSet);
+        m_descriptorManager.submitUpdateSingle(m_finalImageDescriptorSet, 0, imageInfo);
     }
 
     void RenderLayer::updateImguiDescriptorSet() {
@@ -585,9 +607,7 @@ namespace pxt {
         imageInfo.imageView = m_finalImage->getImageView();
         imageInfo.sampler = m_finalImage->getSamplerHandle();
 
-        DescriptorWriter(m_context, *m_finalImageDescriptorSetLayout)
-            .writeImage(0, &imageInfo)
-            .updateSet(m_finalImageDescriptorSet);
+        m_descriptorManager.submitUpdateSingle(m_finalImageDescriptorSet, 0, imageInfo);
     }
 
     void RenderLayer::onUpdateUi([[maybe_unused]] FrameInfo& frameInfo) {

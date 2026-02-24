@@ -14,9 +14,9 @@ namespace pxt {
 
     class DebugRenderSystem {
     public:
-        DebugRenderSystem(Context& context, DescriptorAllocatorGrowable& descriptorAllocator,
+        DebugRenderSystem(Context& context,
                           TextureRegistry& textureRegistry, VkRenderPass renderPass,
-                          DescriptorSetLayout& globalSetLayout);
+                          const DescriptorSetLayout& globalSetLayout);
         ~DebugRenderSystem();
 
         DebugRenderSystem(const DebugRenderSystem&) = delete;
@@ -27,7 +27,7 @@ namespace pxt {
         void reloadShaders();
 
     private:
-        void createPipelineLayout(DescriptorSetLayout& globalSetLayout);
+        void createPipelineLayout(const DescriptorSetLayout& globalSetLayout);
         void createPipelines(bool useCompiledSpirvFiles = true);
 
         template <typename... Components>
@@ -40,8 +40,6 @@ namespace pxt {
         Unique<Pipeline> m_pipelineWireframe;
         Unique<Pipeline> m_pipelineSolid;
         VkPipelineLayout m_pipelineLayout;
-
-        DescriptorAllocatorGrowable& m_descriptorAllocator;
 
         int m_renderMode = Fill;
 

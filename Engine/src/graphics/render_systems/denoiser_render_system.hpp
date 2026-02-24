@@ -3,6 +3,7 @@
 #include "core/pch.hpp"
 #include "graphics/context/context.hpp"
 #include "graphics/descriptors/descriptors.hpp"
+#include "graphics/descriptors/descriptor_manager.hpp"
 #include "graphics/frame_info.hpp"
 #include "graphics/pipeline.hpp"
 #include "graphics/resources/texture_registry.hpp"
@@ -13,7 +14,7 @@ namespace pxt {
 
     class DenoiserRenderSystem {
     public:
-        DenoiserRenderSystem(Context& context, DescriptorAllocatorGrowable& descriptorAllocator,
+        DenoiserRenderSystem(Context& context, DescriptorManager& descriptorManager,
                              VkExtent2D swapChainExtent);
         ~DenoiserRenderSystem();
 
@@ -49,7 +50,7 @@ namespace pxt {
         void copyDenoisedIntoSceneImage(VkCommandBuffer commandBuffer, Shared<VulkanImage> sceneImage);
 
         Context& m_context;
-        DescriptorAllocatorGrowable& m_descriptorAllocator;
+        DescriptorManager& m_descriptorManager;
 
         VkExtent2D m_extent{0, 0};
 
@@ -63,15 +64,10 @@ namespace pxt {
         VkPipelineLayout m_temporalFilterPipelineLayout = VK_NULL_HANDLE;
         VkPipelineLayout m_spatialFilterPipelineLayout = VK_NULL_HANDLE;
 
-        // Descriptor set layouts
-        Unique<DescriptorSetLayout> m_accumulationDescriptorSetLayout = nullptr;
-        Unique<DescriptorSetLayout> m_temporalFilterDescriptorSetLayout = nullptr;
-        Unique<DescriptorSetLayout> m_spatialFilterDescriptorSetLayout = nullptr;
-
         // Descriptor sets for binding resources to shaders
-        VkDescriptorSet m_accumulationDescriptorSet = VK_NULL_HANDLE;
-        VkDescriptorSet m_temporalFilterDescriptorSet = VK_NULL_HANDLE;
-        VkDescriptorSet m_spatialFilterDescriptorSet = VK_NULL_HANDLE;
+        DescriptorSetHandle m_accumulationDescriptorSet = core::UID::s_invalidId;
+        DescriptorSetHandle m_temporalFilterDescriptorSet = core::UID::s_invalidId;
+        DescriptorSetHandle m_spatialFilterDescriptorSet = core::UID::s_invalidId;
 
         // Resources needed for denoising
         Unique<VulkanImage> m_accumulationImage = nullptr;

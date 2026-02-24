@@ -34,31 +34,25 @@ namespace pxt {
         }
         registerResources();
 
-        // create the pool manager, ubo buffers, and global descriptor sets
-        createDescriptorPoolAllocator();
-        createUboBuffers();
-        createGlobalDescriptorSet();
+        // create pool allocator for descriptor manager
+        m_descriptorManager->createDescriptorPoolAllocator(m_textureRegistry.getTextureCount());
 
         // create the descriptor sets for the textures
-        m_textureRegistry.setDescriptorAllocator(m_descriptorAllocator.get());
-        m_textureRegistry.createDescriptorSet();
+        m_textureRegistry.createDescriptorSets();
 
         // create the descriptor sets for the materials
-        m_materialRegistry.setDescriptorAllocator(m_descriptorAllocator.get());
         m_materialRegistry.createDescriptorSets();
-        // materials descriptor set will be updated every frame
-        // in the master render system update method
 
         // create descriptor set for skybox
         if (m_scene.getEnvironment()->getSkybox()) {
             auto skybox = std::static_pointer_cast<VulkanSkybox>(m_scene.getEnvironment()->getSkybox());
-            skybox->createDescriptorSet(*m_descriptorAllocator);
+            skybox->createDescriptorSet();
         }
 
         // create the render layer
         auto renderLayer =
-            createUnique<RenderLayer>(m_context, m_renderer, *m_descriptorAllocator, m_textureRegistry,
-                                      m_materialRegistry, m_blasRegistry, *m_globalSetLayout, m_scene.getEnvironment());
+            createUnique<RenderLayer>(m_context, m_renderer, *m_descriptorManager, m_textureRegistry,
+                                      m_materialRegistry, m_blasRegistry, m_scene.getEnvironment());
 
         // we store a non-owning pointer to the render layer for
         // later operations in the main loop
@@ -71,47 +65,6 @@ namespace pxt {
 
         // here the event is owned by the queue, we just pass it by reference
         m_eventQueue.setMainCallbackFunction([this](core::Event& event) { onEvent(event); });
-    }
-
-    void Application::createDescriptorPoolAllocator() {
-        // for now we have one ubo and a lot of textures
-        std::vector<PoolSizeRatio> ratios = {
-            {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1.0f},
-            {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, static_cast<float>(m_textureRegistry.getTextureCount())},
-            {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1.0f},
-            {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 2.0f},
-            {VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, 2.0f}};
-
-        m_descriptorAllocator =
-            createUnique<DescriptorAllocatorGrowable>(m_context, SwapChain::MAX_FRAMES_IN_FLIGHT, ratios);
-    }
-
-    void Application::createUboBuffers() {
-        for (int i = 0; i < SwapChain::MAX_FRAMES_IN_FLIGHT; i++) {
-            m_uboBuffers[i] =
-                createUnique<VulkanBuffer>(m_context, sizeof(GlobalUbo), 1, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                                           VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-            m_uboBuffers[i]->map();
-        }
-    }
-
-    void Application::createGlobalDescriptorSet() {
-        m_globalSetLayout =
-            DescriptorSetLayout::Builder(m_context)
-                .addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                            VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_RAYGEN_BIT_KHR |
-                                VK_SHADER_STAGE_MISS_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR)
-                .build();
-
-        for (size_t i = 0; i < m_globalDescriptorSets.size(); i++) {
-            auto bufferInfo = m_uboBuffers[i]->descriptorInfo();
-
-            m_descriptorAllocator->allocate(m_globalSetLayout->getDescriptorSetLayout(), m_globalDescriptorSets[i]);
-
-            DescriptorWriter(m_context, *m_globalSetLayout)
-                .writeBuffer(0, &bufferInfo)
-                .updateSet(m_globalDescriptorSets[i]);
-        }
     }
 
     void Application::createDefaultResources() {
@@ -231,6 +184,9 @@ namespace pxt {
             if (auto commandBuffer = m_renderer.beginFrame()) {
                 int frameIndex = m_renderer.getFrameIndex();
 
+                // as the first thing in the frame, update all dirty descriptor sets
+                m_descriptorManager->flushUpdates(frameIndex);
+
                 // if we are in PLAY/RUNTIME mode we want to run game scripts
                 if (m_engineMode == core::EngineMode::PLAY || m_engineMode == core::EngineMode::RUNTIME) {
                     m_scene.onUpdate(elapsedTime);
@@ -245,8 +201,8 @@ namespace pxt {
                     aspectRatio,
                     commandBuffer,
                     cameraMatrices,
-                    m_globalDescriptorSets[frameIndex],
-                    m_renderLayerPtr->getImGuiSceneDescriptorSet(),
+                    m_renderLayerPtr->getGlobalUboDescriptorSet(frameIndex),
+                    m_renderLayerPtr->getImGuiSceneDescriptorSet(frameIndex),
                     m_scene,
                     m_renderer.getSwapChainCurrentFrameFence(),       // Frame fence
                     m_renderer.getSwapChainImageAvailableSemaphore(), // Wait semaphore
@@ -261,8 +217,7 @@ namespace pxt {
                 m_layerStack.onUpdate(frameInfo, ubo);
 
                 // write updated globalUbo
-                m_uboBuffers[frameIndex]->writeToBuffer(&ubo);
-                m_uboBuffers[frameIndex]->flush();
+                m_renderLayerPtr->updateGlobalUboBuffers(ubo, frameIndex);
 
                 m_renderLayerPtr->doRenderPasses(frameInfo);
 
@@ -273,7 +228,7 @@ namespace pxt {
 
                 m_renderer.endFrame();
 
-                m_layerStack.onPostFrameUpdate(frameInfo);
+                onPostFrameUpdate(frameInfo);
             }
 
             // tracy end frame mark
@@ -284,6 +239,13 @@ namespace pxt {
     }
 
     bool Application::isRunning() { return !m_window.shouldClose() && m_running; }
+
+    void Application::onPostFrameUpdate(FrameInfo& frameInfo) {
+        //TODO: here we need to wait on the fence only if one of the systems calling onPostFrameUpdate needs it
+        // so we make them call for the fence
+
+        m_layerStack.onPostFrameUpdate(frameInfo);
+    }
 
     void Application::onEvent(core::Event& event) {
         core::EventDispatcher dispatcher(event);

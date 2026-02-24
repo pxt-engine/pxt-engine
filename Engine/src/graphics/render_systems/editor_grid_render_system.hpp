@@ -11,7 +11,7 @@ namespace pxt {
     // TODO: this class' behavior should be defined by the editor using future Engine APIs
     class EditorGridRenderSystem {
     public:
-        EditorGridRenderSystem(Context& context, DescriptorSetLayout& globalSetLayout, VkRenderPass renderPass);
+        EditorGridRenderSystem(Context& context, const DescriptorSetLayout& globalSetLayout, VkRenderPass renderPass);
         ~EditorGridRenderSystem();
 
         EditorGridRenderSystem(const EditorGridRenderSystem&) = delete;
@@ -22,7 +22,7 @@ namespace pxt {
         void updateUi();
 
     private:
-        void createPipelineLayout(DescriptorSetLayout& globalSetLayout);
+        void createPipelineLayout(const DescriptorSetLayout& globalSetLayout);
         void createPipeline(bool useCompiledSpirvFiles = true);
 
         Context& m_context;

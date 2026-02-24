@@ -48,20 +48,20 @@ namespace pxt::editor {
             skybox = std::static_pointer_cast<VulkanSkybox>(environment->getSkybox()); // get the newly set skybox
         }
 
-        drawSkybox(skybox);
+        drawSkybox(skybox, frameInfo.frameIndex);
 
         ImGui::End();
     }
 
-    void EnvironmentUi::drawSkybox(Shared<VulkanSkybox> skybox) {
+    void EnvironmentUi::drawSkybox(Shared<VulkanSkybox> skybox, uint32_t frameIndex) {
 
-        ImTextureID cube_posx = (ImTextureID)skybox->getDebugDescriptorSet(0);
-        ImTextureID cube_negx = (ImTextureID)skybox->getDebugDescriptorSet(1);
+        ImTextureID cube_posx = (ImTextureID)skybox->getDebugDescriptorSet(0, frameIndex);
+        ImTextureID cube_negx = (ImTextureID)skybox->getDebugDescriptorSet(1, frameIndex);
         ImTextureID cube_posy =
-            (ImTextureID)skybox->getDebugDescriptorSet(3); // swap negative and positive y because vulkan :)
-        ImTextureID cube_negy = (ImTextureID)skybox->getDebugDescriptorSet(2);
-        ImTextureID cube_posz = (ImTextureID)skybox->getDebugDescriptorSet(4);
-        ImTextureID cube_negz = (ImTextureID)skybox->getDebugDescriptorSet(5);
+            (ImTextureID)skybox->getDebugDescriptorSet(3, frameIndex); // swap negative and positive y because vulkan :)
+        ImTextureID cube_negy = (ImTextureID)skybox->getDebugDescriptorSet(2, frameIndex);
+        ImTextureID cube_posz = (ImTextureID)skybox->getDebugDescriptorSet(4, frameIndex);
+        ImTextureID cube_negz = (ImTextureID)skybox->getDebugDescriptorSet(5, frameIndex);
 
         /* Render the cube map textures flat out in this format (with y mirrored):
         //                +----+

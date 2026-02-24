@@ -21,14 +21,14 @@ namespace pxt {
         int numLights;
     };
 
-    ShadowMapRenderSystem::ShadowMapRenderSystem(Context& context, DescriptorAllocatorGrowable& descriptorAllocator,
-                                                 DescriptorSetLayout& setLayout)
-        : m_context(context), m_descriptorAllocator(descriptorAllocator) {
+    ShadowMapRenderSystem::ShadowMapRenderSystem(Context& context, DescriptorManager& descriptorManager,
+                                                 DescriptorSetHandle uboSetHandle)
+        : m_context(context), m_descriptorManager(descriptorManager), m_uboBufferSet(uboSetHandle) {
         createUniformBuffers();
-        createDescriptorSets(setLayout);
+        createDescriptorSets();
         createRenderPass();
         createOffscreenFrameBuffers();
-        createPipelineLayout(setLayout);
+        createPipelineLayout(m_descriptorManager.getLayout(m_uboBufferSet));
         createPipeline();
 
         // for debug purposes
@@ -50,15 +50,14 @@ namespace pxt {
         }
     }
 
-    void ShadowMapRenderSystem::createDescriptorSets(DescriptorSetLayout& setLayout) {
+    void ShadowMapRenderSystem::createDescriptorSets() {
         // Create descriptor set for each frame in flight
-        for (size_t i = 0; i < m_lightDescriptorSets.size(); i++) {
-            auto bufferInfo = m_lightUniformBuffers[i]->descriptorInfo();
+        m_lightDescriptorSet = m_descriptorManager.createSet(m_uboBufferSet);
 
-            m_descriptorAllocator.allocate(setLayout.getHandle(), m_lightDescriptorSets[i]);
+        // either one of the buffers is ok
+        auto bufferInfo = m_lightUniformBuffers[0]->descriptorInfo();
 
-            DescriptorWriter(m_context, setLayout).writeBuffer(0, &bufferInfo).updateSet(m_lightDescriptorSets[i]);
-        }
+        m_descriptorManager.submitUpdateSingle(m_lightDescriptorSet, 0, bufferInfo);
     }
 
     void ShadowMapRenderSystem::createRenderPass() {
@@ -210,7 +209,7 @@ namespace pxt {
         }
     }
 
-    void ShadowMapRenderSystem::createPipelineLayout(DescriptorSetLayout& setLayout) {
+    void ShadowMapRenderSystem::createPipelineLayout(const DescriptorSetLayout& setLayout) {
         VkPushConstantRange pushConstantRange{};
         pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
         pushConstantRange.offset = 0;
@@ -278,8 +277,10 @@ namespace pxt {
     void ShadowMapRenderSystem::render(FrameInfo& frameInfo, Renderer& renderer) {
         m_pipeline->bind(frameInfo.commandBuffer);
 
-        vkCmdBindDescriptorSets(frameInfo.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1,
-                                &m_lightDescriptorSets[frameInfo.frameIndex], 0, nullptr);
+        vkCmdBindDescriptorSets(frameInfo.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, 
+                                m_pipelineLayout, 0, 1,
+                                m_descriptorManager.getDescriptorSetPtr(m_lightDescriptorSet, frameInfo.frameIndex),
+                                0, nullptr);
 
         using EditView = entt::view<entt::get_t<TransformComponent, MeshComponent, VisibilityTag>>;
         using PlayView = entt::view<entt::get_t<TransformComponent, MeshComponent, RenderableTag>>;
@@ -355,17 +356,16 @@ namespace pxt {
     }
 
     void ShadowMapRenderSystem::createDebugDescriptorSets() {
-        Unique<DescriptorSetLayout> debugSetLayout =
-            DescriptorSetLayout::Builder(m_context)
-                .addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
-                .build();
+        std::vector<DescriptorEntry> bindings = {
+            {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 1}
+        };
 
         // Create descriptor set for each face of the cube map
-        for (size_t i = 0; i < m_debugImageDescriptorInfos.size(); i++) {
-            m_descriptorAllocator.allocate(debugSetLayout->getHandle(), m_shadowMapDebugDescriptorSets[i]);
-            DescriptorWriter(m_context, *debugSetLayout)
-                .writeImage(0, &m_debugImageDescriptorInfos[i])
-                .updateSet(m_shadowMapDebugDescriptorSets[i]);
+        for (size_t i = 0; i < m_shadowMapDebugDescriptorSets.size(); i++) {
+            m_shadowMapDebugDescriptorSets[i] = m_descriptorManager.createSet(bindings);
+
+            m_descriptorManager.submitUpdateSingle(m_shadowMapDebugDescriptorSets[i], 0,
+                                                   m_debugImageDescriptorInfos[i]);
         }
     }
 

@@ -3,16 +3,18 @@
 #include "core/pch.hpp"
 #include "graphics/context/context.hpp"
 #include "graphics/descriptors/descriptors.hpp"
+#include "graphics/descriptors/descriptor_manager.hpp"
 #include "graphics/pipeline.hpp"
 #include "graphics/resources/texture_registry.hpp"
 #include "graphics/resources/vk_image.hpp"
 #include <graphics/resources/vk_buffer.hpp>
+#include "graphics/frame_info.hpp"
 
 namespace pxt {
 
     class DensityTextureRenderSystem {
     public:
-        DensityTextureRenderSystem(Context& context, DescriptorAllocatorGrowable& descriptorAllocator,
+        DensityTextureRenderSystem(Context& context, DescriptorManager& descriptorManager,
                                    VkExtent3D densityTextureExtent, VkExtent3D majorantGridExtent);
         ~DensityTextureRenderSystem();
 
@@ -20,16 +22,16 @@ namespace pxt {
         DensityTextureRenderSystem& operator=(const DensityTextureRenderSystem&) = delete;
 
         // Executes the compute shader to generate the textures
-        void generate(VkCommandBuffer commandBuffer);
+        void generate(FrameInfo& frameInfo);
 
         // Getters for the generated textures
         const VulkanImage& getDensityTexture() const { return *m_densityTexture; }
 
         const VulkanImage& getMajorantGrid() const { return *m_majorantGrid; }
 
-        const VkDescriptorSet getSamplingDensitySet() const { return m_samplingDescriptorSet; }
+        const VkDescriptorSet getSamplingDensitySet(const uint32_t frameIndex) const { return m_descriptorManager.getDescriptorSet(m_samplingDescriptorSet, frameIndex); }
 
-        const Shared<DescriptorSetLayout> getSamplingDensitySetLayout() const { return m_samplingDescriptorSetLayout; }
+        const DescriptorSetLayout& getSamplingDensitySetLayout() const { return m_descriptorManager.getLayout(m_samplingDescriptorSet); }
 
         bool needsRegeneration() const { return m_needsRegeneration; }
 
@@ -54,10 +56,10 @@ namespace pxt {
         void createSliceImageViews(VkImageView* densitySliceImageView, VkImageView* majorantSliceImageView);
         void updateSliceImageViews();
 
-        void findMaxDensity(VkCommandBuffer commandBuffer);
+        void findMaxDensity(VkCommandBuffer commandBuffer, uint32_t frameIndex);
 
         Context& m_context;
-        DescriptorAllocatorGrowable& m_descriptorAllocator;
+        DescriptorManager& m_descriptorManager;
 
         VkExtent3D m_densityTextureExtent;
         VkExtent3D m_majorantGridExtent;
@@ -67,13 +69,10 @@ namespace pxt {
         VkImageView m_densitySliceImageView;
         VkImageView m_majorantGridSliceImageView;
 
-        Unique<DescriptorSetLayout> m_descriptorSetLayout;
-        Shared<DescriptorSetLayout> m_samplingDescriptorSetLayout;
-        Shared<DescriptorSetLayout> m_imGuiDescriptorSetLayout;
-        VkDescriptorSet m_samplingDescriptorSet = VK_NULL_HANDLE;
-        VkDescriptorSet m_imGuiMajorantDescriptorSet = VK_NULL_HANDLE;
-        VkDescriptorSet m_imGuiDensityDescriptorSet = VK_NULL_HANDLE;
-        VkDescriptorSet m_descriptorSet = VK_NULL_HANDLE;
+        DescriptorSetHandle m_samplingDescriptorSet = core::UID::s_invalidId;
+        DescriptorSetHandle m_imGuiMajorantDescriptorSet = core::UID::s_invalidId;
+        DescriptorSetHandle m_imGuiDensityDescriptorSet = core::UID::s_invalidId;
+        DescriptorSetHandle m_descriptorSet = core::UID::s_invalidId;
 
         VkPipelineLayout m_generationPipelineLayout;
         Unique<Pipeline> m_generationPipeline;

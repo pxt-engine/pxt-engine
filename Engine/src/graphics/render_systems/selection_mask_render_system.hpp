@@ -14,8 +14,8 @@ namespace pxt {
 
     class SelectionMaskRenderSystem {
     public:
-        SelectionMaskRenderSystem(Context& context, DescriptorAllocatorGrowable& descriptorAllocator,
-                                  DescriptorSetLayout& globalSetLayout, VkExtent2D sceneImageExtent);
+        SelectionMaskRenderSystem(Context& context,
+                                  const DescriptorSetLayout& globalSetLayout, VkExtent2D sceneImageExtent);
         ~SelectionMaskRenderSystem();
 
         SelectionMaskRenderSystem(const SelectionMaskRenderSystem&) = delete;
@@ -33,11 +33,10 @@ namespace pxt {
         void createMaskColorImage();
         void createOffscreenFrameBuffer();
 
-        void createPipelineLayout(DescriptorSetLayout& globalSetLayout);
+        void createPipelineLayout(const DescriptorSetLayout& globalSetLayout);
         void createPipeline(bool useCompiledSpirvFiles = true);
 
         Context& m_context;
-        DescriptorAllocatorGrowable& m_descriptorAllocator;
 
         Unique<RenderPass> m_offscreenRenderPass = nullptr;
         Unique<FrameBuffer> m_offscreenFb = nullptr;

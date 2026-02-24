@@ -2,6 +2,7 @@
 
 #include "core/pch.hpp"
 #include "graphics/descriptors/descriptors.hpp"
+#include "graphics/descriptors/descriptor_manager.hpp"
 #include "graphics/resources/cube_map.hpp"
 #include "graphics/swap_chain.hpp"
 #include "resources/resource_manager.hpp"
@@ -13,45 +14,43 @@ namespace pxt {
     public:
         static Unique<VulkanSkybox> create(const std::array<std::string, 6>& paths);
 
-        VulkanSkybox(Context& context, ResourceManager& rm, const std::array<std::string, 6>& paths);
+        VulkanSkybox(Context& context, ResourceManager& rm, DescriptorManager& descriptorManager, const std::array<std::string, 6>& paths);
 
         ~VulkanSkybox() override = default;
 
-        void createDescriptorSet(DescriptorAllocatorGrowable& descriptorAllocator);
+        void createDescriptorSet();
 
         VkDescriptorImageInfo getDescriptorImageInfo() const;
 
-        VkDescriptorSet getDescriptorSet(uint32_t frameIndex) const { return m_skyboxDescriptorSet[frameIndex]; }
+        VkDescriptorSet getDescriptorSet(uint32_t frameIndex) const { return m_descriptorManager.getDescriptorSet(m_skyboxDescriptorSet, frameIndex); }
 
-        VkDescriptorSet getDebugDescriptorSet(uint32_t faceIndex) const {
-            return m_skyboxDebugDescriptorSets[faceIndex];
+        VkDescriptorSet getDebugDescriptorSet(uint32_t faceIndex, uint32_t frameIndex) const {
+            return m_descriptorManager.getDescriptorSet(m_skyboxDebugDescriptorSets[faceIndex], frameIndex);
         }
 
-        VkDescriptorSetLayout getDescriptorSetLayout() const {
-            return m_skyboxDescriptorSetLayout->getHandle();
+        VkDescriptorSetLayout getDescriptorSetLayout() const { 
+            return m_descriptorManager.getLayout(m_skyboxDescriptorSet).getHandle();
         }
 
         const CubeMap& getCubeMap() const { return *m_cubeMap; }
 
         void replace(const std::array<std::string, 6>& skyboxTextures) override;
 
-        void updateDescriptorSets(uint32_t frameIndex);
+        void updateDescriptorSets();
 
     private:
         void loadTextures(const std::array<std::string, 6>& paths, ResourceManager& rm);
 
         Context& m_context;
+        DescriptorManager& m_descriptorManager;
 
         uint32_t m_size = 0;
 
         // TODO: maybe just an id and then we use resource manager to get the cubemap???
         Shared<CubeMap> m_cubeMap;
 
-        std::array<VkDescriptorSet, SwapChain::MAX_FRAMES_IN_FLIGHT> m_skyboxDescriptorSet;
-        Unique<DescriptorSetLayout> m_skyboxDescriptorSetLayout;
+        DescriptorSetHandle m_skyboxDescriptorSet = core::UID::s_invalidId;
 
-        // TODO: move these to a descriptor set manager or something
-        std::array<VkDescriptorSet, 6> m_skyboxDebugDescriptorSets;
-        Unique<DescriptorSetLayout> m_skyboxDebugDescriptorSetLayout;
+        std::array<DescriptorSetHandle, 6> m_skyboxDebugDescriptorSets;
     };
 } // namespace pxt

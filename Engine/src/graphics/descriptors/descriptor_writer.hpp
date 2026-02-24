@@ -7,102 +7,79 @@
 namespace pxt {
     class DescriptorWriter {
     public:
-        DescriptorWriter(Context& context, DescriptorSetLayout& setLayout);
+        explicit DescriptorWriter(Context& context);
 
         /**
-         * @brief Writes a single buffer descriptor to the specified binding.
+         * @brief Writes a single buffer descriptor to a destination descriptor set.
          *
+         * @param setLayout Descriptor set layout describing the binding.
+         * @param dstSet Destination descriptor set to write to.
          * @param binding The binding index.
          * @param bufferInfo Pointer to the buffer descriptor info.
          *
          * @return Reference to the DescriptorWriter instance.
          */
-        DescriptorWriter& writeBuffer(uint32_t binding, VkDescriptorBufferInfo* bufferInfo) {
-            return write(binding, bufferInfo, 1);
+        DescriptorWriter& writeBuffer(DescriptorSetLayout& setLayout, VkDescriptorSet dstSet, uint32_t binding,
+                                      VkDescriptorBufferInfo* bufferInfo) {
+            return write(setLayout, dstSet, binding, bufferInfo, 1);
         }
 
         /**
-         * @brief Writes multiple buffer descriptors to the specified binding.
-         *
-         * @param binding The binding index.
-         * @param buffersInfo Pointer to the array of buffer descriptor infos.
-         * @param count The number of descriptors.
-         *
-         * @return Reference to the DescriptorWriter instance.
+         * @brief Writes multiple buffer descriptors to a destination descriptor set.
          */
-        DescriptorWriter& writeBuffers(uint32_t binding, VkDescriptorBufferInfo* buffersInfo, uint32_t count) {
-            return write(binding, buffersInfo, count);
+        DescriptorWriter& writeBuffers(DescriptorSetLayout& setLayout, VkDescriptorSet dstSet, uint32_t binding,
+                                       VkDescriptorBufferInfo* buffersInfo, uint32_t count) {
+            return write(setLayout, dstSet, binding, buffersInfo, count);
         }
 
         /**
-         * @brief Writes a single image descriptor to the specified binding.
-         *
-         * @param binding The binding index.
-         * @param imageInfo Pointer to the image descriptor info.
-         *
-         * @return Reference to the DescriptorWriter instance.
+         * @brief Writes a single image descriptor to a destination descriptor set.
          */
-        DescriptorWriter& writeImage(uint32_t binding, VkDescriptorImageInfo* imageInfo) {
-            return write(binding, imageInfo, 1);
+        DescriptorWriter& writeImage(DescriptorSetLayout& setLayout, VkDescriptorSet dstSet, uint32_t binding,
+                                     VkDescriptorImageInfo* imageInfo) {
+            return write(setLayout, dstSet, binding, imageInfo, 1);
         }
 
         /**
-         * @brief Writes multiple image descriptors to the specified binding.
-         *
-         * @param binding The binding index.
-         * @param imagesInfo Pointer to the array of image descriptor infos.
-         * @param count The number of descriptors.
-         *
-         * @return Reference to the DescriptorWriter instance.
+         * @brief Writes multiple image descriptors to a destination descriptor set.
          */
-        DescriptorWriter& writeImages(uint32_t binding, VkDescriptorImageInfo* imagesInfo, uint32_t count) {
-            return write(binding, imagesInfo, count);
+        DescriptorWriter& writeImages(DescriptorSetLayout& setLayout, VkDescriptorSet dstSet, uint32_t binding,
+                                      VkDescriptorImageInfo* imagesInfo, uint32_t count) {
+            return write(setLayout, dstSet, binding, imagesInfo, count);
         }
 
         /**
-         * @brief Writes a single acceleration structure descriptor to the specified binding.
-         *
-         * @param binding The binding index.
-         * @param writeInfo Acceleration structure descriptor info.
-         *
-         * @return Reference to the DescriptorWriter instance.
+         * @brief Writes a single acceleration structure descriptor to a destination descriptor set.
          */
-        DescriptorWriter& writeTLAS(uint32_t binding, VkWriteDescriptorSetAccelerationStructureKHR writeInfo) {
-            return write(binding, &writeInfo, 1);
+        DescriptorWriter& writeTLAS(DescriptorSetLayout& setLayout, VkDescriptorSet dstSet, uint32_t binding,
+                                    VkWriteDescriptorSetAccelerationStructureKHR writeInfo) {
+            return write(setLayout, dstSet, binding, &writeInfo, 1);
         }
 
         /**
-         * @brief Overwrites an existing descriptor set with the stored writes.
+         * @brief Generic helper for recording descriptor writes.
          *
-         * @param set Reference to the descriptor set to be overwritten.
-         */
-        void updateSet(VkDescriptorSet& set);
-
-    private:
-        /**
-         * @brief Generic template function to write descriptor data.
-         *
-         * @tparam T Type of descriptor info (VkDescriptorBufferInfo or VkDescriptorImageInfo).
-         * @param binding The binding index.
+         * @tparam T Descriptor info type.
+         * @param setLayout Descriptor set layout describing the binding.
+         * @param dstSet Destination descriptor set.
+         * @param binding Binding index.
          * @param info Pointer to descriptor info.
          * @param count Number of descriptors.
-         *
-         * @return Reference to the DescriptorWriter instance.
          */
         template <typename T>
-        DescriptorWriter& write(uint32_t binding, T* info, uint32_t count) {
-            size_t bindingCount = m_setLayout.m_bindings.count(binding);
-
+        DescriptorWriter& write(DescriptorSetLayout& setLayout, VkDescriptorSet dstSet, uint32_t binding, T* info,
+                                uint32_t count) {
+            size_t bindingCount = setLayout.m_bindings.count(binding);
             PXT_ASSERT(bindingCount == 1, "Layout does not contain specified binding");
 
-            auto& bindingDescription = m_setLayout.m_bindings[binding];
-
+            auto& bindingDescription = setLayout.m_bindings[binding];
             PXT_ASSERT(bindingDescription.descriptorCount == count, "Binding descriptor info count mismatch");
 
             VkWriteDescriptorSet write{};
             write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            write.descriptorType = bindingDescription.descriptorType;
+            write.dstSet = dstSet;
             write.dstBinding = binding;
+            write.descriptorType = bindingDescription.descriptorType;
             write.descriptorCount = count;
 
             if constexpr (std::is_same_v<T, VkDescriptorBufferInfo>) {
@@ -119,8 +96,16 @@ namespace pxt {
             return *this;
         }
 
+        /**
+         * @brief Applies all accumulated descriptor writes to their respective destination sets.
+         *
+         * This issues a single vkUpdateDescriptorSets call covering all recorded writes.
+         * The caller is responsible for ensuring descriptor sets are not in use.
+         */
+        void updateAll();
+
+    private:
         Context& m_context;
-        DescriptorSetLayout& m_setLayout;
         std::vector<VkWriteDescriptorSet> m_writes;
     };
 } // namespace pxt

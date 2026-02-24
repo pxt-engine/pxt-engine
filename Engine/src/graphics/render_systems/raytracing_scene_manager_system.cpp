@@ -8,9 +8,9 @@ namespace pxt {
     RayTracingSceneManagerSystem::RayTracingSceneManagerSystem(Context& context, MaterialRegistry& materialRegistry,
                                                                BLASRegistry& blasRegistry,
                                                                TextureRegistry& textureRegistry,
-                                                               DescriptorAllocatorGrowable& allocator)
+                                                               DescriptorManager& descriptorManager)
         : m_context(context), m_materialRegistry(materialRegistry), m_blasRegistry(blasRegistry),
-          m_textureRegistry(textureRegistry), m_descriptorAllocator(allocator) {
+          m_textureRegistry(textureRegistry), m_descriptorManager(descriptorManager) {
         createTLASDescriptorSets();
         createMeshInstanceDescriptorSets();
         createEmittersDescriptorSets();
@@ -320,22 +320,16 @@ namespace pxt {
     void RayTracingSceneManagerSystem::createTLASDescriptorSets() {
         // TLAS DESCRIPTOR SET LAYOUT
         // needed for raytracing pipeline layout
-        m_tlasDescriptorSetLayout =
-            DescriptorSetLayout::Builder(m_context)
-                .addBinding(0, VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR,
-                            VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR)
-                .build();
-
-        for (int i = 0; i < SwapChain::MAX_FRAMES_IN_FLIGHT; i++) {
-            m_descriptorAllocator.allocate(m_tlasDescriptorSetLayout->getHandle(),
-                                           m_tlasDescriptorSets[i]);
-        }
+        std::vector<DescriptorEntry> bindings = {
+            {0, VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR,
+            VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, 1}};
+       
+        m_tlasDescriptorSet = m_descriptorManager.createSet(bindings);
     }
 
-    void RayTracingSceneManagerSystem::updateTLASDescriptorSets(int frameIndex, VkAccelerationStructureKHR& newTlas) {
+    void RayTracingSceneManagerSystem::updateTLASDescriptorSets(uint32_t frameIndex, VkAccelerationStructureKHR& newTlas) {
         // destroy old TLAS if exists
-        if (m_tlases[frameIndex] != VK_NULL_HANDLE)
-            destroyTLAS(frameIndex);
+        destroyTLAS(frameIndex);
 
         m_tlases[frameIndex] = newTlas;
 
@@ -344,12 +338,11 @@ namespace pxt {
         tlasInfo.accelerationStructureCount = 1;
         tlasInfo.pAccelerationStructures = &m_tlases[frameIndex];
 
-        DescriptorWriter(m_context, *m_tlasDescriptorSetLayout)
-            .writeTLAS(0, tlasInfo)
-            .updateSet(m_tlasDescriptorSets[frameIndex]);
+        m_descriptorManager.submitUpdateSingle(m_tlasDescriptorSet, 0, tlasInfo);
+        m_descriptorManager.flushUpdatesForSet(m_tlasDescriptorSet, frameIndex);
     }
 
-    void RayTracingSceneManagerSystem::destroyTLAS(int frameIndex) {
+    void RayTracingSceneManagerSystem::destroyTLAS(uint32_t frameIndex) {
         if (m_tlases[frameIndex] != VK_NULL_HANDLE) {
             vkDestroyAccelerationStructureKHR(m_context.getDevice(), m_tlases[frameIndex], nullptr);
             m_tlases[frameIndex] = VK_NULL_HANDLE;
@@ -357,21 +350,14 @@ namespace pxt {
     }
 
     void RayTracingSceneManagerSystem::createMeshInstanceDescriptorSets() {
-        m_meshInstanceDescriptorSetLayout =
-            DescriptorSetLayout::Builder(m_context)
-                .addBinding(0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                            VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR |
-                                VK_SHADER_STAGE_RAYGEN_BIT_KHR,
-                            1)
-                .build();
-
-        for (int i = 0; i < SwapChain::MAX_FRAMES_IN_FLIGHT; i++) {
-            m_descriptorAllocator.allocate(m_meshInstanceDescriptorSetLayout->getHandle(),
-                                           m_meshInstanceDescriptorSets[i]);
-        }
+        std::vector<DescriptorEntry> bindings = {
+            {0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+             VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_RAYGEN_BIT_KHR, 1}};
+        
+        m_meshInstanceDescriptorSet = m_descriptorManager.createSet(bindings);
     }
 
-    void RayTracingSceneManagerSystem::updateMeshInstanceDescriptorSets(int frameIndex) {
+    void RayTracingSceneManagerSystem::updateMeshInstanceDescriptorSets(uint32_t frameIndex) {
         VkDeviceSize bufferSize = sizeof(MeshInstanceData) * m_meshInstanceData.size();
 
         if (bufferSize == 0)
@@ -392,25 +378,19 @@ namespace pxt {
 
         auto bufferInfo = m_meshInstanceBuffers[frameIndex]->descriptorInfo();
 
-        DescriptorWriter(m_context, *m_meshInstanceDescriptorSetLayout)
-            .writeBuffer(0, &bufferInfo)
-            .updateSet(m_meshInstanceDescriptorSets[frameIndex]);
+        m_descriptorManager.submitUpdateSingle(m_meshInstanceDescriptorSet, 0, bufferInfo);
+        m_descriptorManager.flushUpdatesForSet(m_meshInstanceDescriptorSet, frameIndex);
     }
 
     void RayTracingSceneManagerSystem::createEmittersDescriptorSets() {
-        m_emittersDescriptorSetLayout =
-            DescriptorSetLayout::Builder(m_context)
-                .addBinding(0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                            VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_RAYGEN_BIT_KHR, 1)
-                .build();
-
-        for (int i = 0; i < SwapChain::MAX_FRAMES_IN_FLIGHT; i++) {
-            m_descriptorAllocator.allocate(m_emittersDescriptorSetLayout->getHandle(),
-                                           m_emittersDescriptorSets[i]);
-        }
+        std::vector<DescriptorEntry> bindings = {
+            {0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+            VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_RAYGEN_BIT_KHR, 1}};
+        
+        m_emittersDescriptorSet = m_descriptorManager.createSet(bindings);
     }
 
-    void RayTracingSceneManagerSystem::updateEmittersDescriptorSets(int frameIndex) {
+    void RayTracingSceneManagerSystem::updateEmittersDescriptorSets(uint32_t frameIndex) {
         uint32_t emitterCount = static_cast<uint32_t>(m_emitters.size());
 
         VkDeviceSize emitterDataSize = sizeof(EmitterData) * emitterCount;
@@ -435,25 +415,19 @@ namespace pxt {
 
         auto bufferInfo = m_emittersBuffers[frameIndex]->descriptorInfo();
 
-        DescriptorWriter(m_context, *m_emittersDescriptorSetLayout)
-            .writeBuffer(0, &bufferInfo)
-            .updateSet(m_emittersDescriptorSets[frameIndex]);
+        m_descriptorManager.submitUpdateSingle(m_emittersDescriptorSet, 0, bufferInfo);
+        m_descriptorManager.flushUpdatesForSet(m_emittersDescriptorSet, frameIndex);
     }
 
     void RayTracingSceneManagerSystem::createVolumesDescriptorSets() {
-        m_volumesDescriptorSetLayout =
-            DescriptorSetLayout::Builder(m_context)
-                .addBinding(0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                            VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, 1)
-                .build();
-
-        for (int i = 0; i < SwapChain::MAX_FRAMES_IN_FLIGHT; i++) {
-            m_descriptorAllocator.allocate(m_volumesDescriptorSetLayout->getHandle(),
-                                           m_volumesDescriptorSets[i]);
-        }
+        std::vector<DescriptorEntry> bindings = {
+            {0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 
+            VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, 1}};
+        
+        m_volumesDescriptorSet = m_descriptorManager.createSet(bindings);
     }
 
-    void RayTracingSceneManagerSystem::updateVolumesDescriptorSets(int frameIndex) {
+    void RayTracingSceneManagerSystem::updateVolumesDescriptorSets(uint32_t frameIndex) {
         VkDeviceSize bufferSize = sizeof(VolumeData) * m_volumes.size();
 
         if (bufferSize == 0)
@@ -474,8 +448,8 @@ namespace pxt {
         m_context.copyBuffer(stagingBuffer->getBuffer(), m_volumesBuffers[frameIndex]->getBuffer(), bufferSize);
 
         auto bufferInfo = m_volumesBuffers[frameIndex]->descriptorInfo();
-        DescriptorWriter(m_context, *m_volumesDescriptorSetLayout)
-            .writeBuffer(0, &bufferInfo)
-            .updateSet(m_volumesDescriptorSets[frameIndex]);
+        
+        m_descriptorManager.submitUpdateSingle(m_volumesDescriptorSet, 0, bufferInfo);
+        m_descriptorManager.flushUpdatesForSet(m_volumesDescriptorSet, frameIndex);
     }
 } // namespace pxt
