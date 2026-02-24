@@ -557,12 +557,7 @@ namespace pxt {
 
             m_selectionMaskRenderSystem->updateImage(m_viewportExtent);
 
-            // after recreating the resources, we need to update all descriptor sets that reference them.
-            // It is not a problem here because we called vkDeviceWaitIdle, which is fine in the case of a resize
-            // so there are no pending command buffers that could be using the old resources.
-            for (uint8_t i = 0; i < SwapChain::MAX_FRAMES_IN_FLIGHT; i++) {
-                m_descriptorManager.flushUpdates(i);
-            }
+            // the descriptor sets will be updated at the beginning of each frame (after onEvent anyway)
 
             return false; // propagate (scene needs it for cameras)
         });
