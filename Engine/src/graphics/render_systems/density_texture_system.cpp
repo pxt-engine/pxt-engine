@@ -96,7 +96,7 @@ namespace pxt {
         m_densityTexture->createSampler(samplerInfo);
         m_majorantGrid->createSampler(samplerInfo);
 
-        createSliceImageViews(&m_densitySliceImageView, &m_majorantGridSliceImageView);
+        createSliceImageViews(m_densitySliceImageView, m_majorantGridSliceImageView);
     }
 
     void DensityTextureRenderSystem::createGlobalMajorantBuffer() {
@@ -351,7 +351,7 @@ namespace pxt {
         m_hasRigeneratedThisFrame = false;
     }
 
-    void DensityTextureRenderSystem::updateUi() {
+    void DensityTextureRenderSystem::updateUi(FrameInfo& frameInfo) {
         if (ImGui::CollapsingHeader("Volume Noise Settings")) {
             ImGui::Text("Global majorant value: %.2f", m_globalMajorant);
 
@@ -384,32 +384,32 @@ namespace pxt {
                 m_needsRegeneration = true;
             }
 
-            showNoiseTextures();
+            showNoiseTextures(frameInfo.frameIndex);
         }
     }
 
-    void DensityTextureRenderSystem::showNoiseTextures() {
+    void DensityTextureRenderSystem::showNoiseTextures(const uint32_t frameIndex) {
         // Remove window padding so images butt up against window edges
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
 
         ImVec2 windowSize(200, 200);
 
         // Density Texture
-        ImTextureID noiseTexture = (ImTextureID)m_imGuiDensityDescriptorSet;
+        ImTextureID noiseTexture = (ImTextureID)m_descriptorManager.getDescriptorSet(m_imGuiDensityDescriptorSet, frameIndex);
         ImGui::Image(noiseTexture, windowSize);
 
         // Move to the same line (to the right of the previous image)
         ImGui::SameLine();
 
         // Majorant Grid Texture
-        ImTextureID majorantTexture = (ImTextureID)m_imGuiMajorantDescriptorSet;
+        ImTextureID majorantTexture = (ImTextureID)m_descriptorManager.getDescriptorSet(m_imGuiMajorantDescriptorSet, frameIndex);
         ImGui::Image(majorantTexture, windowSize);
 
         ImGui::PopStyleVar();
     }
 
-    void DensityTextureRenderSystem::createSliceImageViews(VkImageView* densitySliceImageView,
-                                                           VkImageView* majorantSliceImageView) {
+    void DensityTextureRenderSystem::createSliceImageViews(VkImageView& densitySliceImageView,
+                                                           VkImageView& majorantSliceImageView) {
         // create slice image view for imgui
         VkImageViewCreateInfo viewInfo{};
         viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -423,18 +423,18 @@ namespace pxt {
         viewInfo.subresourceRange.layerCount = 1;
 
         viewInfo.image = m_densityTexture->getVkImage();
-        *densitySliceImageView = m_context.createImageView(viewInfo);
+        densitySliceImageView = m_context.createImageView(viewInfo);
 
         viewInfo.image = m_majorantGrid->getVkImage();
         viewInfo.subresourceRange.baseArrayLayer =
             m_densitySliceIndex / m_majorantGridExtent.depth; // for majorant grid
-        *majorantSliceImageView = m_context.createImageView(viewInfo);
+        majorantSliceImageView = m_context.createImageView(viewInfo);
     }
 
     void DensityTextureRenderSystem::updateSliceImageViews() {
         // create slice image view for imgui
         VkImageView densitySliceImageView, majorantGridSliceImageView;
-        createSliceImageViews(&densitySliceImageView, &majorantGridSliceImageView);
+        createSliceImageViews(densitySliceImageView, majorantGridSliceImageView);
 
         if (m_densitySliceImageView != VK_NULL_HANDLE && m_majorantGridSliceImageView != VK_NULL_HANDLE) {
             // then update the descriptor sets for imgui
@@ -453,8 +453,15 @@ namespace pxt {
             m_descriptorManager.submitUpdateSingle(m_imGuiMajorantDescriptorSet, 0, majorantImageInfo);
 
             // then destroy the old ones
-            vkDestroyImageView(m_context.getDevice(), m_densitySliceImageView, nullptr);
-            vkDestroyImageView(m_context.getDevice(), m_majorantGridSliceImageView, nullptr);
+            m_context.getDeletionQueue().push([device = m_context.getDevice(), oldDensityView = m_densitySliceImageView,
+                                              oldMajorantView = m_majorantGridSliceImageView]() {
+                if (oldDensityView != VK_NULL_HANDLE) {
+                    vkDestroyImageView(device, oldDensityView, nullptr);
+                }
+                if (oldMajorantView != VK_NULL_HANDLE) {
+                    vkDestroyImageView(device, oldMajorantView, nullptr);
+                }
+            });
         }
 
         // then assign the new ones regardless

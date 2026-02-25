@@ -38,8 +38,8 @@ namespace pxt {
         void reloadShaders();
         void postFrameUpdate(VkFence frameFence);
 
-        void updateUi();
-        void showNoiseTextures();
+        void updateUi(FrameInfo& frameInfo);
+        void showNoiseTextures(const uint32_t frameIndex);
 
     private:
         void createImages();
@@ -53,7 +53,7 @@ namespace pxt {
         void createGlobalMajorantPipelineLayout();
         void createGlobalMajorantPipeline(bool useCompiledSpirvFiles = true);
 
-        void createSliceImageViews(VkImageView* densitySliceImageView, VkImageView* majorantSliceImageView);
+        void createSliceImageViews(VkImageView& densitySliceImageView, VkImageView& majorantSliceImageView);
         void updateSliceImageViews();
 
         void findMaxDensity(VkCommandBuffer commandBuffer, uint32_t frameIndex);

@@ -640,7 +640,7 @@ namespace pxt {
         if (m_isDebugEnabled) {
             ImGui::Text("Debug is enabled");
             m_debugRenderSystem->updateUi();
-            m_densityTextureSystem->updateUi();
+            m_densityTextureSystem->updateUi(frameInfo);
         } else {
             ImGui::Text("Debug is disabled");
         }
