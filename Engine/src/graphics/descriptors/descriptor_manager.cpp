@@ -75,7 +75,6 @@ namespace pxt {
         Shared<DescriptorSetLayout> layout = layoutBuilder.build();
         VkDescriptorSetLayout rawLayout = layout->getHandle();
 
-        // here we can move the layout
         managedSet.layout = layout;
 
         return allocateOneSetPerFrame(rawLayout, std::move(managedSet));
