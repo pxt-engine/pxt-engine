@@ -649,7 +649,7 @@ namespace pxt {
         m_editorGridRenderSystem->updateUi();
 
         if (!m_isRaytracingEnabled) {
-            m_shadowMapRenderSystem->updateUi();
+            m_shadowMapRenderSystem->updateUi(frameInfo);
         }
     }
 } // namespace pxt

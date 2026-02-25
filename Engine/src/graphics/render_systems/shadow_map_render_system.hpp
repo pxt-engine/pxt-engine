@@ -24,7 +24,7 @@ namespace pxt {
 
         void update(FrameInfo& frameInfo, GlobalUbo& ubo);
         void render(FrameInfo& frameInfo, Renderer& renderer);
-        void updateUi();
+        void updateUi(FrameInfo& frameInfo);
         void reloadShaders();
 
         FrameBuffer& getCubeFaceFramebuffer(uint32_t face_index) const { return *m_cubeFramebuffers[face_index]; }
@@ -37,14 +37,14 @@ namespace pxt {
 
     private:
         void createUniformBuffers();
-        void createDescriptorSets();
+        void createLightUboDescriptorSet();
         void createRenderPass();
         void createOffscreenFrameBuffers();
         void createPipelineLayout(const DescriptorSetLayout& setLayout);
         void createPipeline(bool useCompiledSpirvFiles = true);
 
         void createDebugDescriptorSets();
-        void updateShadowCubeMapDebugWindow();
+        void updateShadowCubeMapDebugWindow(FrameInfo& frameInfo);
 
         glm::mat4 getFaceViewMatrix(uint32_t faceIndex);
 

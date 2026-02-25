@@ -25,7 +25,7 @@ namespace pxt {
                                                  DescriptorSetHandle uboSetHandle)
         : m_context(context), m_descriptorManager(descriptorManager), m_uboBufferSet(uboSetHandle) {
         createUniformBuffers();
-        createDescriptorSets();
+        createLightUboDescriptorSet();
         createRenderPass();
         createOffscreenFrameBuffers();
         createPipelineLayout(m_descriptorManager.getLayout(m_uboBufferSet));
@@ -50,7 +50,7 @@ namespace pxt {
         }
     }
 
-    void ShadowMapRenderSystem::createDescriptorSets() {
+    void ShadowMapRenderSystem::createLightUboDescriptorSet() {
         // Create descriptor set for each frame in flight
         m_lightDescriptorSet = m_descriptorManager.createSet(m_uboBufferSet);
 
@@ -369,21 +369,29 @@ namespace pxt {
         }
     }
 
-    void ShadowMapRenderSystem::updateUi() { updateShadowCubeMapDebugWindow(); }
+    void ShadowMapRenderSystem::updateUi(FrameInfo& frameInfo) {
+        updateShadowCubeMapDebugWindow(frameInfo);
+    }
 
     void ShadowMapRenderSystem::reloadShaders() {
         PXT_INFO("Reloading shaders...");
         createPipeline(false);
     }
 
-    void ShadowMapRenderSystem::updateShadowCubeMapDebugWindow() {
-        ImTextureID cube_posx = (ImTextureID)m_shadowMapDebugDescriptorSets[0];
-        ImTextureID cube_negx = (ImTextureID)m_shadowMapDebugDescriptorSets[1];
-        ImTextureID cube_posy =
-            (ImTextureID)m_shadowMapDebugDescriptorSets[3]; // swap negative and positive y because vulkan :)
-        ImTextureID cube_negy = (ImTextureID)m_shadowMapDebugDescriptorSets[2];
-        ImTextureID cube_posz = (ImTextureID)m_shadowMapDebugDescriptorSets[4];
-        ImTextureID cube_negz = (ImTextureID)m_shadowMapDebugDescriptorSets[5];
+    void ShadowMapRenderSystem::updateShadowCubeMapDebugWindow(FrameInfo& frameInfo) {
+        // create a lambda to convert the descriptor set handles to ImTextureID for ImGui
+        auto getImTextureIDFromDescriptorSetHandle = [&](DescriptorSetHandle handle) -> ImTextureID {
+            return (ImTextureID)m_descriptorManager.getDescriptorSet(
+                handle, frameInfo.frameIndex);
+        };
+
+        ImTextureID cube_posx = getImTextureIDFromDescriptorSetHandle(m_shadowMapDebugDescriptorSets[0]);
+        ImTextureID cube_negx = getImTextureIDFromDescriptorSetHandle(m_shadowMapDebugDescriptorSets[1]);
+        // swap negative and positive y because vulkan :)
+        ImTextureID cube_posy = getImTextureIDFromDescriptorSetHandle(m_shadowMapDebugDescriptorSets[3]);
+        ImTextureID cube_negy = getImTextureIDFromDescriptorSetHandle(m_shadowMapDebugDescriptorSets[2]);
+        ImTextureID cube_posz = getImTextureIDFromDescriptorSetHandle(m_shadowMapDebugDescriptorSets[4]);
+        ImTextureID cube_negz = getImTextureIDFromDescriptorSetHandle(m_shadowMapDebugDescriptorSets[5]);
 
         /* Render the shadow cube map textures flat out in this format (with y mirrored):
         //                +----+
