@@ -19,12 +19,20 @@ namespace pxt {
     }
 
     VulkanImage::~VulkanImage() {
-        if (m_imageView != VK_NULL_HANDLE) {
-            vkDestroyImageView(m_context.getDevice(), m_imageView, nullptr);
-        }
+        m_context.getDeletionQueue().push([device = m_context.getDevice(), imageView = m_imageView, image = m_vkImage,
+                                         imageMemory = m_imageMemory]() {
+            if (imageView != VK_NULL_HANDLE) {
+                vkDestroyImageView(device, imageView, nullptr);
+            }
 
-        vkDestroyImage(m_context.getDevice(), m_vkImage, nullptr);
-        vkFreeMemory(m_context.getDevice(), m_imageMemory, nullptr);
+            if (image != VK_NULL_HANDLE) {
+                vkDestroyImage(device, image, nullptr);
+            }
+
+            if (imageMemory != VK_NULL_HANDLE) {
+                vkFreeMemory(device, imageMemory, nullptr);
+            }
+        });
     }
 
     VulkanImage& VulkanImage::createImageView(VkImageViewCreateInfo& viewInfo) {

@@ -43,8 +43,9 @@ namespace pxt {
 
     VulkanSampler::~VulkanSampler() {
         if (m_sampler != VK_NULL_HANDLE) {
-            vkDestroySampler(m_context.getDevice(), m_sampler, nullptr);
-            m_sampler = VK_NULL_HANDLE;
+            m_context.getDeletionQueue().push([device = m_context.getDevice(), sampler = m_sampler]() {
+                vkDestroySampler(device, sampler, nullptr);
+            });
         }
     }
 

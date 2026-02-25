@@ -61,6 +61,10 @@ namespace pxt {
     }
 
     DescriptorSetLayout::~DescriptorSetLayout() {
-        vkDestroyDescriptorSetLayout(m_context.getDevice(), m_descriptorSetLayout, nullptr);
+        if (m_descriptorSetLayout != VK_NULL_HANDLE) {
+            m_context.getDeletionQueue().push([layout = m_descriptorSetLayout, device = m_context.getDevice()]() {
+                vkDestroyDescriptorSetLayout(device, layout, nullptr);
+            });
+        }
     }
 } // namespace pxt

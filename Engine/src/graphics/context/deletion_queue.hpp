@@ -1,13 +1,14 @@
 #pragma once
 
 #include "core/pch.hpp"
-#include "graphics/swap_chain.hpp"
 
 namespace pxt {
     class DeletionQueue {
         using DeletionTask = std::function<void()>;
 
     public:
+        explicit DeletionQueue();
+
         /*
          *@brief Pushes a deletion task to the queue for the current frame
          * 
@@ -34,6 +35,8 @@ namespace pxt {
 
     private:
         uint32_t m_currentFrame = 0;
-        std::array<std::vector<DeletionTask>, SwapChain::MAX_FRAMES_IN_FLIGHT> m_framesQueue;
+        // this can become array of vectors if we move Swapchain::MAX_FRAMES_IN_FLIGHT
+        // to a constants file so there is no recursive imports
+        std::vector<std::vector<DeletionTask>> m_framesQueue;
     };
 }

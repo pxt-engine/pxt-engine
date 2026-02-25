@@ -184,7 +184,11 @@ namespace pxt {
             if (auto commandBuffer = m_renderer.beginFrame()) {
                 int frameIndex = m_renderer.getFrameIndex();
 
-                // as the first thing in the frame, update all dirty descriptor sets
+                // as the first thing in the frame:
+                // delete all unused resources used previously by the frame
+                m_context.getDeletionQueue().updateFrameIndex(frameIndex);
+                m_context.getDeletionQueue().flush(frameIndex);
+                // update all dirty descriptor sets
                 m_descriptorManager->flushUpdates(frameIndex);
 
                 // if we are in PLAY/RUNTIME mode we want to run game scripts

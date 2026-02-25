@@ -28,10 +28,10 @@ namespace pxt {
 
     RenderPass::~RenderPass() {
         if (m_renderPass != VK_NULL_HANDLE) {
-            PXT_DEBUG("Destroying VkRenderPass: {}", m_name);
-            vkDestroyRenderPass(m_context.getDevice(), m_renderPass, nullptr);
-            m_renderPass = VK_NULL_HANDLE;
-            PXT_DEBUG("VkRenderPass: {} destroyed.", m_name);
+            m_context.getDeletionQueue().push([device = m_context.getDevice(), renderPass = m_renderPass, name = m_name]() {
+                 vkDestroyRenderPass(device, renderPass, nullptr);
+                 PXT_DEBUG("VkRenderPass: {} destroyed.", name);
+            });
         }
     }
 } // namespace pxt

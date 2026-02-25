@@ -47,7 +47,13 @@ namespace pxt {
         }
     }
 
-    DescriptorPool::~DescriptorPool() { vkDestroyDescriptorPool(m_context.getDevice(), m_descriptorPool, nullptr); }
+    DescriptorPool::~DescriptorPool() {
+        if (m_descriptorPool != VK_NULL_HANDLE) {
+            m_context.getDeletionQueue().push([device = m_context.getDevice(), pool = m_descriptorPool]() {
+                vkDestroyDescriptorPool(device, pool, nullptr);
+            });
+        }
+    }
 
     bool DescriptorPool::allocateDescriptorSet(const VkDescriptorSetLayout descriptorSetLayout,
                                                VkDescriptorSet& descriptor, const void* pNext) const {

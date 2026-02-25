@@ -25,7 +25,13 @@ namespace pxt {
         createComputePipeline(shaderFilePath, configInfo);
     }
 
-    Pipeline::~Pipeline() { vkDestroyPipeline(m_context.getDevice(), m_pipeline, nullptr); }
+    Pipeline::~Pipeline() {
+        if (m_pipeline != VK_NULL_HANDLE) {
+            m_context.getDeletionQueue().push([device = m_context.getDevice(), pipeline = m_pipeline]() {
+                vkDestroyPipeline(device, pipeline, nullptr);
+            });
+        }
+    }
 
     void Pipeline::createShaderModule(const std::vector<char>& code, VkShaderModule* shaderModule) {
         VkShaderModuleCreateInfo createInfo{};
