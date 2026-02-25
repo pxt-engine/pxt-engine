@@ -5,7 +5,6 @@
 #include "core/events/engine_state_events.hpp"
 
 #include "constants.hpp"
-#include "editor_logger_sink.hpp"
 #include "ui/drag_and_drop.hpp"
 #include "ui/widgets/dismissable_badge.hpp"
 #include "ui/widgets/mode_selector_image_button.hpp"
@@ -20,7 +19,8 @@
 
 namespace pxt::editor {
     EditorLayer::EditorLayer() : core::Layer("EditorLayer") {
-        core::Logger::registerSink(createShared<EditorLoggerSink>(m_editorConsole));
+        m_editorLoggerSink = createShared<EditorLoggerSink>(m_editorConsole);
+        core::Logger::registerSink(m_editorLoggerSink);
 
         m_editorTextureRegistry = createUnique<EditorTextureRegistry>();
 
@@ -44,6 +44,10 @@ namespace pxt::editor {
         Application::get().setViewProvider(&m_editorViewProvider);
 
         Application::get().getWindow().loadWindowIcon(EDITOR_TEXTURES_PATH + EDITOR_ICON);
+    }
+
+    EditorLayer::~EditorLayer() {
+        core::Logger::disconnectSink(m_editorLoggerSink);
     }
 
     void EditorLayer::onBeginFrame(float deltaTime) {
