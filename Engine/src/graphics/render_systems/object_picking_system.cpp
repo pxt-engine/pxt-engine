@@ -14,9 +14,9 @@ namespace pxt {
         glm::u8vec4 pixelColor;
     };
 
-    ObjectPickingSystem::ObjectPickingSystem(Context& context, DescriptorAllocatorGrowable& descriptorAllocator,
-                                             DescriptorSetLayout& globalSetLayout, VkExtent2D sceneImageExtent)
-        : m_context{context}, m_descriptorAllocator{descriptorAllocator}, m_sceneExtent{sceneImageExtent} {
+    ObjectPickingSystem::ObjectPickingSystem(Context& context,
+                                             const DescriptorSetLayout& globalSetLayout, VkExtent2D sceneImageExtent)
+        : m_context{context}, m_sceneExtent{sceneImageExtent} {
         createRenderPass();
         createSceneColorIdsImage();
         createOffscreenDepthResources();
@@ -190,14 +190,14 @@ namespace pxt {
         m_selectedPixelColorBuffer->unmap();
     }
 
-    void ObjectPickingSystem::createPipelineLayout(DescriptorSetLayout& globalSetLayout) {
+    void ObjectPickingSystem::createPipelineLayout(const DescriptorSetLayout& globalSetLayout) {
         VkPushConstantRange pushConstantRange{};
         pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
         pushConstantRange.offset = 0;
         pushConstantRange.size = sizeof(ObjPickingPushConstantData);
 
         std::vector<VkDescriptorSetLayout> descriptorSetLayouts{
-            globalSetLayout.getDescriptorSetLayout(),
+            globalSetLayout.getHandle(),
         };
 
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
@@ -214,7 +214,7 @@ namespace pxt {
     }
 
     void ObjectPickingSystem::createPipeline(bool useCompiledSpirvFiles) {
-        PXT_ASSERT(m_pipelineLayout != nullptr, "Cannot create pipeline before pipelineLayout");
+        PXT_ASSERT(m_pipelineLayout != 0, "Cannot create pipeline before pipelineLayout");
 
         RasterizationPipelineConfigInfo pipelineConfig{};
         Pipeline::defaultPipelineConfigInfo(pipelineConfig);
@@ -262,7 +262,7 @@ namespace pxt {
     void ObjectPickingSystem::render(FrameInfo& frameInfo, Renderer& renderer, u32vec2 mousePixelCoords,
                                      bool isObjectPickingRequested) {
         // black is the "no object" color
-        VkClearColorValue blackClearColor = {0.f, 0.f, 0.f, 1.f};
+        VkClearColorValue blackClearColor = {{0.f, 0.f, 0.f, 1.f}};
         renderer.beginRenderPass(frameInfo.commandBuffer, *m_offscreenRenderPass, *m_offscreenFb, m_sceneExtent,
                                  blackClearColor);
 

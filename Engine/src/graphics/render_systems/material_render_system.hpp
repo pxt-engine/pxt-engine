@@ -3,6 +3,7 @@
 #include "core/pch.hpp"
 #include "graphics/context/context.hpp"
 #include "graphics/descriptors/descriptors.hpp"
+#include "graphics/descriptors/descriptor_manager.hpp"
 #include "graphics/frame_info.hpp"
 #include "graphics/pipeline.hpp"
 #include "graphics/resources/texture_registry.hpp"
@@ -13,8 +14,8 @@ namespace pxt {
 
     class MaterialRenderSystem {
     public:
-        MaterialRenderSystem(Context& context, DescriptorAllocatorGrowable& descriptorAllocator,
-                             TextureRegistry& textureRegistry, DescriptorSetLayout& globalSetLayout,
+        MaterialRenderSystem(Context& context, DescriptorManager& descriptorManager,
+                             TextureRegistry& textureRegistry, const DescriptorSetLayout& globalSetLayout,
                              VkRenderPass renderPass, VkDescriptorImageInfo shadowMapImageInfo);
         ~MaterialRenderSystem();
 
@@ -26,7 +27,7 @@ namespace pxt {
 
     private:
         void createDescriptorSets(VkDescriptorImageInfo shadowMapImageInfo);
-        void createPipelineLayout(DescriptorSetLayout& globalSetLayout);
+        void createPipelineLayout(const DescriptorSetLayout& globalSetLayout);
         void createPipeline(bool useCompiledSpirvFiles = true);
 
         template <typename... Components>
@@ -39,10 +40,9 @@ namespace pxt {
         Unique<Pipeline> m_pipeline;
         VkPipelineLayout m_pipelineLayout;
 
-        DescriptorAllocatorGrowable& m_descriptorAllocator;
+        DescriptorManager& m_descriptorManager;
 
-        Unique<DescriptorSetLayout> m_shadowMapDescriptorSetLayout{};
-        VkDescriptorSet m_shadowMapDescriptorSet{};
+        DescriptorSetHandle m_shadowMapDescriptorSet = core::UID::s_invalidId;
 
         std::array<const std::string, 2> m_shaderFilePaths = {"material_shader.vert", "material_shader.frag"};
     };

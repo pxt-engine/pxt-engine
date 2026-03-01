@@ -13,7 +13,7 @@ namespace pxt {
 
     class SkyboxRenderSystem {
     public:
-        SkyboxRenderSystem(Context& context, Shared<Environment> environment, DescriptorSetLayout& globalSetLayout,
+        SkyboxRenderSystem(Context& context, Shared<Environment> environment, const DescriptorSetLayout& globalSetLayout,
                            VkRenderPass renderPass);
         ~SkyboxRenderSystem();
 
@@ -25,7 +25,7 @@ namespace pxt {
         void reloadShaders();
 
     private:
-        void createPipelineLayout(DescriptorSetLayout& globalSetLayout);
+        void createPipelineLayout(const DescriptorSetLayout& globalSetLayout);
         void createPipeline(bool useCompiledSpirvFiles = true);
 
         Context& m_context;

@@ -2,6 +2,7 @@
 
 #include "core/pch.hpp"
 #include "graphics/descriptors/descriptors.hpp"
+#include "graphics/descriptors/descriptor_manager.hpp"
 #include "graphics/frame_info.hpp"
 #include "graphics/pipeline.hpp"
 #include "graphics/render_systems/density_texture_system.hpp"
@@ -18,10 +19,10 @@ namespace pxt {
 
     class RayTracingRenderSystem {
     public:
-        RayTracingRenderSystem(Context& context, DescriptorAllocatorGrowable& descriptorAllocator,
+        RayTracingRenderSystem(Context& context, DescriptorManager& descriptorManager,
                                TextureRegistry& textureRegistry, MaterialRegistry& materialRegistry,
                                BLASRegistry& blasRegistry, Shared<Environment> environment,
-                               DescriptorSetLayout& globalSetLayout, Shared<VulkanImage> sceneImage,
+                               const DescriptorSetLayout& globalSetLayout, Shared<VulkanImage> sceneImage,
                                DensityTextureRenderSystem& densityTextureSystem);
         ~RayTracingRenderSystem();
 
@@ -41,7 +42,7 @@ namespace pxt {
     private:
         void createDescriptorSets();
         void defineShaderGroups();
-        void createPipelineLayout(DescriptorSetLayout& setLayout);
+        void createPipelineLayout(const DescriptorSetLayout& setLayout);
         void createPipeline(bool useCompiledSpirvFiles = true);
         void createShaderBindingTable();
 
@@ -54,10 +55,10 @@ namespace pxt {
         Shared<Environment> m_environment = nullptr;
         Shared<VulkanSkybox> m_skybox = nullptr;
 
-        DescriptorAllocatorGrowable& m_descriptorAllocator;
+        DescriptorManager& m_descriptorManager;
 
         RayTracingSceneManagerSystem m_rtSceneManager{m_context, m_materialRegistry, m_blasRegistry, m_textureRegistry,
-                                                      m_descriptorAllocator};
+                                                      m_descriptorManager};
         DensityTextureRenderSystem& m_densityTextureSystem;
 
         Unique<Pipeline> m_pipeline;
@@ -71,12 +72,10 @@ namespace pxt {
         VkStridedDeviceAddressRegionKHR m_callableRegion; // empty for now
 
         Shared<VulkanImage> m_sceneImage = nullptr;
-        VkDescriptorSet m_storageImageDescriptorSet = VK_NULL_HANDLE;
-        Unique<DescriptorSetLayout> m_storageImageDescriptorSetLayout = nullptr;
-
+        DescriptorSetHandle m_storageImageDescriptorSet = core::UID::s_invalidId;
+        
         // Blue noise textures
-        VkDescriptorSet m_blueNoiseDescriptorSet = VK_NULL_HANDLE;
-        Unique<DescriptorSetLayout> m_blueNoiseDescriptorSetLayout = nullptr;
+        DescriptorSetHandle m_blueNoiseDescriptorSet = core::UID::s_invalidId;
         Unique<VulkanBuffer> m_blueNoiseIndecesBuffer = nullptr;
 
         // Ui variables

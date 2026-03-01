@@ -1,5 +1,7 @@
 #include "graphics/descriptors/descriptor_set_layout.hpp"
 
+#include "graphics/descriptors/descriptors.hpp"
+
 namespace pxt {
     DescriptorSetLayout::Builder& DescriptorSetLayout::Builder::addBinding(const uint32_t binding,
                                                                            const VkDescriptorType descriptorType,
@@ -27,7 +29,7 @@ namespace pxt {
         : m_context{context}, m_bindings{std::move(bindings)} {
 
         std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings{};
-        for (auto val : m_bindings | std::views::values) {
+        for (const auto& val : m_bindings | std::views::values) {
             setLayoutBindings.push_back(val);
         }
 
@@ -42,7 +44,27 @@ namespace pxt {
         }
     }
 
+    std::vector<DescriptorEntry> DescriptorSetLayout::buildDescriptorEntries() const {
+        std::vector<DescriptorEntry> entries;
+        entries.reserve(m_bindings.size());
+
+        for (auto& [binding, bindInfo] : m_bindings) {
+            entries.push_back(DescriptorEntry{
+                .binding = binding,
+                .descriptorType = bindInfo.descriptorType,
+                .stageFlags = bindInfo.stageFlags,
+                .count = bindInfo.descriptorCount
+            });
+        }
+
+        return entries;
+    }
+
     DescriptorSetLayout::~DescriptorSetLayout() {
-        vkDestroyDescriptorSetLayout(m_context.getDevice(), m_descriptorSetLayout, nullptr);
+        if (m_descriptorSetLayout != VK_NULL_HANDLE) {
+            m_context.getDeletionQueue().push([layout = m_descriptorSetLayout, device = m_context.getDevice()]() {
+                vkDestroyDescriptorSetLayout(device, layout, nullptr);
+            });
+        }
     }
 } // namespace pxt

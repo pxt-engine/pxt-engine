@@ -4,6 +4,8 @@
 #include "graphics/context/context.hpp"
 
 namespace pxt {
+    struct DescriptorEntry; // forward declaration
+
     /**
      * @brief Manages a Vulkan descriptor set layout.
      *
@@ -61,9 +63,15 @@ namespace pxt {
          * @return VkDescriptorSetLayout object.
          */
         [[nodiscard]]
-        VkDescriptorSetLayout getDescriptorSetLayout() const {
+        VkDescriptorSetLayout getHandle() const {
             return m_descriptorSetLayout;
         }
+
+        /**
+         * @brief Builds a DescriptorEntry wrapper from this layout.
+         * @return a vector of DescriptorEntry representing this layout.
+         */
+        [[nodiscard]] std::vector<DescriptorEntry> buildDescriptorEntries() const;
 
     private:
         Context& m_context;

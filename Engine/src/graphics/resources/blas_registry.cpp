@@ -8,7 +8,9 @@ namespace pxt {
         for (auto& pair : m_blasRegistry) {
             Shared<BLAS>& blas = pair.second;
             if (blas->handle != VK_NULL_HANDLE) {
-                vkDestroyAccelerationStructureKHR(m_context.getDevice(), blas->handle, nullptr);
+                m_context.getDeletionQueue().push([device = m_context.getDevice(), blasHandle = blas->handle]() {
+                    vkDestroyAccelerationStructureKHR(device, blasHandle, nullptr);
+                });
             }
         }
     }

@@ -9,7 +9,13 @@ namespace pxt {
         createCommandPool();
     }
 
-    Context::~Context() { vkDestroyCommandPool(m_device.getDevice(), m_commandPool, nullptr); }
+    Context::~Context() {
+        // destroy all pending deletions in the queue before destroying device (device will be destroyed by m_device's
+        // destructor)
+        m_deletionQueue.flushAllImmediate();
+
+        vkDestroyCommandPool(m_device.getDevice(), m_commandPool, nullptr); 
+    }
 
     void Context::createCommandPool() {
         QueueFamilyIndices queueFamilyIndices = m_physicalDevice.findQueueFamilies();

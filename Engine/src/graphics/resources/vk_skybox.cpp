@@ -10,14 +10,19 @@ namespace pxt {
     Unique<VulkanSkybox> VulkanSkybox::create(const std::array<std::string, 6>& paths) {
         Context& context = Application::get().getContext();
         ResourceManager& rm = Application::get().getResourceManager();
+        DescriptorManager& descManager = Application::get().getDescriptorManager();
 
-        return createUnique<VulkanSkybox>(context, rm, paths);
+        return createUnique<VulkanSkybox>(context, rm, descManager, paths);
     }
 
-    VulkanSkybox::VulkanSkybox(Context& context, ResourceManager& rm, const std::array<std::string, 6>& paths)
-        : m_context(context) {
+    VulkanSkybox::VulkanSkybox(Context& context, ResourceManager& rm, DescriptorManager& descriptorManager,
+                               const std::array<std::string, 6>& paths)
+        : m_context(context), m_descriptorManager(descriptorManager) {
         // Load the skybox textures from the provided faces
         loadTextures(paths, rm);
+
+        // we cannot call this here because the descriptor manager has no pools allocated right when this is called
+        //createDescriptorSet();
     }
 
     void VulkanSkybox::loadTextures(const std::array<std::string, 6>& paths, ResourceManager& rm) {
@@ -109,42 +114,31 @@ namespace pxt {
                                                       VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, cubemapSubresourceRange);
     }
 
-    void VulkanSkybox::createDescriptorSet(DescriptorAllocatorGrowable& descriptorAllocator) {
-        m_skyboxDescriptorSetLayout = DescriptorSetLayout::Builder(m_context)
-                                          .addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                                                      VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_MISS_BIT_KHR |
-                                                          VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR)
-                                          .build();
+    void VulkanSkybox::createDescriptorSet() {
+        std::vector<DescriptorEntry> bindings = {
+            {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+             VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_MISS_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, 1}
+        };
+        m_skyboxDescriptorSet = m_descriptorManager.createSet(bindings);
 
         // Get the VkDescriptorImageInfo from the Skybox object
         VkDescriptorImageInfo skyboxImageInfo = getDescriptorImageInfo();
 
-        for (int i = 0; i < SwapChain::MAX_FRAMES_IN_FLIGHT; i++) {
-            descriptorAllocator.allocate(m_skyboxDescriptorSetLayout->getDescriptorSetLayout(),
-                                         m_skyboxDescriptorSet[i]);
-
-            DescriptorWriter(m_context, *m_skyboxDescriptorSetLayout)
-                .writeImage(0, &skyboxImageInfo)
-                .updateSet(m_skyboxDescriptorSet[i]);
-        }
+        m_descriptorManager.submitUpdateSingle(m_skyboxDescriptorSet, 0, skyboxImageInfo);
 
         // Create debug descriptor sets for each face of the cube map
-        m_skyboxDebugDescriptorSetLayout =
-            DescriptorSetLayout::Builder(m_context)
-                .addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
-                .build();
+        bindings = {{0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 1}};
 
         for (size_t i = 0; i < m_skyboxDebugDescriptorSets.size(); i++) {
-            descriptorAllocator.allocate(m_skyboxDebugDescriptorSetLayout->getDescriptorSetLayout(),
-                                         m_skyboxDebugDescriptorSets[i]);
+            m_skyboxDebugDescriptorSets[i] = m_descriptorManager.createSet(bindings);
+
             // Create a descriptor image info for the current face of the cube map
             VkDescriptorImageInfo debugImageInfo{};
             debugImageInfo.sampler = m_cubeMap->getSamplerHandle();
             debugImageInfo.imageView = m_cubeMap->getFaceImageView(i);
             debugImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-            DescriptorWriter(m_context, *m_skyboxDebugDescriptorSetLayout)
-                .writeImage(0, &debugImageInfo)
-                .updateSet(m_skyboxDebugDescriptorSets[i]);
+           
+            m_descriptorManager.submitUpdateSingle(m_skyboxDebugDescriptorSets[i], 0, debugImageInfo);
         }
     }
 
@@ -156,13 +150,11 @@ namespace pxt {
         return imageInfo;
     }
 
-    void VulkanSkybox::updateDescriptorSets(uint32_t frameIndex) {
-        // Main skybox descriptor
+    void VulkanSkybox::updateDescriptorSets() {
+        // Main skybox descriptor info
         VkDescriptorImageInfo skyboxImageInfo = getDescriptorImageInfo();
 
-        DescriptorWriter(m_context, *m_skyboxDescriptorSetLayout)
-            .writeImage(0, &skyboxImageInfo)
-            .updateSet(m_skyboxDescriptorSet[frameIndex]);
+        m_descriptorManager.submitUpdateSingle(m_skyboxDescriptorSet, 0, skyboxImageInfo);
 
         // Debug face descriptor sets
         for (size_t i = 0; i < m_skyboxDebugDescriptorSets.size(); i++) {
@@ -171,9 +163,7 @@ namespace pxt {
             debugImageInfo.imageView = m_cubeMap->getFaceImageView(i);
             debugImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
-            DescriptorWriter(m_context, *m_skyboxDebugDescriptorSetLayout)
-                .writeImage(0, &debugImageInfo)
-                .updateSet(m_skyboxDebugDescriptorSets[i]);
+            m_descriptorManager.submitUpdateSingle(m_skyboxDebugDescriptorSets[i], 0, debugImageInfo);
         }
     }
 
@@ -185,6 +175,8 @@ namespace pxt {
 
         // Reload textures (creates new CubeMap)
         loadTextures(skyboxTexturesPaths, rm);
+
+        updateDescriptorSets();
     }
 
 } // namespace pxt

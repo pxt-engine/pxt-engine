@@ -75,7 +75,7 @@ namespace pxt {
         shaderc::Compiler m_compiler;
         shaderc::CompileOptions m_compileOptions;
         FileFinder m_finder{};
-        VkShaderModule m_module = nullptr;
+        VkShaderModule m_module = VK_NULL_HANDLE;
 
         shaderc_shader_kind m_kind = shaderc_glsl_infer_from_source;
         VkShaderStageFlagBits m_vkStage = VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM; // Default to an invalid stage

@@ -2,6 +2,7 @@
 
 #include "core/pch.hpp"
 #include "graphics/descriptors/descriptors.hpp"
+#include "graphics/descriptors/descriptor_manager.hpp"
 #include "graphics/frame_info.hpp"
 #include "graphics/resources/blas_registry.hpp"
 #include "graphics/resources/material_registry.hpp"
@@ -38,7 +39,7 @@ namespace pxt {
     class RayTracingSceneManagerSystem {
     public:
         RayTracingSceneManagerSystem(Context& context, MaterialRegistry& materialRegistry, BLASRegistry& blasRegistry,
-                                     TextureRegistry& textureRegistry, DescriptorAllocatorGrowable& allocator);
+                                     TextureRegistry& textureRegistry, DescriptorManager& descriptorManager);
         ~RayTracingSceneManagerSystem();
 
         // Delete the copy constructor and copy assignment operator
@@ -49,47 +50,53 @@ namespace pxt {
 
         void updateTLAS() {} // to implement later
 
-        VkDescriptorSet getTLASDescriptorSet(int frameIndex) const { return m_tlasDescriptorSets[frameIndex]; }
-
-        VkDescriptorSetLayout getTLASDescriptorSetLayout() const {
-            return m_tlasDescriptorSetLayout->getDescriptorSetLayout();
+        VkDescriptorSet getTLASDescriptorSet(uint32_t frameIndex) const {
+            return m_descriptorManager.getDescriptorSet(m_tlasDescriptorSet, frameIndex);
         }
 
-        VkDescriptorSet getMeshInstanceDescriptorSet(int frameIndex) const {
-            return m_meshInstanceDescriptorSets[frameIndex];
+        VkDescriptorSetLayout getTLASDescriptorSetLayout() const {
+            return m_descriptorManager.getLayout(m_tlasDescriptorSet).getHandle();
+        }
+
+        VkDescriptorSet getMeshInstanceDescriptorSet(uint32_t frameIndex) const {
+            return m_descriptorManager.getDescriptorSet(m_meshInstanceDescriptorSet, frameIndex);
         }
 
         VkDescriptorSetLayout getMeshInstanceDescriptorSetLayout() const {
-            return m_meshInstanceDescriptorSetLayout->getDescriptorSetLayout();
+            return m_descriptorManager.getLayout(m_meshInstanceDescriptorSet).getHandle();
         }
 
-        VkDescriptorSet getEmittersDescriptorSet(int frameIndex) const { return m_emittersDescriptorSets[frameIndex]; }
+        VkDescriptorSet getEmittersDescriptorSet(uint32_t frameIndex) const {
+            return m_descriptorManager.getDescriptorSet(m_emittersDescriptorSet, frameIndex);
+        }
 
         VkDescriptorSetLayout getEmittersDescriptorSetLayout() const {
-            return m_emittersDescriptorSetLayout->getDescriptorSetLayout();
+            return m_descriptorManager.getLayout(m_emittersDescriptorSet).getHandle();
         }
 
-        VkDescriptorSet getVolumeDescriptorSet(int frameIndex) const { return m_volumesDescriptorSets[frameIndex]; }
+        VkDescriptorSet getVolumeDescriptorSet(uint32_t frameIndex) const {
+            return m_descriptorManager.getDescriptorSet(m_volumesDescriptorSet, frameIndex);
+        }
 
         VkDescriptorSetLayout getVolumeDescriptorSetLayout() const {
-            return m_volumesDescriptorSetLayout->getDescriptorSetLayout();
+            return m_descriptorManager.getLayout(m_volumesDescriptorSet).getHandle();
         }
 
     private:
-        void destroyTLAS(int frameIndex);
+        void destroyTLAS(uint32_t frameIndex);
         VkTransformMatrixKHR glmToVkTransformMatrix(const glm::mat4& glmMatrix);
 
         void createTLASDescriptorSets();
-        void updateTLASDescriptorSets(int frameIndex, VkAccelerationStructureKHR& newTlas);
+        void updateTLASDescriptorSets(uint32_t frameIndex, VkAccelerationStructureKHR& newTlas);
 
         void createMeshInstanceDescriptorSets();
-        void updateMeshInstanceDescriptorSets(int frameIndex);
+        void updateMeshInstanceDescriptorSets(uint32_t frameIndex);
 
         void createEmittersDescriptorSets();
-        void updateEmittersDescriptorSets(int frameIndex);
+        void updateEmittersDescriptorSets(uint32_t frameIndex);
 
         void createVolumesDescriptorSets();
-        void updateVolumesDescriptorSets(int frameIndex);
+        void updateVolumesDescriptorSets(uint32_t frameIndex);
 
         Context& m_context;
         MaterialRegistry& m_materialRegistry;
@@ -101,23 +108,19 @@ namespace pxt {
         VkAccelerationStructureBuildSizesInfoKHR m_buildSizeInfo{};
         VkAccelerationStructureCreateInfoKHR m_createInfo{};
 
-        DescriptorAllocatorGrowable& m_descriptorAllocator;
-        Shared<DescriptorSetLayout> m_tlasDescriptorSetLayout = nullptr;
-        std::vector<VkDescriptorSet> m_tlasDescriptorSets{SwapChain::MAX_FRAMES_IN_FLIGHT};
+        DescriptorManager& m_descriptorManager;
+        DescriptorSetHandle m_tlasDescriptorSet = core::UID::s_invalidId;
 
         std::vector<MeshInstanceData> m_meshInstanceData;
-        Shared<DescriptorSetLayout> m_meshInstanceDescriptorSetLayout = nullptr;
         std::vector<Unique<VulkanBuffer>> m_meshInstanceBuffers{SwapChain::MAX_FRAMES_IN_FLIGHT};
-        std::vector<VkDescriptorSet> m_meshInstanceDescriptorSets{SwapChain::MAX_FRAMES_IN_FLIGHT};
+        DescriptorSetHandle m_meshInstanceDescriptorSet = core::UID::s_invalidId;
 
         std::vector<EmitterData> m_emitters;
-        Shared<DescriptorSetLayout> m_emittersDescriptorSetLayout = nullptr;
         std::vector<Unique<VulkanBuffer>> m_emittersBuffers{SwapChain::MAX_FRAMES_IN_FLIGHT};
-        std::vector<VkDescriptorSet> m_emittersDescriptorSets{SwapChain::MAX_FRAMES_IN_FLIGHT};
+        DescriptorSetHandle m_emittersDescriptorSet = core::UID::s_invalidId;
 
         std::vector<VolumeData> m_volumes;
-        Shared<DescriptorSetLayout> m_volumesDescriptorSetLayout = nullptr;
         std::vector<Unique<VulkanBuffer>> m_volumesBuffers{SwapChain::MAX_FRAMES_IN_FLIGHT};
-        std::vector<VkDescriptorSet> m_volumesDescriptorSets{SwapChain::MAX_FRAMES_IN_FLIGHT};
+        DescriptorSetHandle m_volumesDescriptorSet = core::UID::s_invalidId;
     };
 } // namespace pxt

@@ -25,12 +25,15 @@
 #include "ui/scene_hierarchy.hpp"
 #include "undo/undo_stack.hpp"
 
+#include "editor_logger_sink.hpp"
+
 #include <ImGuizmo.h>
 
 namespace pxt::editor {
     class EditorLayer : public core::Layer {
     public:
         explicit EditorLayer();
+        ~EditorLayer();
 
         void onBeginFrame(float deltaTime) override;
         void onEvent(core::Event& event) override;
@@ -83,6 +86,8 @@ namespace pxt::editor {
         MainMenuBar m_mainMenuBar{};
         AssetBrowser m_assetBrowser{};
         EnvironmentUi m_environmentUi{};
+
+        Shared<EditorLoggerSink> m_editorLoggerSink = nullptr;
 
         core::UID m_selectedEntityUID = core::UID::s_invalidId;
         core::UID m_prevSelectedEntityUID = core::UID::s_invalidId;

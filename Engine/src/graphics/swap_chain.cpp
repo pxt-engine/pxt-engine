@@ -25,6 +25,7 @@ namespace pxt {
     }
 
     SwapChain::~SwapChain() {
+        //TODO: put these calls in the deletion queue if we ever need to have multiple swapchains??
         for (auto imageView : m_swapChainImageViews) {
             vkDestroyImageView(m_context.getDevice(), imageView, nullptr);
         }

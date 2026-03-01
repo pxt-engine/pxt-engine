@@ -19,6 +19,12 @@ namespace pxt::core {
         static void registerSink(Shared<LoggerSink> sink);
 
         /**
+         * @brief Disconnect a sink from logging.
+         * @param sink The sink to disconnect
+         */
+        static void disconnectSink(Shared<LoggerSink> sink);
+
+        /**
          * @brief Log a message to all registered sinks.
          * @param level The log level
          * @param message The message to log

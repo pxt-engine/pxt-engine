@@ -10,9 +10,11 @@ namespace pxt {
         float radius;
     };
 
-    PointLightSystem::PointLightSystem(Context& context, VkRenderPass renderPass, VkDescriptorSetLayout globalSetLayout)
-        : m_context(context), m_renderPass(renderPass) {
-        createPipelineLayout(globalSetLayout);
+    PointLightSystem::PointLightSystem(Context& context, DescriptorManager& descriptorManager, VkRenderPass renderPass,
+                                       DescriptorSetHandle globalDescriptorSet)
+        : m_context(context), m_descriptorManager(descriptorManager),
+          m_globalDescriptorSet(globalDescriptorSet), m_renderPass(renderPass) {
+        createPipelineLayout(m_descriptorManager.getRawLayout(m_globalDescriptorSet));
         createPipeline(renderPass);
     }
 

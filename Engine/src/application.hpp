@@ -8,6 +8,7 @@
 #include "core/pch.hpp"
 #include "graphics/context/context.hpp"
 #include "graphics/descriptors/descriptors.hpp"
+#include "graphics/descriptors/descriptor_manager.hpp"
 #include "graphics/frame_info.hpp"
 #include "graphics/render_systems/render_layer.hpp"
 #include "graphics/render_systems/ui_render_layer.hpp"
@@ -45,7 +46,7 @@ namespace pxt {
 
         ResourceManager& getResourceManager() { return *m_resourceManagerPtr; }
 
-        DescriptorAllocatorGrowable* getDescriptorAllocator() { return m_descriptorAllocator.get(); }
+        DescriptorManager& getDescriptorManager() { return *m_descriptorManager; }
 
         const core::EngineMode getEngineMode() { return m_engineMode; }
 
@@ -109,13 +110,11 @@ namespace pxt {
         virtual void loadScene() {}
 
     private:
-        void createDescriptorPoolAllocator();
-        void createUboBuffers();
-        void createGlobalDescriptorSet();
         void createDefaultResources();
         void registerResources();
 
         void onEvent(core::Event& event);
+        void onPostFrameUpdate(FrameInfo& frameInfo);
         bool isRunning();
 
         bool m_running = true;
@@ -135,17 +134,12 @@ namespace pxt {
         UiRenderLayer* m_uiRenderLayerPtr = nullptr;
         ResourceManager* m_resourceManagerPtr = nullptr;
 
-        Unique<DescriptorAllocatorGrowable> m_descriptorAllocator{};
-        Unique<DescriptorSetLayout> m_globalSetLayout{};
-
-        std::vector<VkDescriptorSet> m_globalDescriptorSets{SwapChain::MAX_FRAMES_IN_FLIGHT};
-
-        std::vector<Unique<VulkanBuffer>> m_uboBuffers{SwapChain::MAX_FRAMES_IN_FLIGHT};
+        Unique<DescriptorManager> m_descriptorManager = createUnique<DescriptorManager>(m_context);
 
         Scene m_scene{};
 
-        TextureRegistry m_textureRegistry{m_context};
-        MaterialRegistry m_materialRegistry{m_context, m_textureRegistry};
+        TextureRegistry m_textureRegistry{m_context, *m_descriptorManager};
+        MaterialRegistry m_materialRegistry{m_context, *m_descriptorManager, m_textureRegistry};
         BLASRegistry m_blasRegistry{m_context};
 
         core::EventQueue m_eventQueue{};

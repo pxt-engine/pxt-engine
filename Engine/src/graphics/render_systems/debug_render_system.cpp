@@ -22,10 +22,10 @@ namespace pxt {
         float blinnPhongSpecularShininess = 1.0f;
     };
 
-    DebugRenderSystem::DebugRenderSystem(Context& context, DescriptorAllocatorGrowable& descriptorAllocator,
+    DebugRenderSystem::DebugRenderSystem(Context& context,
                                          TextureRegistry& textureRegistry, VkRenderPass renderPass,
-                                         DescriptorSetLayout& globalSetLayout)
-        : m_context(context), m_descriptorAllocator(descriptorAllocator), m_textureRegistry(textureRegistry),
+                                         const DescriptorSetLayout& globalSetLayout)
+        : m_context(context), m_textureRegistry(textureRegistry),
           m_renderPassHandle(renderPass) {
         createPipelineLayout(globalSetLayout);
         createPipelines();
@@ -35,13 +35,13 @@ namespace pxt {
         vkDestroyPipelineLayout(m_context.getDevice(), m_pipelineLayout, nullptr);
     }
 
-    void DebugRenderSystem::createPipelineLayout(DescriptorSetLayout& globalSetLayout) {
+    void DebugRenderSystem::createPipelineLayout(const DescriptorSetLayout& globalSetLayout) {
         VkPushConstantRange pushConstantRange{};
         pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
         pushConstantRange.offset = 0;
         pushConstantRange.size = sizeof(DebugPushConstantData);
 
-        std::vector<VkDescriptorSetLayout> descriptorSetLayouts{globalSetLayout.getDescriptorSetLayout(),
+        std::vector<VkDescriptorSetLayout> descriptorSetLayouts{globalSetLayout.getHandle(),
                                                                 m_textureRegistry.getDescriptorSetLayout()};
 
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
@@ -129,7 +129,7 @@ namespace pxt {
         }
 
         std::array<VkDescriptorSet, 2> descriptorSets = {frameInfo.globalDescriptorSet,
-                                                         m_textureRegistry.getDescriptorSet()};
+                                                         m_textureRegistry.getDescriptorSet(frameInfo.frameIndex)};
 
         vkCmdBindDescriptorSets(frameInfo.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0,
                                 static_cast<uint32_t>(descriptorSets.size()), descriptorSets.data(), 0, nullptr);

@@ -15,6 +15,11 @@ namespace pxt::core {
         s_sinks.push_back(sink);
     }
 
+    void Logger::disconnectSink(Shared<LoggerSink> sink) {
+        std::lock_guard<std::mutex> lock(s_mutex);
+        s_sinks.erase(std::remove(s_sinks.begin(), s_sinks.end(), sink), s_sinks.end());
+    }
+
     void Logger::log(LogLevel level, std::string_view message, const std::source_location loc) {
         std::lock_guard<std::mutex> lock(s_mutex);
 

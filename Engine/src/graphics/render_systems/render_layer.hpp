@@ -5,6 +5,7 @@
 #include "core/pch.hpp"
 #include "graphics/context/context.hpp"
 #include "graphics/descriptors/descriptors.hpp"
+#include "graphics/descriptors/descriptor_manager.hpp"
 #include "graphics/frame_info.hpp"
 #include "graphics/renderer.hpp"
 #include "graphics/resources/blas_registry.hpp"
@@ -31,9 +32,9 @@
 namespace pxt {
     class RenderLayer : public core::Layer {
     public:
-        RenderLayer(Context& context, Renderer& renderer, DescriptorAllocatorGrowable& descriptorAllocator,
+        RenderLayer(Context& context, Renderer& renderer, DescriptorManager& descriptorManager,
                     TextureRegistry& textureRegistry, MaterialRegistry& materialRegistry, BLASRegistry& blasRegistry,
-                    DescriptorSetLayout& globalSetLayout, Shared<Environment> environment);
+                    Shared<Environment> environment);
 
         ~RenderLayer();
 
@@ -42,13 +43,17 @@ namespace pxt {
         RenderLayer(RenderLayer&&) = delete;
         RenderLayer& operator=(RenderLayer&&) = delete;
 
-        VkDescriptorSet getImGuiSceneDescriptorSet() const { return m_finalImageDescriptorSet; }
+        VkDescriptorSet getGlobalUboDescriptorSet(uint32_t frameIndex) const {
+            return m_descriptorManager.getDescriptorSet(m_uboDescriptorSet, frameIndex);
+        }
+        VkDescriptorSet getImGuiSceneDescriptorSet(uint32_t frameIndex) const { return m_descriptorManager.getDescriptorSet(m_finalImageDescriptorSet, frameIndex); }
 
         void onUpdate(FrameInfo& frameInfo, GlobalUbo& ubo) override;
         void onUpdateUi(FrameInfo& frameInfo) override;
         void onPostFrameUpdate(FrameInfo& frameInfo) override;
         void onEvent(core::Event& event) override;
 
+        void updateGlobalUboBuffers(GlobalUbo& ubo, uint32_t frameIndex);
         void doRenderPasses(FrameInfo& frameInfo);
 
         float getSceneAspectRatio() const {
@@ -56,6 +61,8 @@ namespace pxt {
         }
 
     private:
+        void createUboBuffers();
+
         void recreateViewportResources();
         void createRenderPass();
         void createSceneImage();
@@ -66,6 +73,7 @@ namespace pxt {
 
         void reloadShaders();
 
+        void createUboDescriptorSet();
         void createDescriptorSetsImGui();
         void updateImguiDescriptorSet();
 
@@ -75,13 +83,12 @@ namespace pxt {
         MaterialRegistry& m_materialRegistry;
         BLASRegistry& m_blasRegistry;
 
-        DescriptorAllocatorGrowable& m_descriptorAllocator;
-
-        DescriptorSetLayout& m_globalSetLayout;
+        DescriptorManager& m_descriptorManager;
 
         Shared<Environment> m_environment;
 
         std::array<Unique<VulkanBuffer>, SwapChain::MAX_FRAMES_IN_FLIGHT> m_uboBuffers;
+        DescriptorSetHandle m_uboDescriptorSet = core::UID::s_invalidId;
 
         Unique<MaterialRenderSystem> m_materialRenderSystem = nullptr;
         Unique<PointLightSystem> m_pointLightSystem = nullptr;
@@ -96,18 +103,17 @@ namespace pxt {
         Unique<SelectionMaskRenderSystem> m_selectionMaskRenderSystem = nullptr;
         Unique<EditorGridRenderSystem> m_editorGridRenderSystem = nullptr;
 
-        Unique<RenderPass> m_offscreenRenderPass;
-        Unique<FrameBuffer> m_offscreenFb;
+        Unique<RenderPass> m_offscreenRenderPass = nullptr;
+        Unique<FrameBuffer> m_offscreenFb = nullptr;
 
-        Shared<VulkanImage> m_sceneImage;
+        Shared<VulkanImage> m_sceneImage = nullptr;
         VkFormat m_offscreenColorFormat;
 
-        Shared<VulkanImage> m_offscreenDepthImage;
+        Shared<VulkanImage> m_offscreenDepthImage = nullptr;
 
         Unique<VulkanImage> m_finalImage = nullptr;
 
-        VkDescriptorSet m_finalImageDescriptorSet = VK_NULL_HANDLE;
-        Unique<DescriptorSetLayout> m_finalImageDescriptorSetLayout = nullptr;
+        DescriptorSetHandle m_finalImageDescriptorSet = core::UID::s_invalidId;
 
         // this initial value will never be used, as it will be updated
         // on the first ViewportResizeEvent. That will happen

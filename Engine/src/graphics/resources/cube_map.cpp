@@ -14,9 +14,11 @@ namespace pxt {
     }
 
     CubeMap::~CubeMap() {
-        for (auto& imageView : m_cubeFaceViews) {
-            vkDestroyImageView(m_context.getDevice(), imageView, nullptr);
-        }
+        m_context.getDeletionQueue().push([device = m_context.getDevice(), imageViews = std::move(m_cubeFaceViews)]() {
+            for (auto& imageView : imageViews) {
+                vkDestroyImageView(device, imageView, nullptr);
+            }
+        });
     }
 
     void CubeMap::createImage() {

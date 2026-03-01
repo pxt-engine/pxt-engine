@@ -11,14 +11,14 @@ namespace pxt {
         uint32_t blueNoiseDebugIndex = 0; // Index of the blue noise texture to use in case selectSingleTextures is true
     };
 
-    RayTracingRenderSystem::RayTracingRenderSystem(Context& context, DescriptorAllocatorGrowable& descriptorAllocator,
+    RayTracingRenderSystem::RayTracingRenderSystem(Context& context, DescriptorManager& descriptorManager,
                                                    TextureRegistry& textureRegistry, MaterialRegistry& materialRegistry,
                                                    BLASRegistry& blasRegistry, Shared<Environment> environment,
-                                                   DescriptorSetLayout& globalSetLayout, Shared<VulkanImage> sceneImage,
+                                                   const DescriptorSetLayout& globalSetLayout, Shared<VulkanImage> sceneImage,
                                                    DensityTextureRenderSystem& densityTextureSystem)
         : m_context(context), m_textureRegistry(textureRegistry), m_materialRegistry(materialRegistry),
-          m_blasRegistry(blasRegistry), m_environment(environment), m_descriptorAllocator(descriptorAllocator),
-          m_sceneImage(sceneImage), m_densityTextureSystem(densityTextureSystem) {
+          m_blasRegistry(blasRegistry), m_environment(environment), m_descriptorManager(descriptorManager),
+          m_densityTextureSystem(densityTextureSystem), m_sceneImage(sceneImage) {
         m_skybox = std::static_pointer_cast<VulkanSkybox>(m_environment->getSkybox());
 
         createDescriptorSets();
@@ -34,34 +34,27 @@ namespace pxt {
 
     void RayTracingRenderSystem::createDescriptorSets() {
         // Create storage image descriptor set
-        m_storageImageDescriptorSetLayout =
-            DescriptorSetLayout::Builder(m_context)
-                .addBinding(0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_RAYGEN_BIT_KHR, 1)
-                .build();
+        std::vector<DescriptorEntry> bindings = {
+            {0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_RAYGEN_BIT_KHR, 1},
+        };
+        m_storageImageDescriptorSet = m_descriptorManager.createSet(bindings);
 
         VkDescriptorImageInfo descriptorImageInfo;
         descriptorImageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
         descriptorImageInfo.imageView = m_sceneImage->getImageView();
         descriptorImageInfo.sampler = VK_NULL_HANDLE;
 
-        m_descriptorAllocator.allocate(m_storageImageDescriptorSetLayout->getDescriptorSetLayout(),
-                                       m_storageImageDescriptorSet);
-
-        DescriptorWriter(m_context, *m_storageImageDescriptorSetLayout)
-            .writeImage(0, &descriptorImageInfo)
-            .updateSet(m_storageImageDescriptorSet);
+        m_descriptorManager.submitUpdateSingle(m_storageImageDescriptorSet, 0, descriptorImageInfo);
 
         // Create blue noise indeces descriptor sets
         // TODO: separate blue noise descriptor set from textures descriptor set
         retrieveBlueNoiseTextureIndeces();
 
-        m_blueNoiseDescriptorSetLayout =
-            DescriptorSetLayout::Builder(m_context)
-                .addBinding(0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_RAYGEN_BIT_KHR, 1)
-                .build();
-
-        m_descriptorAllocator.allocate(m_blueNoiseDescriptorSetLayout->getDescriptorSetLayout(),
-                                       m_blueNoiseDescriptorSet);
+        bindings = {
+            {0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_RAYGEN_BIT_KHR, 1},
+        };
+        
+        m_blueNoiseDescriptorSet = m_descriptorManager.createSet(bindings);
 
         VkDeviceSize bufferSize = sizeof(m_blueNoiseTextureIndeces);
 
@@ -80,9 +73,7 @@ namespace pxt {
 
         auto bufferInfo = m_blueNoiseIndecesBuffer->descriptorInfo();
 
-        DescriptorWriter(m_context, *m_blueNoiseDescriptorSetLayout)
-            .writeBuffer(0, &bufferInfo)
-            .updateSet(m_blueNoiseDescriptorSet);
+        m_descriptorManager.submitUpdateSingle(m_blueNoiseDescriptorSet, 0, bufferInfo);
     }
 
     void RayTracingRenderSystem::updateSceneImage(Shared<VulkanImage> sceneImage) {
@@ -91,28 +82,26 @@ namespace pxt {
         descriptorImageInfo.imageView = sceneImage->getImageView();
         descriptorImageInfo.sampler = VK_NULL_HANDLE;
 
-        DescriptorWriter(m_context, *m_storageImageDescriptorSetLayout)
-            .writeImage(0, &descriptorImageInfo)
-            .updateSet(m_storageImageDescriptorSet);
+        m_descriptorManager.submitUpdateSingle(m_storageImageDescriptorSet, 0, descriptorImageInfo);
 
         m_sceneImage = sceneImage;
     }
 
     void RayTracingRenderSystem::defineShaderGroups() { m_shaderGroups = SHADER_GROUPS_VOL_PT; }
 
-    void RayTracingRenderSystem::createPipelineLayout(DescriptorSetLayout& setLayout) {
+    void RayTracingRenderSystem::createPipelineLayout(const DescriptorSetLayout& setLayout) {
         std::vector<VkDescriptorSetLayout> descriptorSetLayouts{
-            setLayout.getDescriptorSetLayout(),
+            setLayout.getHandle(),
             m_rtSceneManager.getTLASDescriptorSetLayout(),
             m_textureRegistry.getDescriptorSetLayout(),
-            m_storageImageDescriptorSetLayout->getDescriptorSetLayout(),
+            m_descriptorManager.getRawLayout(m_storageImageDescriptorSet),
             m_materialRegistry.getDescriptorSetLayout(),
             m_skybox->getDescriptorSetLayout(),
             m_rtSceneManager.getMeshInstanceDescriptorSetLayout(),
             m_rtSceneManager.getEmittersDescriptorSetLayout(),
             m_rtSceneManager.getVolumeDescriptorSetLayout(),
-            m_blueNoiseDescriptorSetLayout->getDescriptorSetLayout(),
-            m_densityTextureSystem.getSamplingDensitySetLayout()->getDescriptorSetLayout()};
+            m_descriptorManager.getRawLayout(m_blueNoiseDescriptorSet),
+            m_densityTextureSystem.getSamplingDensitySetLayout().getHandle()};
 
         VkPushConstantRange pushConstantRange{};
         pushConstantRange.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
@@ -334,15 +323,15 @@ namespace pxt {
         std::array<VkDescriptorSet, 11> descriptorSets = {
             frameInfo.globalDescriptorSet,
             m_rtSceneManager.getTLASDescriptorSet(frameInfo.frameIndex),
-            m_textureRegistry.getDescriptorSet(),
-            m_storageImageDescriptorSet,
+            m_textureRegistry.getDescriptorSet(frameInfo.frameIndex),
+            m_descriptorManager.getDescriptorSet(m_storageImageDescriptorSet, frameInfo.frameIndex),
             m_materialRegistry.getDescriptorSet(frameInfo.frameIndex),
             m_skybox->getDescriptorSet(frameInfo.frameIndex),
             m_rtSceneManager.getMeshInstanceDescriptorSet(frameInfo.frameIndex),
             m_rtSceneManager.getEmittersDescriptorSet(frameInfo.frameIndex),
             m_rtSceneManager.getVolumeDescriptorSet(frameInfo.frameIndex),
-            m_blueNoiseDescriptorSet,
-            m_densityTextureSystem.getSamplingDensitySet()};
+            m_descriptorManager.getDescriptorSet(m_blueNoiseDescriptorSet, frameInfo.frameIndex),
+            m_densityTextureSystem.getSamplingDensitySet(frameInfo.frameIndex)};
 
         vkCmdBindDescriptorSets(frameInfo.commandBuffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, m_pipelineLayout, 0,
                                 static_cast<uint32_t>(descriptorSets.size()), descriptorSets.data(), 0, nullptr);

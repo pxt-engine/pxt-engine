@@ -20,9 +20,16 @@ namespace pxt {
     }
 
     VulkanBuffer::~VulkanBuffer() {
-        unmap();
-        vkDestroyBuffer(m_context.getDevice(), m_buffer, nullptr);
-        vkFreeMemory(m_context.getDevice(), m_memory, nullptr);
+        if (m_buffer != VK_NULL_HANDLE) {
+            m_context.getDeletionQueue().push([device = m_context.getDevice(), buffer = m_buffer, memory = m_memory
+            ]() {
+                // No need to call unmap() explicitly, FreeMemory will handle it.
+                vkDestroyBuffer(device, buffer, nullptr);
+                vkFreeMemory(device, memory, nullptr);
+            });
+
+            m_mapped = nullptr; // Ensure the mapped pointer is reset to prevent accidental use after destruction.
+        }
     }
 
     VkResult VulkanBuffer::map(VkDeviceSize size, VkDeviceSize offset) {

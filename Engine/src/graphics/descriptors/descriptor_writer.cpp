@@ -1,13 +1,14 @@
 #include "graphics/descriptors/descriptor_writer.hpp"
 
 namespace pxt {
-    DescriptorWriter::DescriptorWriter(Context& context, DescriptorSetLayout& setLayout)
-        : m_context(context), m_setLayout(setLayout) {}
+    DescriptorWriter::DescriptorWriter(Context& context)
+        : m_context(context) {}
 
-    void DescriptorWriter::updateSet(VkDescriptorSet& set) {
-        for (auto& write : m_writes) {
-            write.dstSet = set;
+    void DescriptorWriter::updateAll() {
+        if (m_writes.empty()) {
+            return;
         }
+
         vkUpdateDescriptorSets(m_context.getDevice(), static_cast<uint32_t>(m_writes.size()), m_writes.data(), 0,
                                nullptr);
     }

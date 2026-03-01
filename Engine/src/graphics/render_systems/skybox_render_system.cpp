@@ -6,7 +6,7 @@ namespace pxt {
     // It's usually rendered at the camera's position.
 
     SkyboxRenderSystem::SkyboxRenderSystem(Context& context, Shared<Environment> environment,
-                                           DescriptorSetLayout& globalSetLayout, VkRenderPass renderPass)
+                                           const DescriptorSetLayout& globalSetLayout, VkRenderPass renderPass)
         : m_context(context), m_renderPass(renderPass) {
         m_skybox = std::static_pointer_cast<VulkanSkybox>(environment->getSkybox());
 
@@ -18,8 +18,8 @@ namespace pxt {
         vkDestroyPipelineLayout(m_context.getDevice(), m_pipelineLayout, nullptr);
     }
 
-    void SkyboxRenderSystem::createPipelineLayout(DescriptorSetLayout& globalSetLayout) {
-        std::vector<VkDescriptorSetLayout> descriptorSetLayouts{globalSetLayout.getDescriptorSetLayout(),
+    void SkyboxRenderSystem::createPipelineLayout(const DescriptorSetLayout& globalSetLayout) {
+        std::vector<VkDescriptorSetLayout> descriptorSetLayouts{globalSetLayout.getHandle(),
                                                                 m_skybox->getDescriptorSetLayout()};
 
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};

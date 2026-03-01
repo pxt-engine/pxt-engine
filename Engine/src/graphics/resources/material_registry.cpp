@@ -2,21 +2,18 @@
 
 namespace pxt {
 
-    MaterialRegistry::MaterialRegistry(Context& context, TextureRegistry& textureRegistry)
-        : m_context(context), m_textureRegistry(textureRegistry) {
-        std::fill(m_materialDescriptorSets.begin(), m_materialDescriptorSets.end(), VK_NULL_HANDLE);
-        m_materialDescriptorSetLayout = nullptr;
-        m_descriptorAllocator = nullptr;
-    }
-
-    void MaterialRegistry::setDescriptorAllocator(DescriptorAllocatorGrowable* descriptorAllocator) {
-        m_descriptorAllocator = descriptorAllocator;
+    MaterialRegistry::MaterialRegistry(Context& context, DescriptorManager& descriptorManager,
+                                       TextureRegistry& textureRegistry)
+        : m_context(context), m_descriptorManager(descriptorManager), m_textureRegistry(textureRegistry) {
     }
 
     uint32_t MaterialRegistry::add(const Shared<Material> material) {
         const auto index = static_cast<uint32_t>(m_materials.size());
         m_materials.push_back(material);
         m_idToIndex[material->id] = index;
+
+        isBufferDirty.fill(true);
+
         return index;
     }
 
@@ -25,28 +22,29 @@ namespace pxt {
         return it != m_idToIndex.end() ? it->second : 0;
     }
 
-    VkDescriptorSet MaterialRegistry::getDescriptorSet(int frameIndex) { return m_materialDescriptorSets[frameIndex]; }
+    VkDescriptorSet MaterialRegistry::getDescriptorSet(uint32_t frameIndex) { return m_descriptorManager.getDescriptorSet(m_materialDescriptorSet, frameIndex); }
 
     VkDescriptorSetLayout MaterialRegistry::getDescriptorSetLayout() {
-        return m_materialDescriptorSetLayout->getDescriptorSetLayout();
+        return m_descriptorManager.getLayout(m_materialDescriptorSet).getHandle();
     }
 
     void MaterialRegistry::createDescriptorSets() {
-        m_materialDescriptorSetLayout =
-            DescriptorSetLayout::Builder(m_context)
-                .addBinding(0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                            VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR |
-                                VK_SHADER_STAGE_RAYGEN_BIT_KHR,
-                            1)
-                .build();
-
-        for (int i = 0; i < SwapChain::MAX_FRAMES_IN_FLIGHT; i++) {
-            m_descriptorAllocator->allocate(m_materialDescriptorSetLayout->getDescriptorSetLayout(),
-                                            m_materialDescriptorSets[i]);
-        }
+        std::vector<DescriptorEntry> bindings = {
+            {0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+             VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_RAYGEN_BIT_KHR, 1}};
+        
+        m_materialDescriptorSet = m_descriptorManager.createSet(bindings);
     }
 
-    void MaterialRegistry::updateDescriptorSet(int frameIndex) {
+    void MaterialRegistry::updateDescriptorSet(uint32_t frameIndex) {
+        // we do not update if the buffer is not dirty
+        if (!isBufferDirty[frameIndex]) {
+            return;
+        }
+
+        // if it is, we update it and reset this flag
+        isBufferDirty[frameIndex] = false;
+        
         std::vector<MaterialData> materialsData;
         for (const auto& material : m_materials) {
             materialsData.push_back(getMaterialData(material));
@@ -69,9 +67,8 @@ namespace pxt {
 
         auto bufferInfo = m_materialsGpuBuffers[frameIndex]->descriptorInfo();
 
-        DescriptorWriter(m_context, *m_materialDescriptorSetLayout)
-            .writeBuffer(0, &bufferInfo)
-            .updateSet(m_materialDescriptorSets[frameIndex]);
+        m_descriptorManager.submitUpdateSingle(m_materialDescriptorSet, 0, bufferInfo);
+        m_descriptorManager.flushUpdatesForSet(m_materialDescriptorSet, frameIndex);
     }
 
     MaterialData MaterialRegistry::getMaterialData(Shared<Material> material) {

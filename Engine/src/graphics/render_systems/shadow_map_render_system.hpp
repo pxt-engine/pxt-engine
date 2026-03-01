@@ -3,6 +3,7 @@
 #include "core/pch.hpp"
 #include "graphics/context/context.hpp"
 #include "graphics/descriptors/descriptors.hpp"
+#include "graphics/descriptors/descriptor_manager.hpp"
 #include "graphics/frame_info.hpp"
 #include "graphics/pipeline.hpp"
 #include "graphics/render_pass.hpp"
@@ -14,8 +15,8 @@
 namespace pxt {
     class ShadowMapRenderSystem {
     public:
-        ShadowMapRenderSystem(Context& context, DescriptorAllocatorGrowable& descriptorAllocator,
-                              DescriptorSetLayout& setLayout);
+        ShadowMapRenderSystem(Context& context, DescriptorManager& descriptorAllocator,
+                              DescriptorSetHandle uboSetHandle);
         ~ShadowMapRenderSystem();
 
         ShadowMapRenderSystem(const ShadowMapRenderSystem&) = delete;
@@ -23,7 +24,7 @@ namespace pxt {
 
         void update(FrameInfo& frameInfo, GlobalUbo& ubo);
         void render(FrameInfo& frameInfo, Renderer& renderer);
-        void updateUi();
+        void updateUi(FrameInfo& frameInfo);
         void reloadShaders();
 
         FrameBuffer& getCubeFaceFramebuffer(uint32_t face_index) const { return *m_cubeFramebuffers[face_index]; }
@@ -36,14 +37,14 @@ namespace pxt {
 
     private:
         void createUniformBuffers();
-        void createDescriptorSets(DescriptorSetLayout& setLayout);
+        void createLightUboDescriptorSet();
         void createRenderPass();
         void createOffscreenFrameBuffers();
-        void createPipelineLayout(DescriptorSetLayout& setLayout);
+        void createPipelineLayout(const DescriptorSetLayout& setLayout);
         void createPipeline(bool useCompiledSpirvFiles = true);
 
         void createDebugDescriptorSets();
-        void updateShadowCubeMapDebugWindow();
+        void updateShadowCubeMapDebugWindow(FrameInfo& frameInfo);
 
         glm::mat4 getFaceViewMatrix(uint32_t faceIndex);
 
@@ -56,15 +57,17 @@ namespace pxt {
 
         Context& m_context;
 
-        DescriptorAllocatorGrowable& m_descriptorAllocator;
+        DescriptorManager& m_descriptorManager;
+
+        DescriptorSetHandle m_uboBufferSet;
 
         std::array<Unique<VulkanBuffer>, SwapChain::MAX_FRAMES_IN_FLIGHT> m_lightUniformBuffers;
-        std::array<VkDescriptorSet, SwapChain::MAX_FRAMES_IN_FLIGHT> m_lightDescriptorSets;
+        DescriptorSetHandle m_lightDescriptorSet = core::UID::s_invalidId;
 
         Shared<CubeMap> m_shadowCubeMap;
         VkDescriptorImageInfo m_shadowMapDescriptorInfo{VK_NULL_HANDLE};
         std::array<VkDescriptorImageInfo, 6> m_debugImageDescriptorInfos;
-        std::array<VkDescriptorSet, 6> m_shadowMapDebugDescriptorSets;
+        std::array<DescriptorSetHandle, 6> m_shadowMapDebugDescriptorSets;
 
         Unique<RenderPass> m_renderPass = nullptr;
         // The framebuffer used for the offscreen render pass. They are created from the

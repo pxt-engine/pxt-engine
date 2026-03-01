@@ -21,14 +21,14 @@ namespace pxt {
         int numLights;
     };
 
-    ShadowMapRenderSystem::ShadowMapRenderSystem(Context& context, DescriptorAllocatorGrowable& descriptorAllocator,
-                                                 DescriptorSetLayout& setLayout)
-        : m_context(context), m_descriptorAllocator(descriptorAllocator) {
+    ShadowMapRenderSystem::ShadowMapRenderSystem(Context& context, DescriptorManager& descriptorManager,
+                                                 DescriptorSetHandle uboSetHandle)
+        : m_context(context), m_descriptorManager(descriptorManager), m_uboBufferSet(uboSetHandle) {
         createUniformBuffers();
-        createDescriptorSets(setLayout);
+        createLightUboDescriptorSet();
         createRenderPass();
         createOffscreenFrameBuffers();
-        createPipelineLayout(setLayout);
+        createPipelineLayout(m_descriptorManager.getLayout(m_uboBufferSet));
         createPipeline();
 
         // for debug purposes
@@ -50,15 +50,14 @@ namespace pxt {
         }
     }
 
-    void ShadowMapRenderSystem::createDescriptorSets(DescriptorSetLayout& setLayout) {
+    void ShadowMapRenderSystem::createLightUboDescriptorSet() {
         // Create descriptor set for each frame in flight
-        for (size_t i = 0; i < m_lightDescriptorSets.size(); i++) {
-            auto bufferInfo = m_lightUniformBuffers[i]->descriptorInfo();
+        m_lightDescriptorSet = m_descriptorManager.createSet(m_uboBufferSet);
 
-            m_descriptorAllocator.allocate(setLayout.getDescriptorSetLayout(), m_lightDescriptorSets[i]);
+        // either one of the buffers is ok
+        auto bufferInfo = m_lightUniformBuffers[0]->descriptorInfo();
 
-            DescriptorWriter(m_context, setLayout).writeBuffer(0, &bufferInfo).updateSet(m_lightDescriptorSets[i]);
-        }
+        m_descriptorManager.submitUpdateSingle(m_lightDescriptorSet, 0, bufferInfo);
     }
 
     void ShadowMapRenderSystem::createRenderPass() {
@@ -210,13 +209,13 @@ namespace pxt {
         }
     }
 
-    void ShadowMapRenderSystem::createPipelineLayout(DescriptorSetLayout& setLayout) {
+    void ShadowMapRenderSystem::createPipelineLayout(const DescriptorSetLayout& setLayout) {
         VkPushConstantRange pushConstantRange{};
         pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
         pushConstantRange.offset = 0;
         pushConstantRange.size = sizeof(ShadowMapPushConstantData);
 
-        std::vector<VkDescriptorSetLayout> descriptorSetLayouts{setLayout.getDescriptorSetLayout()};
+        std::vector<VkDescriptorSetLayout> descriptorSetLayouts{setLayout.getHandle()};
 
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -278,8 +277,10 @@ namespace pxt {
     void ShadowMapRenderSystem::render(FrameInfo& frameInfo, Renderer& renderer) {
         m_pipeline->bind(frameInfo.commandBuffer);
 
-        vkCmdBindDescriptorSets(frameInfo.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1,
-                                &m_lightDescriptorSets[frameInfo.frameIndex], 0, nullptr);
+        vkCmdBindDescriptorSets(frameInfo.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, 
+                                m_pipelineLayout, 0, 1,
+                                m_descriptorManager.getDescriptorSetPtr(m_lightDescriptorSet, frameInfo.frameIndex),
+                                0, nullptr);
 
         using EditView = entt::view<entt::get_t<TransformComponent, MeshComponent, VisibilityTag>>;
         using PlayView = entt::view<entt::get_t<TransformComponent, MeshComponent, RenderableTag>>;
@@ -355,35 +356,42 @@ namespace pxt {
     }
 
     void ShadowMapRenderSystem::createDebugDescriptorSets() {
-        Unique<DescriptorSetLayout> debugSetLayout =
-            DescriptorSetLayout::Builder(m_context)
-                .addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
-                .build();
+        std::vector<DescriptorEntry> bindings = {
+            {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 1}
+        };
 
         // Create descriptor set for each face of the cube map
-        for (size_t i = 0; i < m_debugImageDescriptorInfos.size(); i++) {
-            m_descriptorAllocator.allocate(debugSetLayout->getDescriptorSetLayout(), m_shadowMapDebugDescriptorSets[i]);
-            DescriptorWriter(m_context, *debugSetLayout)
-                .writeImage(0, &m_debugImageDescriptorInfos[i])
-                .updateSet(m_shadowMapDebugDescriptorSets[i]);
+        for (size_t i = 0; i < m_shadowMapDebugDescriptorSets.size(); i++) {
+            m_shadowMapDebugDescriptorSets[i] = m_descriptorManager.createSet(bindings);
+
+            m_descriptorManager.submitUpdateSingle(m_shadowMapDebugDescriptorSets[i], 0,
+                                                   m_debugImageDescriptorInfos[i]);
         }
     }
 
-    void ShadowMapRenderSystem::updateUi() { updateShadowCubeMapDebugWindow(); }
+    void ShadowMapRenderSystem::updateUi(FrameInfo& frameInfo) {
+        updateShadowCubeMapDebugWindow(frameInfo);
+    }
 
     void ShadowMapRenderSystem::reloadShaders() {
         PXT_INFO("Reloading shaders...");
         createPipeline(false);
     }
 
-    void ShadowMapRenderSystem::updateShadowCubeMapDebugWindow() {
-        ImTextureID cube_posx = (ImTextureID)m_shadowMapDebugDescriptorSets[0];
-        ImTextureID cube_negx = (ImTextureID)m_shadowMapDebugDescriptorSets[1];
-        ImTextureID cube_posy =
-            (ImTextureID)m_shadowMapDebugDescriptorSets[3]; // swap negative and positive y because vulkan :)
-        ImTextureID cube_negy = (ImTextureID)m_shadowMapDebugDescriptorSets[2];
-        ImTextureID cube_posz = (ImTextureID)m_shadowMapDebugDescriptorSets[4];
-        ImTextureID cube_negz = (ImTextureID)m_shadowMapDebugDescriptorSets[5];
+    void ShadowMapRenderSystem::updateShadowCubeMapDebugWindow(FrameInfo& frameInfo) {
+        // create a lambda to convert the descriptor set handles to ImTextureID for ImGui
+        auto getImTextureIDFromDescriptorSetHandle = [&](DescriptorSetHandle handle) -> ImTextureID {
+            return (ImTextureID)m_descriptorManager.getDescriptorSet(
+                handle, frameInfo.frameIndex);
+        };
+
+        ImTextureID cube_posx = getImTextureIDFromDescriptorSetHandle(m_shadowMapDebugDescriptorSets[0]);
+        ImTextureID cube_negx = getImTextureIDFromDescriptorSetHandle(m_shadowMapDebugDescriptorSets[1]);
+        // swap negative and positive y because vulkan :)
+        ImTextureID cube_posy = getImTextureIDFromDescriptorSetHandle(m_shadowMapDebugDescriptorSets[3]);
+        ImTextureID cube_negy = getImTextureIDFromDescriptorSetHandle(m_shadowMapDebugDescriptorSets[2]);
+        ImTextureID cube_posz = getImTextureIDFromDescriptorSetHandle(m_shadowMapDebugDescriptorSets[4]);
+        ImTextureID cube_negz = getImTextureIDFromDescriptorSetHandle(m_shadowMapDebugDescriptorSets[5]);
 
         /* Render the shadow cube map textures flat out in this format (with y mirrored):
         //                +----+

@@ -5,6 +5,7 @@
 #include "graphics/context/logical_device.hpp"
 #include "graphics/context/physical_device.hpp"
 #include "graphics/context/surface.hpp"
+#include "graphics/context/deletion_queue.hpp"
 
 namespace pxt {
 
@@ -24,6 +25,8 @@ namespace pxt {
         VkInstance getInstance() { return m_instance.getVkInstance(); }
 
         Window& getWindow() { return m_window; }
+
+        DeletionQueue& getDeletionQueue() { return m_deletionQueue; }
 
         VkSurfaceKHR getSurface() { return m_surface.getSurface(); }
 
@@ -204,6 +207,7 @@ namespace pxt {
          */
         void createCommandPool();
 
+        DeletionQueue m_deletionQueue;
         Window& m_window;
         Instance m_instance;
         Surface m_surface;

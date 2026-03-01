@@ -120,9 +120,10 @@ namespace pxt {
     VulkanShader::~VulkanShader() { cleanup(); }
 
     void VulkanShader::cleanup() {
-        if (m_module) {
-            vkDestroyShaderModule(m_context.getDevice(), m_module, nullptr);
-            m_module = nullptr;
+        if (m_module != VK_NULL_HANDLE) {
+            m_context.getDeletionQueue().push([device = m_context.getDevice(), shaderModule = m_module]() {
+                vkDestroyShaderModule(device, shaderModule, nullptr);
+            });
         }
     }
 

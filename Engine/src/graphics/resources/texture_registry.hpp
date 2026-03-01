@@ -2,6 +2,7 @@
 
 #include "core/pch.hpp"
 #include "graphics/descriptors/descriptors.hpp"
+#include "graphics/descriptors/descriptor_manager.hpp"
 #include "graphics/resources/texture2d.hpp"
 #include "resources/resource.hpp"
 #include "resources/types/image.hpp"
@@ -15,14 +16,7 @@ namespace pxt {
      */
     class TextureRegistry {
     public:
-        explicit TextureRegistry(Context& context);
-
-        /**
-         * @brief Sets the descriptor allocator for the registry.
-         *
-         * @param descriptorAllocator pointer to a growable descriptor allocator.
-         */
-        void setDescriptorAllocator(DescriptorAllocatorGrowable* descriptorAllocator);
+        explicit TextureRegistry(Context& context, DescriptorManager& descriptorManager);
 
         /**
          * @brief Adds a texture to the registry.
@@ -58,10 +52,14 @@ namespace pxt {
 
         /**
          * @brief Returns the Vulkan descriptor set that holds all texture bindings.
+         * 
+         * @param frameIndex The current frame index for double/triple buffering. This is used to retrieve the correct
+         * descriptor set for the current frame in flight.
+         * @note this set in particular is a bindless set, in the future the manager has to handle these.
          *
          * @return Vulkan descriptor set.
          */
-        VkDescriptorSet getDescriptorSet();
+        VkDescriptorSet getDescriptorSet(uint32_t frameIndex);
 
         /**
          * @brief Returns the Vulkan descriptor set layout used for texture bindings.
@@ -76,7 +74,7 @@ namespace pxt {
          * This function constructs a descriptor set layout with a combined image sampler binding,
          * prepares image info for each texture, allocates the descriptor set, and writes all image bindings to it.
          */
-        void createDescriptorSet();
+        void createDescriptorSets();
 
     private:
         std::vector<Shared<Image>> m_textures;
@@ -84,8 +82,7 @@ namespace pxt {
         std::unordered_map<std::string, uint32_t> m_aliasToIndex;
 
         Context& m_context;
-        DescriptorAllocatorGrowable* m_descriptorAllocator;
-        Shared<DescriptorSetLayout> m_textureDescriptorSetLayout;
-        VkDescriptorSet m_textureDescriptorSet;
+        DescriptorManager& m_descriptorManager;
+        DescriptorSetHandle m_textureDescriptorSet = core::UID::s_invalidId;
     };
 } // namespace pxt
