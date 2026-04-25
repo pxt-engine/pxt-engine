@@ -85,8 +85,8 @@ namespace pxt {
         template <typename Component>
         size_t remove() {
             PXT_STATIC_ASSERT(!IsCoreComponent<Component>::value, "Cannot remove a Core component");
-            
-            if (has<Component>()) {
+
+            if (!has<Component>()) {
                 PXT_WARN("Trying to remove a component the entity doesn't have (when calling registry.remove() this "
                          "could be intended behavior)");
             }
@@ -95,7 +95,7 @@ namespace pxt {
 
         /*
          * @brief Update a component of the entity using a provided function
-         * 
+         *
          * @tparam Component type
          * @tparam Func function type
          */
@@ -132,8 +132,6 @@ namespace pxt {
             }
             return std::ref(*m_scene);
         }
-
-
 
     private:
         entt::entity m_enttEntity{entt::null};
