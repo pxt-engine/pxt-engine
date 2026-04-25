@@ -57,10 +57,11 @@ namespace pxt {
             // TODO: remove of constructed component cannot be called. use an event based removal
             // entity.remove<TransformComponent>();
 
-            core::FileSystem::openWarningModal(
-                "Entity \"" + entity.getName() +
-                "\" cannot have both TransformComponent and Transform2dComponent. The "
-                "TransformComponent has been removed (not yet, we have to call an event!!!!).");
+            const std::string warningMessage =
+                "Entity " + entity.getName() +
+                " cannot have both TransformComponent and Transform2dComponent. The "
+                "TransformComponent has been removed (not yet, we have to call an event!!!!).";
+            core::FileSystem::openWarningModal(warningMessage);
         }
     }
 
@@ -73,10 +74,11 @@ namespace pxt {
             // TODO: remove of constructed component cannot be called. use an event based removal
             // entity.remove<Transform2dComponent>();
 
-            core::FileSystem::openWarningModal(
-                "Entity \"" + entity.getName() +
-                "\" cannot have both TransformComponent and Transform2dComponent. The "
-                "Transform2dComponent has been removed (not yet, we have to call an event!!!!).");
+            const std::string warningMessage =
+                "Entity " + entity.getName() +
+                " cannot have both Transform2dComponent and TransformComponent. The "
+                "Transform2dComponent has been removed (not yet, we have to call an event!!!!).";
+            core::FileSystem::openWarningModal(warningMessage);
         }
     }
 
