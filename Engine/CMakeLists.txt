@@ -17,7 +17,18 @@ target_include_directories(PXT_Engine
         ${CMAKE_CURRENT_SOURCE_DIR}/src
         ${CMAKE_CURRENT_SOURCE_DIR}/external/entt/single_include
         ${CMAKE_CURRENT_SOURCE_DIR}/external/yaml-cpp/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/external/slang/include
+
 )
+
+# disable slang other libraries etc
+set(SLANG_ENABLE_SLANGC OFF CACHE BOOL "" FORCE)
+set(SLANG_ENABLE_GFX OFF CACHE BOOL "" FORCE)
+set(SLANG_ENABLE_TESTS OFF CACHE BOOL "" FORCE)
+set(SLANG_ENABLE_EXAMPLES OFF CACHE BOOL "" FORCE)
+set(SLANG_ENABLE_REPLAYER OFF CACHE BOOL "" FORCE)
+set(SLANG_ENABLE_RENDER_TESTS OFF CACHE BOOL "" FORCE)
+set(SLANG_ENABLE_DOCS OFF CACHE BOOL "" FORCE)
 
 # Third-party external libraries with CMake support
 add_subdirectory(external/glfw)
@@ -26,6 +37,7 @@ add_subdirectory(external/tinyobjloader)
 add_subdirectory(external/entt)
 add_subdirectory(external/spdlog)
 add_subdirectory(external/yaml-cpp)
+add_subdirectory(external/slang)
 
 option(TRACY_ENABLE "" ON)
 add_subdirectory(external/tracy)
@@ -81,6 +93,7 @@ target_link_libraries(PXT_Engine
         imgui
         imguizmo
         spdlog::spdlog_header_only
+        slang
 
     PRIVATE 
         tinyobjloader

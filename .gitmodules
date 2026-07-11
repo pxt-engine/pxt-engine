@@ -26,3 +26,6 @@
 [submodule "Engine/external/yaml-cpp"]
 	path = Engine/external/yaml-cpp
 	url = https://github.com/pxt-engine/yaml-cpp
+[submodule "Engine/external/slang"]
+	path = Engine/external/slang
+	url = https://github.com/shader-slang/slang
