@@ -1,5 +1,6 @@
 #include "resources/types/material.hpp"
 
+#include "application.hpp"
 #include "resources/resource_manager.hpp"
 
 namespace pxt {
@@ -146,10 +147,15 @@ namespace pxt {
                                       m_blinnPhongSpecularShininess);
     }
 
-    // -------- UI --------
+    void Material::invalidate() {
+        Application::get().getInvalidationQueue().push(ResourceInvalidation{Resource::Type::Material, this->id});
+    }
+
     void Material::drawMaterialUi() {
-        ImGui::SliderFloat("Metallic", &m_metallic, 0.0f, 1.0f);
-        ImGui::SliderFloat("Roughness", &m_roughness, 0.0f, 1.0f);
+        bool changed = false;
+
+        changed |= ImGui::SliderFloat("Metallic", &m_metallic, 0.0f, 1.0f);
+        changed |= ImGui::SliderFloat("Roughness", &m_roughness, 0.0f, 1.0f);
 
         if (ImGui::TreeNode("Textures (Work in progress)")) {
             // TODO: handle texture window on selection
@@ -184,17 +190,20 @@ namespace pxt {
             ImGui::TreePop();
         }
 
-        ImGui::ColorEdit3("Emissive Color", glm::value_ptr(m_emissiveColor));
-        ImGui::SliderFloat("Emissive Intensity", &m_emissiveColor.a, 0.0f, 100.0f);
+        changed |= ImGui::ColorEdit3("Emissive Color", glm::value_ptr(m_emissiveColor));
+        changed |= ImGui::SliderFloat("Emissive Intensity", &m_emissiveColor.a, 0.0f, 100.0f);
 
-        ImGui::SliderFloat("Transmission", &m_transmission, 0.0f, 1.0f);
-        ImGui::SliderFloat("Index of Refraction", &m_ior, 1.0f, 3.0f);
+        changed |= ImGui::SliderFloat("Transmission", &m_transmission, 0.0f, 1.0f);
+        changed |= ImGui::SliderFloat("Index of Refraction", &m_ior, 1.0f, 3.0f);
 
         if (ImGui::TreeNode("Blinn-Phong Specular Parameters")) {
-            ImGui::SliderFloat("Specular Intensity", &m_blinnPhongSpecularIntensity, 0.0f, 1.0f);
-            ImGui::SliderFloat("Specular Shininess", &m_blinnPhongSpecularShininess, 1.0f, 50.0f);
-
+            changed |= ImGui::SliderFloat("Specular Intensity", &m_blinnPhongSpecularIntensity, 0.0f, 1.0f);
+            changed |= ImGui::SliderFloat("Specular Shininess", &m_blinnPhongSpecularShininess, 1.0f, 50.0f);
             ImGui::TreePop();
+        }
+
+        if (changed) {
+            this->invalidate();
         }
     }
 } // namespace pxt

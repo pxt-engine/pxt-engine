@@ -1,8 +1,8 @@
 #pragma once
 
 #include "core/pch.hpp"
-#include "graphics/descriptors/descriptors.hpp"
 #include "graphics/descriptors/descriptor_manager.hpp"
+#include "graphics/descriptors/descriptors.hpp"
 #include "graphics/resources/texture_registry.hpp"
 #include "graphics/resources/vk_buffer.hpp"
 #include "graphics/swap_chain.hpp"
@@ -47,7 +47,8 @@ namespace pxt {
      */
     class MaterialRegistry {
     public:
-        explicit MaterialRegistry(Context& context, DescriptorManager& descriptorManager, TextureRegistry& textureRegistry);
+        explicit MaterialRegistry(Context& context, DescriptorManager& descriptorManager,
+                                  TextureRegistry& textureRegistry);
 
         /**
          * @brief Adds a material to the registry.
@@ -91,6 +92,8 @@ namespace pxt {
 
         void updateDescriptorSet(uint32_t frameIndex);
 
+        void markBufferDirty(uint32_t frameIndex) { isBufferDirty[frameIndex] = true; }
+
     private:
         /**
          * @brief Converts a Material object into its corresponding GPU-ready MaterialData structure.
@@ -109,7 +112,7 @@ namespace pxt {
         std::unordered_map<ResourceId, uint32_t> m_idToIndex;
 
         // we use this to determine whether to update the descriptor set or not
-        //TODO: the update is now called by the render system, it should become a centralized sync point when
+        // TODO: the update is now called by the render system, it should become a centralized sync point when
         //      this class becomes a field of the resource manager
         std::array<bool, SwapChain::MAX_FRAMES_IN_FLIGHT> isBufferDirty{false};
 

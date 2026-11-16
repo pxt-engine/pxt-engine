@@ -7,8 +7,8 @@
 #include "core/layer/layer_stack.hpp"
 #include "core/pch.hpp"
 #include "graphics/context/context.hpp"
-#include "graphics/descriptors/descriptors.hpp"
 #include "graphics/descriptors/descriptor_manager.hpp"
+#include "graphics/descriptors/descriptors.hpp"
 #include "graphics/frame_info.hpp"
 #include "graphics/render_systems/render_layer.hpp"
 #include "graphics/render_systems/ui_render_layer.hpp"
@@ -21,6 +21,7 @@
 #include "resources/resource_manager.hpp"
 #include "resources/types/material.hpp"
 #include "scene/scene.hpp"
+#include <graphics/resources/invalidation_queue.hpp>
 
 namespace pxt {
 
@@ -38,6 +39,8 @@ namespace pxt {
 
         core::EventQueue& getEventQueue() { return m_eventQueue; }
 
+        InvalidationQueue& getInvalidationQueue() { return *m_invalidationQueue; }
+
         Context& getContext() { return m_context; }
 
         Window& getWindow() { return m_window; }
@@ -49,6 +52,9 @@ namespace pxt {
         DescriptorManager& getDescriptorManager() { return *m_descriptorManager; }
 
         const core::EngineMode getEngineMode() { return m_engineMode; }
+
+        // TODO: move inside ResourceManager and handle this differently
+        MaterialRegistry& getMaterialRegistry() { return m_materialRegistry; }
 
         // LAYERS
 
@@ -141,6 +147,8 @@ namespace pxt {
         TextureRegistry m_textureRegistry{m_context, *m_descriptorManager};
         MaterialRegistry m_materialRegistry{m_context, *m_descriptorManager, m_textureRegistry};
         BLASRegistry m_blasRegistry{m_context};
+
+        Unique<InvalidationQueue> m_invalidationQueue = createUnique<InvalidationQueue>();
 
         core::EventQueue m_eventQueue{};
 

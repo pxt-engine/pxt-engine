@@ -86,6 +86,8 @@ namespace pxt {
 
         bool isEmissive();
 
+        void invalidate();
+
         void drawMaterialUi();
 
     protected:

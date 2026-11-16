@@ -50,9 +50,8 @@ namespace pxt {
         }
 
         // create the render layer
-        auto renderLayer =
-            createUnique<RenderLayer>(m_context, m_renderer, *m_descriptorManager, m_textureRegistry,
-                                      m_materialRegistry, m_blasRegistry, m_scene.getEnvironment());
+        auto renderLayer = createUnique<RenderLayer>(m_context, m_renderer, *m_descriptorManager, m_textureRegistry,
+                                                     m_materialRegistry, m_blasRegistry, m_scene.getEnvironment());
 
         // we store a non-owning pointer to the render layer for
         // later operations in the main loop
@@ -188,6 +187,11 @@ namespace pxt {
                 // delete all unused resources used previously by the frame
                 m_context.getDeletionQueue().updateFrameIndex(frameIndex);
                 m_context.getDeletionQueue().flush(frameIndex);
+
+                // update frameIndex for the invalidation queue and flush it
+                m_invalidationQueue->updateFrameIndex(frameIndex);
+                m_invalidationQueue->flush(frameIndex);
+
                 // update all dirty descriptor sets
                 m_descriptorManager->flushUpdates(frameIndex);
 
@@ -245,8 +249,8 @@ namespace pxt {
     bool Application::isRunning() { return !m_window.shouldClose() && m_running; }
 
     void Application::onPostFrameUpdate(FrameInfo& frameInfo) {
-        //TODO: here we need to wait on the fence only if one of the systems calling onPostFrameUpdate needs it
-        // so we make them call for the fence
+        // TODO: here we need to wait on the fence only if one of the systems calling onPostFrameUpdate needs it
+        //  so we make them call for the fence
 
         m_layerStack.onPostFrameUpdate(frameInfo);
     }
